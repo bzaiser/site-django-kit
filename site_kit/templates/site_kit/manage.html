@@ -33,7 +33,13 @@
                             <div class="fw-semibold">{{ p.title }} {% if p.is_home %}<span class="badge text-bg-primary">Start</span>{% endif %}</div>
                             <div class="small text-muted">/seite/{{ p.slug }}/</div>
                         </div>
-                        <a href="{% url 'site_kit:page_edit' p.id %}" class="btn btn-sm btn-outline-primary">Blöcke bearbeiten</a>
+                        <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                            <a href="{% url 'site_kit:page_edit' p.id %}" class="btn btn-sm btn-outline-primary">Blöcke bearbeiten</a>
+                            <form method="post" action="{% url 'site_kit:page_delete' p.id %}" onsubmit="return confirm('Seite „{{ p.title|escapejs }}“ wirklich löschen?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Seite löschen"><i class="bi bi-trash3"></i></button>
+                            </form>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>

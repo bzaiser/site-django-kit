@@ -266,6 +266,16 @@ def page_create_view(request):
 
 
 @staff_member_required
+def page_delete_view(request, pk):
+    page = get_object_or_404(PublicPage, pk=pk)
+    if request.method == "POST":
+        title = page.title
+        page.delete()
+        messages.success(request, f"Seite „{title}“ gelöscht.")
+    return redirect("site_kit:manage")
+
+
+@staff_member_required
 def page_edit_view(request, pk):
     page = get_object_or_404(PublicPage, pk=pk)
     if request.method == "POST":

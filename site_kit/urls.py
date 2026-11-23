@@ -18,4 +18,5 @@ urlpatterns = [
     path("site/manage/", views.manage_view, name="manage"),
     path("site/manage/pages/new/", views.page_create_view, name="page_create"),
     path("site/manage/pages/<int:pk>/", views.page_edit_view, name="page_edit"),
+    path("site/manage/pages/<int:pk>/delete/", views.page_delete_view, name="page_delete"),
 ]

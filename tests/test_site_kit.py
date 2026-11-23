@@ -130,6 +130,9 @@ class SiteKitTests(TestCase):
         })
         self.assertRedirects(b_resp, reverse("site_kit:page_edit", args=[p.id]))
         self.assertTrue(p.blocks.filter(title="Fußball").exists())
+        d_resp = self.client.post(reverse("site_kit:page_delete", args=[p.id]))
+        self.assertEqual(d_resp.status_code, 302)
+        self.assertFalse(PublicPage.objects.filter(pk=p.id).exists())
 
 
 if __name__ == "__main__":
