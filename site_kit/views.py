@@ -249,6 +249,18 @@ def manage_view(request):
     return render(request, "site_kit/manage.html", {"site_cfg": cfg, "pages": pages})
 
 
+def _warn_if_reserved_nav_page(request, page: PublicPage):
+    if page.is_published and page.show_in_nav and not page.is_home:
+        slug_l = page.slug.lower()
+        title_l = page.title.strip().lower()
+        if slug_l in ("news", "termine") or title_l in ("news", "termine"):
+            target = "/news/" if ("news" in (slug_l, title_l)) else "/termine/"
+            messages.warning(
+                request,
+                f"Hinweis: Es existiert bereits ein Standard-Link für „{page.title}“ ({target}). Der Standard-Link wird in der Navigation ausgeblendet, solange diese Seite im Menü aktiv ist.",
+            )
+
+
 @staff_member_required
 def page_create_view(request):
     if request.method == "POST":
@@ -261,6 +273,7 @@ def page_create_view(request):
                 show_in_nav=request.POST.get("show_in_nav") == "on",
             )
             messages.success(request, f"Seite „{p.title}“ erstellt.")
+            _warn_if_reserved_nav_page(request, p)
             return redirect("site_kit:page_edit", pk=p.id)
     return redirect("site_kit:manage")
 
@@ -318,6 +331,7 @@ def page_edit_view(request, pk):
             page.meta_description = (request.POST.get("meta_description") or "").strip()[:255]
             page.save()
             messages.success(request, "Seiteneinstellungen gespeichert.")
+            _warn_if_reserved_nav_page(request, page)
         return redirect("site_kit:page_edit", pk=page.id)
 
     return render(request, "site_kit/page_editor.html", {
