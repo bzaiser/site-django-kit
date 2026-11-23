@@ -3,9 +3,17 @@ from django.utils.text import slugify
 
 
 class SiteConfig(models.Model):
+    CONTAINER_WIDTH_CHOICES = [
+        ("standard", "Standard"),
+        ("wide", "Breit"),
+        ("full", "Vollbreite"),
+    ]
+
     site_name = models.CharField(max_length=140, default="Mein Verein")
     tagline = models.CharField(max_length=220, blank=True, default="")
+    logo = models.FileField(upload_to="site_kit/logo/", blank=True, null=True)
     logo_url = models.URLField(blank=True, default="")
+    container_width = models.CharField(max_length=16, choices=CONTAINER_WIDTH_CHOICES, default="standard")
     footer_text = models.CharField(max_length=220, blank=True, default="")
     imprint_text = models.TextField(blank=True, default="")
     privacy_text = models.TextField(blank=True, default="")
@@ -21,6 +29,23 @@ class SiteConfig(models.Model):
 
     def __str__(self):
         return self.site_name
+
+    @property
+    def resolved_logo_url(self) -> str:
+        if self.logo:
+            try:
+                return self.logo.url
+            except Exception:
+                pass
+        return (self.logo_url or "").strip()
+
+    @property
+    def container_class(self) -> str:
+        if self.container_width == "full":
+            return "container-fluid px-3 px-md-4"
+        if self.container_width == "wide":
+            return "container-xxl"
+        return "container"
 
 
 class PublicPage(models.Model):
@@ -66,10 +91,19 @@ class PageBlock(models.Model):
         ("faq_list", "FAQ-Akkordeon (list_kit)"),
         ("public_form", "Öffentliches Formular (list_kit)"),
         ("stats_bar", "Kennzahlen-Leiste"),
+        ("rich_html", "HTML / WYSIWYG (Admin-Layout)"),
+    ]
+    COL_SPAN_CHOICES = [
+        (12, "Volle Breite (12/12)"),
+        (8, "Zwei Drittel (8/12)"),
+        (6, "Halbe Breite (6/12)"),
+        (4, "Drittel Breite (4/12)"),
+        (3, "Viertel Breite (3/12)"),
     ]
 
     page = models.ForeignKey(PublicPage, on_delete=models.CASCADE, related_name="blocks")
     block_type = models.CharField(max_length=32, choices=BLOCK_TYPE_CHOICES, default="text_image")
+    col_span = models.PositiveSmallIntegerField(choices=COL_SPAN_CHOICES, default=12)
     title = models.CharField(max_length=180, blank=True, default="")
     subtitle = models.CharField(max_length=255, blank=True, default="")
     body = models.TextField(blank=True, default="")
@@ -95,3 +129,29 @@ class PageBlock(models.Model):
             except Exception:
                 pass
         return (self.image_url or "").strip()
+
+    @property
+    def grid_col_class(self) -> str:
+        return {
+            8: "col-12 col-lg-8",
+            6: "col-12 col-lg-6",
+            4: "col-12 col-md-6 col-lg-4",
+            3: "col-12 col-md-6 col-lg-3",
+        }.get(self.col_span, "col-12")
+
+    @property
+    def style_variant(self) -> str:
+        cfg = self.config_json if isinstance(self.config_json, dict) else {}
+        val = (cfg.get("style_variant") or "card").strip()
+        return val if val in ("card", "flat", "subtle", "primary") else "card"
+
+    @property
+    def image_position(self) -> str:
+        cfg = self.config_json if isinstance(self.config_json, dict) else {}
+        val = (cfg.get("image_position") or "right").strip()
+        return val if val in ("right", "left", "top") else "right"
+
+    @property
+    def is_compact(self) -> bool:
+        cfg = self.config_json if isinstance(self.config_json, dict) else {}
+        return bool(cfg.get("compact"))

@@ -1,4 +1,5 @@
 from functools import wraps
+from html.parser import HTMLParser
 import json
 from xml.sax.saxutils import escape
 
@@ -521,6 +522,95 @@ def news_rss_view(request):
     return HttpResponse("\n".join(xml), content_type="application/rss+xml; charset=utf-8")
 
 
+_ALLOWED_HTML_TAGS = {
+    "p", "br", "hr", "h2", "h3", "h4", "h5", "strong", "b", "em", "i", "u",
+    "ul", "ol", "li", "blockquote", "a", "div", "span", "table", "thead",
+    "tbody", "tr", "th", "td",
+}
+_VOID_HTML_TAGS = {"br", "hr"}
+_STRIP_WITH_CONTENT_TAGS = {"script", "style", "iframe", "object", "embed", "svg", "form"}
+
+
+class _SafeHtmlSanitizer(HTMLParser):
+    def __init__(self):
+        super().__init__(convert_charrefs=False)
+        self.out = []
+        self._skip_depth = 0
+
+    def handle_starttag(self, tag, attrs):
+        t = tag.lower()
+        if t in _STRIP_WITH_CONTENT_TAGS:
+            self._skip_depth += 1
+            return
+        if self._skip_depth > 0 or t not in _ALLOWED_HTML_TAGS:
+            return
+        clean_attrs = []
+        for k, v in attrs:
+            kl = (k or "").lower()
+            if kl == "class" and v:
+                clean_attrs.append(f'class="{escape(v)}"')
+            elif t == "a" and kl == "href" and v:
+                vl = v.strip()
+                if vl.startswith(("http://", "https://", "/", "#")):
+                    clean_attrs.append(f'href="{escape(vl)}"')
+            elif t == "a" and kl == "target" and v in ("_blank", "_self"):
+                clean_attrs.append(f'target="{v}"')
+        attr_str = (" " + " ".join(clean_attrs)) if clean_attrs else ""
+        self.out.append(f"<{t}{attr_str}>")
+
+    def handle_endtag(self, tag):
+        t = tag.lower()
+        if t in _STRIP_WITH_CONTENT_TAGS:
+            if self._skip_depth > 0:
+                self._skip_depth -= 1
+            return
+        if self._skip_depth > 0 or t not in _ALLOWED_HTML_TAGS or t in _VOID_HTML_TAGS:
+            return
+        self.out.append(f"</{t}>")
+
+    def handle_data(self, data):
+        if self._skip_depth == 0:
+            self.out.append(escape(data))
+
+    def handle_entityref(self, name):
+        if self._skip_depth == 0:
+            self.out.append(f"&{name};")
+
+    def handle_charref(self, name):
+        if self._skip_depth == 0:
+            self.out.append(f"&#{name};")
+
+
+def _sanitize_rich_html(raw_html: str) -> str:
+    parser = _SafeHtmlSanitizer()
+    parser.feed(raw_html or "")
+    parser.close()
+    return "".join(parser.out).strip()
+
+
+def _parse_col_span(raw_val) -> int:
+    try:
+        val = int(raw_val)
+        return val if val in (12, 8, 6, 4, 3) else 12
+    except (TypeError, ValueError):
+        return 12
+
+
+def _parse_block_layout_config(request, existing_cfg=None) -> dict:
+    cfg = dict(existing_cfg) if isinstance(existing_cfg, dict) else {}
+    sv = (request.POST.get("style_variant") or cfg.get("style_variant") or "card").strip()
+    cfg["style_variant"] = sv if sv in ("card", "flat", "subtle", "primary") else "card"
+    ip = (request.POST.get("image_position") or cfg.get("image_position") or "right").strip()
+    cfg["image_position"] = ip if ip in ("right", "left", "top") else "right"
+    if "compact" in request.POST or "layout_fields_present" in request.POST:
+        cfg["compact"] = request.POST.get("compact") == "on"
+    if "role_filter" in request.POST:
+        cfg["role_filter"] = (request.POST.get("role_filter") or "").strip()[:60]
+    if "collection_slug" in request.POST:
+        cfg["collection_slug"] = (request.POST.get("collection_slug") or "").strip()[:80]
+    return cfg
+
+
 @_editor_required
 def manage_view(request):
     cfg = SiteConfig.get_solo()
@@ -535,6 +625,15 @@ def manage_view(request):
         cfg.imprint_text = (request.POST.get("imprint_text") or "").strip()
         cfg.privacy_text = (request.POST.get("privacy_text") or "").strip()
         cfg.default_genre = (request.POST.get("default_genre") or "").strip()[:40]
+        if "logo_url" in request.POST:
+            cfg.logo_url = (request.POST.get("logo_url") or "").strip()[:200]
+        if request.FILES.get("logo"):
+            cfg.logo = request.FILES["logo"]
+        elif request.POST.get("remove_logo") == "1":
+            cfg.logo = None
+        cw = (request.POST.get("container_width") or cfg.container_width or "standard").strip()
+        if cw in ("standard", "wide", "full"):
+            cfg.container_width = cw
         cfg.save()
         messages.success(request, "Webseiten-Einstellungen gespeichert.")
         return redirect("site_kit:manage")
@@ -543,7 +642,12 @@ def manage_view(request):
     return render(
         request,
         "site_kit/manage.html",
-        {"site_cfg": cfg, "pages": pages, "can_edit_site_config": can_edit_config},
+        {
+            "site_cfg": cfg,
+            "pages": pages,
+            "can_edit_site_config": can_edit_config,
+            "container_width_choices": SiteConfig.CONTAINER_WIDTH_CHOICES,
+        },
     )
 
 
@@ -589,29 +693,81 @@ def page_delete_view(request, pk):
 @_editor_required
 def page_edit_view(request, pk):
     page = get_object_or_404(PublicPage, pk=pk)
+    is_admin = bool(getattr(request.user, "is_staff", False) or getattr(request.user, "is_superuser", False))
     if request.method == "POST":
         action = request.POST.get("action") or "save_page"
         if action == "add_block":
             btype = request.POST.get("block_type") or "text_image"
+            if btype == "rich_html" and not is_admin:
+                return HttpResponseForbidden("Nur Administratoren dürfen HTML-/WYSIWYG-Blöcke anlegen.")
             if btype in dict(PageBlock.BLOCK_TYPE_CHOICES):
                 pos = (page.blocks.count() + 1) * 10
+                raw_body = (request.POST.get("body") or "").strip()
+                if btype == "rich_html":
+                    raw_body = _sanitize_rich_html(raw_body)
                 PageBlock.objects.create(
                     page=page,
                     block_type=btype,
+                    col_span=_parse_col_span(request.POST.get("col_span")),
                     title=(request.POST.get("title") or "").strip()[:180],
                     subtitle=(request.POST.get("subtitle") or "").strip()[:255],
-                    body=(request.POST.get("body") or "").strip(),
+                    body=raw_body,
                     image=request.FILES.get("image"),
                     image_url=(request.POST.get("image_url") or "").strip()[:200],
                     cta_label=(request.POST.get("cta_label") or "").strip()[:80],
                     cta_url=(request.POST.get("cta_url") or "").strip()[:255],
+                    config_json=_parse_block_layout_config(request),
                     position=pos,
                 )
                 messages.success(request, "Inhaltsblock hinzugefügt.")
+        elif action == "edit_block":
+            block = get_object_or_404(PageBlock, pk=request.POST.get("block_id"), page=page)
+            block.title = (request.POST.get("title") or "").strip()[:180]
+            block.subtitle = (request.POST.get("subtitle") or "").strip()[:255]
+            raw_body = (request.POST.get("body") or "").strip()
+            if block.block_type == "rich_html":
+                if is_admin:
+                    block.body = _sanitize_rich_html(raw_body)
+                    block.col_span = _parse_col_span(request.POST.get("col_span"))
+                    block.config_json = _parse_block_layout_config(request, block.config_json)
+                else:
+                    # Redakteure können bei Admin-HTML-Blöcken nur Text/Inhalt ändern, nicht Layout/Struktur
+                    block.body = _sanitize_rich_html(raw_body)
+            else:
+                block.body = raw_body
+                block.col_span = _parse_col_span(request.POST.get("col_span"))
+                block.config_json = _parse_block_layout_config(request, block.config_json)
+                if "image_url" in request.POST:
+                    block.image_url = (request.POST.get("image_url") or "").strip()[:200]
+                if request.FILES.get("image"):
+                    block.image = request.FILES["image"]
+                elif request.POST.get("remove_image") == "1":
+                    block.image = None
+                if "cta_label" in request.POST:
+                    block.cta_label = (request.POST.get("cta_label") or "").strip()[:80]
+                if "cta_url" in request.POST:
+                    block.cta_url = (request.POST.get("cta_url") or "").strip()[:255]
+            block.save()
+            messages.success(request, "Inhaltsblock aktualisiert.")
+        elif action == "move_block":
+            bid = request.POST.get("block_id")
+            direction = request.POST.get("direction")
+            ordered = list(page.blocks.order_by("position", "id"))
+            for idx, b in enumerate(ordered):
+                if str(b.id) == str(bid):
+                    swap_idx = idx - 1 if direction == "up" else idx + 1
+                    if 0 <= swap_idx < len(ordered):
+                        ordered[idx], ordered[swap_idx] = ordered[swap_idx], ordered[idx]
+                        for pos_i, item_b in enumerate(ordered):
+                            PageBlock.objects.filter(pk=item_b.id).update(position=(pos_i + 1) * 10)
+                    break
         elif action == "delete_block":
             bid = request.POST.get("block_id")
             if bid:
-                PageBlock.objects.filter(pk=bid, page=page).delete()
+                block = get_object_or_404(PageBlock, pk=bid, page=page)
+                if block.block_type == "rich_html" and not is_admin:
+                    return HttpResponseForbidden("Nur Administratoren dürfen HTML-/WYSIWYG-Blöcke löschen.")
+                block.delete()
                 messages.success(request, "Block entfernt.")
         elif action == "reorder_blocks":
             order_raw = (request.POST.get("order_json") or "").strip()
@@ -634,8 +790,14 @@ def page_edit_view(request, pk):
             _warn_if_reserved_nav_page(request, page)
         return redirect("site_kit:page_edit", pk=page.id)
 
+    visible_choices = [
+        (k, lbl) for k, lbl in PageBlock.BLOCK_TYPE_CHOICES
+        if is_admin or k != "rich_html"
+    ]
     return render(request, "site_kit/page_editor.html", {
         "page": page,
         "blocks": page.blocks.all(),
-        "block_choices": PageBlock.BLOCK_TYPE_CHOICES,
+        "block_choices": visible_choices,
+        "col_choices": PageBlock.COL_SPAN_CHOICES,
+        "is_admin": is_admin,
     })

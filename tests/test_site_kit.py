@@ -280,6 +280,79 @@ class SiteKitTests(TestCase):
         r_reg = self.client.get(reverse("site_kit:event_registration") + f"?event={future_ev.id}")
         self.assertContains(r_reg, "ausgebucht")
 
+    def test_grid_flat_block_wysiwyg_sanitizing_and_logo_upload(self):
+        from django.contrib.auth import get_user_model
+        from django.contrib.auth.models import Group
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        User = get_user_model()
+        red_grp, _ = Group.objects.get_or_create(name="Redakteur")
+        red = User.objects.create_user(username="red_layout", password="pw", is_staff=False)
+        red.groups.add(red_grp)
+
+        p = PublicPage.objects.create(title="Layouttest", slug="layouttest", is_published=True)
+
+        # Redakteur cannot add rich_html
+        self.client.force_login(red)
+        r_forbid = self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {"action": "add_block", "block_type": "rich_html", "body": "<p>Test</p>"},
+        )
+        self.assertEqual(r_forbid.status_code, 403)
+
+        # Staff adds rich_html (with unsafe script/style) + flat 6/12 block
+        self.client.force_login(self.staff)
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "add_block",
+                "block_type": "rich_html",
+                "col_span": "6",
+                "style_variant": "flat",
+                "layout_fields_present": "1",
+                "title": "HTML Box",
+                "body": '<p class="text-primary" style="color:red" onclick="alert(1)">Hallo</p><script>bad()</script>',
+            },
+        )
+        rich_b = p.blocks.get(title="HTML Box")
+        self.assertEqual(rich_b.col_span, 6)
+        self.assertEqual(rich_b.style_variant, "flat")
+        self.assertIn('class="text-primary"', rich_b.body)
+        self.assertNotIn("<script>", rich_b.body)
+        self.assertNotIn("style=", rich_b.body)
+        self.assertNotIn("onclick=", rich_b.body)
+
+        # Redakteur CAN update text in existing rich_html block, CANNOT delete it
+        self.client.force_login(red)
+        r_edit = self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "edit_block",
+                "block_id": rich_b.id,
+                "title": "HTML Box",
+                "body": '<p class="text-primary">Geändert</p>',
+            },
+        )
+        self.assertEqual(r_edit.status_code, 302)
+        rich_b.refresh_from_db()
+        self.assertIn("Geändert", rich_b.body)
+        self.assertEqual(
+            self.client.post(
+                reverse("site_kit:page_edit", args=[p.id]),
+                {"action": "delete_block", "block_id": rich_b.id},
+            ).status_code,
+            403,
+        )
+
+        # Staff uploads logo
+        self.client.force_login(self.staff)
+        logo = SimpleUploadedFile("logo.png", b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR", content_type="image/png")
+        self.client.post(reverse("site_kit:manage"), {"site_name": "TestVerein", "logo": logo, "container_width": "wide"})
+        pub = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(pub, "col-lg-6")
+        self.assertContains(pub, "container-xxl")
+        self.assertContains(pub, "logo")
+
 
 if __name__ == "__main__":
     import unittest

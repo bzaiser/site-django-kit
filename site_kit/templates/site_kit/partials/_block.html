@@ -1,9 +1,9 @@
 {% if item.block.block_type == 'hero' %}
-<section class="card shadow-sm rounded-4 overflow-hidden mb-4">
-    <div class="card-body p-4 p-md-5">
-        <div class="row align-items-center g-4">
-            <div class="{% if item.block.resolved_image_url %}col-lg-7{% else %}col-12{% endif %}">
-                {% if item.block.title %}<h1 class="display-6 fw-bold mb-2">{{ item.block.title }}</h1>{% endif %}
+<section class="{% if item.block.style_variant == 'flat' %}py-3{% elif item.block.style_variant == 'subtle' %}bg-body-tertiary rounded-4 p-4 p-md-5{% elif item.block.style_variant == 'primary' %}card border-primary border-2 shadow-sm rounded-4 overflow-hidden{% else %}card shadow-sm rounded-4 overflow-hidden{% endif %} h-100">
+    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4 p-md-5{% endif %}{% endif %}">
+        <div class="row align-items-center g-4 {% if item.block.image_position == 'left' %}flex-lg-row-reverse{% elif item.block.image_position == 'top' %}flex-column-reverse{% endif %}">
+            <div class="{% if item.block.resolved_image_url and item.block.image_position != 'top' %}col-lg-7{% else %}col-12{% endif %}">
+                {% if item.block.title %}<h1 class="{% if item.block.is_compact %}h3{% else %}display-6{% endif %} fw-bold mb-2">{{ item.block.title }}</h1>{% endif %}
                 {% if item.block.subtitle %}<p class="lead text-muted mb-3">{{ item.block.subtitle }}</p>{% endif %}
                 {% if item.block.body %}<p class="mb-3">{{ item.block.body }}</p>{% endif %}
                 {% if item.block.cta_label and item.block.cta_url %}
@@ -11,7 +11,7 @@
                 {% endif %}
             </div>
             {% if item.block.resolved_image_url %}
-            <div class="col-lg-5 text-center">
+            <div class="{% if item.block.image_position == 'top' %}col-12{% else %}col-lg-5{% endif %} text-center">
                 <img src="{{ item.block.resolved_image_url }}" alt="{{ item.block.title }}" class="img-fluid rounded-4 shadow-sm">
             </div>
             {% endif %}
@@ -20,10 +20,10 @@
 </section>
 
 {% elif item.block.block_type == 'text_image' %}
-<section class="card shadow-sm rounded-4 mb-4">
-    <div class="card-body p-4">
-        <div class="row align-items-center g-4">
-            <div class="{% if item.block.resolved_image_url %}col-md-7{% else %}col-12{% endif %}">
+<section class="{% if item.block.style_variant == 'flat' %}py-2{% elif item.block.style_variant == 'subtle' %}bg-body-tertiary rounded-4 p-4{% elif item.block.style_variant == 'primary' %}card border-primary border-2 shadow-sm rounded-4{% else %}card shadow-sm rounded-4{% endif %} h-100">
+    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
+        <div class="row align-items-center g-4 {% if item.block.image_position == 'left' %}flex-md-row-reverse{% elif item.block.image_position == 'top' %}flex-column-reverse{% endif %}">
+            <div class="{% if item.block.resolved_image_url and item.block.image_position != 'top' %}col-md-7{% else %}col-12{% endif %}">
                 {% if item.block.title %}<h2 class="h4 fw-bold mb-2">{{ item.block.title }}</h2>{% endif %}
                 {% if item.block.subtitle %}<div class="text-muted mb-2">{{ item.block.subtitle }}</div>{% endif %}
                 {% if item.block.body %}<div class="text-break">{{ item.block.body|linebreaksbr }}</div>{% endif %}
@@ -32,7 +32,7 @@
                 {% endif %}
             </div>
             {% if item.block.resolved_image_url %}
-            <div class="col-md-5 text-center">
+            <div class="{% if item.block.image_position == 'top' %}col-12{% else %}col-md-5{% endif %} text-center">
                 <img src="{{ item.block.resolved_image_url }}" alt="{{ item.block.title }}" class="img-fluid rounded-3">
             </div>
             {% endif %}
@@ -208,6 +208,15 @@
                 <button type="submit" class="btn btn-primary rounded-pill px-4">Absenden</button>
             </div>
         </form>
+    </div>
+</section>
+
+{% elif item.block.block_type == 'rich_html' %}
+<section class="{% if item.block.style_variant == 'flat' %}py-2{% elif item.block.style_variant == 'subtle' %}bg-body-tertiary rounded-4 p-4{% elif item.block.style_variant == 'primary' %}card border-primary border-2 shadow-sm rounded-4{% else %}card shadow-sm rounded-4{% endif %} h-100">
+    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
+        {% if item.block.title %}<h2 class="h4 fw-bold mb-2">{{ item.block.title }}</h2>{% endif %}
+        {% if item.block.subtitle %}<div class="text-muted mb-2">{{ item.block.subtitle }}</div>{% endif %}
+        <div class="site-rich-html">{{ item.block.body|safe }}</div>
     </div>
 </section>
 {% endif %}

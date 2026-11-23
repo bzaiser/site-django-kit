@@ -5,9 +5,9 @@
 
 {% block navbar %}
 <header class="border-bottom bg-body-tertiary">
-    <div class="container py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div class="{{ site_cfg.container_class|default:'container' }} py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
         <a href="{% url 'site_kit:home' %}" class="fw-bold fs-5 text-decoration-none text-reset d-flex align-items-center gap-2">
-            {% if site_cfg.logo_url %}<img src="{{ site_cfg.logo_url }}" alt="{{ site_cfg.site_name }}" height="28">{% else %}<i class="bi bi-shield-check text-primary"></i>{% endif %}
+            {% if site_cfg.resolved_logo_url %}<img src="{{ site_cfg.resolved_logo_url }}" alt="{{ site_cfg.site_name }}" height="32" class="rounded-2 object-fit-contain">{% else %}<i class="bi bi-shield-check text-primary"></i>{% endif %}
             <span>{{ site_cfg.site_name }}</span>
         </a>
         <div class="d-flex flex-wrap align-items-center gap-2">

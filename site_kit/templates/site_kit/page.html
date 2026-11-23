@@ -1,17 +1,23 @@
 {% extends "site_kit/layouts/public.html" %}
 
 {% block content %}
-<div class="container">
+<div class="{{ site_cfg.container_class|default:'container' }}">
     {% if is_draft_preview %}
     <div class="alert alert-warning mb-3">Entwurfs-Vorschau (noch nicht öffentlich sichtbar).</div>
     {% endif %}
+    <div class="row g-4">
     {% for item in blocks %}
-        {% include "site_kit/partials/_block.html" with item=item %}
+        <div class="{{ item.block.grid_col_class }}">
+            {% include "site_kit/partials/_block.html" with item=item %}
+        </div>
     {% empty %}
-        <div class="card shadow-sm p-5 text-center">
-            <h1 class="h3 fw-bold mb-2">{{ site_cfg.site_name }}</h1>
-            <p class="text-muted mb-0">{{ site_cfg.tagline|default:"Willkommen auf unserer Webseite." }}</p>
+        <div class="col-12">
+            <div class="card shadow-sm p-5 text-center">
+                <h1 class="h3 fw-bold mb-2">{{ site_cfg.site_name }}</h1>
+                <p class="text-muted mb-0">{{ site_cfg.tagline|default:"Willkommen auf unserer Webseite." }}</p>
+            </div>
         </div>
     {% endfor %}
+    </div>
 </div>
 {% endblock %}
