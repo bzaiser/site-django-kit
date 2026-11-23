@@ -231,7 +231,9 @@ def page_detail_view(request, slug):
 
 
 def news_list_view(request):
-    ctx = _public_base_context(request)
+    sys_page = PublicPage.objects.filter(slug="news").first()
+    ctx = _public_base_context(request, page=sys_page)
+    ctx["extra_blocks"] = [_resolve_block_data(b) for b in sys_page.blocks.filter(is_visible=True)] if sys_page else []
     items = []
     if apps.is_installed("list_kit"):
         try:
@@ -264,7 +266,9 @@ def news_detail_view(request, slug):
 
 
 def events_list_view(request):
-    ctx = _public_base_context(request)
+    sys_page = PublicPage.objects.filter(slug="termine").first()
+    ctx = _public_base_context(request, page=sys_page)
+    ctx["extra_blocks"] = [_resolve_block_data(b) for b in sys_page.blocks.filter(is_visible=True)] if sys_page else []
     events = []
     categories = []
     grouped_events = []
@@ -670,6 +674,22 @@ def _warn_if_reserved_nav_page(request, page: PublicPage):
                 request,
                 f"Hinweis: Es existiert bereits ein Standard-Link für „{page.title}“ ({target}). Der Standard-Link wird in der Navigation ausgeblendet, solange diese Seite im Menü aktiv ist.",
             )
+
+
+@_editor_required
+def system_page_edit_view(request, slug):
+    if slug not in ("news", "termine"):
+        raise Http404()
+    title = "News" if slug == "news" else "Termine"
+    page, _ = PublicPage.objects.get_or_create(
+        slug=slug,
+        defaults={
+            "title": title,
+            "is_published": True,
+            "show_in_nav": False,
+        },
+    )
+    return redirect("site_kit:page_edit", pk=page.id)
 
 
 @_editor_required

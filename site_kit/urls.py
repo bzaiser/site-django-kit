@@ -18,6 +18,7 @@ urlpatterns = [
     path("sitemap.xml", views.sitemap_view, name="sitemap"),
     path("robots.txt", views.robots_view, name="robots"),
     path("site/manage/", views.manage_view, name="manage"),
+    path("site/manage/system/<slug:slug>/", views.system_page_edit_view, name="system_page_edit"),
     path("site/manage/pages/new/", views.page_create_view, name="page_create"),
     path("site/manage/pages/<int:pk>/", views.page_edit_view, name="page_edit"),
     path("site/manage/pages/<int:pk>/delete/", views.page_delete_view, name="page_delete"),

@@ -43,6 +43,13 @@
                     </div>
                     {% endfor %}
                 </div>
+                <div class="border-top pt-3 mt-1">
+                    <div class="small fw-semibold text-muted mb-2">{% trans "System-Seiten mit Blöcken gestalten:" %}</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{% url 'site_kit:system_page_edit' 'news' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="bi bi-newspaper me-1"></i>News-Blöcke bearbeiten</a>
+                        <a href="{% url 'site_kit:system_page_edit' 'termine' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="bi bi-calendar-event me-1"></i>Termine-Blöcke bearbeiten</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

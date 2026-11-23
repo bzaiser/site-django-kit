@@ -395,6 +395,19 @@ class SiteKitTests(TestCase):
         self.assertContains(pub, "Viktor")
         self.assertNotContains(pub, "Dora")
 
+    def test_system_pages_news_and_termine_can_be_edited_with_blocks(self):
+        self.client.force_login(self.staff)
+        resp = self.client.get(reverse("site_kit:system_page_edit", args=["termine"]))
+        self.assertEqual(resp.status_code, 302)
+        p = PublicPage.objects.get(slug="termine")
+        self.assertFalse(p.show_in_nav)
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {"action": "add_block", "block_type": "hero", "title": "Willkommen bei unseren Terminen"},
+        )
+        ev_page = self.client.get(reverse("site_kit:events_list"))
+        self.assertContains(ev_page, "Willkommen bei unseren Terminen")
+
 
 if __name__ == "__main__":
     import unittest

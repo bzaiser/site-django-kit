@@ -4,7 +4,16 @@
 {% block title %}{% trans "News" %} – {{ site_cfg.site_name }}{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="{{ site_cfg.container_class|default:'container' }}">
+    {% if extra_blocks %}
+    <div class="row g-4 mb-4">
+        {% for item in extra_blocks %}
+        <div class="{{ item.block.grid_col_class }}">
+            {% include "site_kit/partials/_block.html" with item=item %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
     <h1 class="h2 fw-bold mb-4"><i class="bi bi-newspaper text-primary me-2"></i>{% trans "Aktuelles & News" %}</h1>
     <div class="row g-3">
         {% for entry in news_items %}
