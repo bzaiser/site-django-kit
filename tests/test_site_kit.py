@@ -134,6 +134,64 @@ class SiteKitTests(TestCase):
         self.assertEqual(d_resp.status_code, 302)
         self.assertFalse(PublicPage.objects.filter(pk=p.id).exists())
 
+    def test_text_image_block_supports_uploaded_image_and_url(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        self.client.force_login(self.staff)
+        p = PublicPage.objects.create(title="Bildtest", slug="bildtest", is_published=True)
+        img = SimpleUploadedFile("demo.png", b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR", content_type="image/png")
+        b_resp = self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "add_block",
+                "block_type": "text_image",
+                "title": "Mit Bild",
+                "body": "Beschreibung",
+                "image": img,
+            },
+        )
+        self.assertRedirects(b_resp, reverse("site_kit:page_edit", args=[p.id]))
+        block = p.blocks.get(title="Mit Bild")
+        self.assertTrue(bool(block.image))
+        pub = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(pub, block.resolved_image_url)
+
+    def test_events_list_filters_by_public_calendar_category(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from cal_kit.models import CalendarCategory, CalendarEvent
+
+        now = timezone.now()
+        cat_events = CalendarCategory.objects.create(user=self.staff, name="Veranstaltungen", color_state=1, is_shared=True)
+        cat_courses = CalendarCategory.objects.create(user=self.staff, name="Kurse", color_state=2, is_shared=True)
+        CalendarEvent.objects.create(
+            user=self.staff,
+            title="Sommerfest",
+            start_at=now + timedelta(days=2),
+            end_at=now + timedelta(days=2, hours=3),
+            category=cat_events,
+            is_public=True,
+        )
+        CalendarEvent.objects.create(
+            user=self.staff,
+            title="Yoga-Kurs",
+            start_at=now + timedelta(days=3),
+            end_at=now + timedelta(days=3, hours=1),
+            category=cat_courses,
+            is_public=True,
+        )
+        all_resp = self.client.get(reverse("site_kit:events_list"))
+        self.assertEqual(all_resp.status_code, 200)
+        self.assertContains(all_resp, "Sommerfest")
+        self.assertContains(all_resp, "Yoga-Kurs")
+        self.assertContains(all_resp, "Veranstaltungen")
+        self.assertContains(all_resp, "Kurse")
+
+        filtered_resp = self.client.get(reverse("site_kit:events_list") + f"?kalender={cat_courses.pk}")
+        self.assertEqual(filtered_resp.status_code, 200)
+        self.assertContains(filtered_resp, "Yoga-Kurs")
+        self.assertNotContains(filtered_resp, "Sommerfest")
+
 
 if __name__ == "__main__":
     import unittest

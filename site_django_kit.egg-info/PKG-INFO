@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: site-django-kit
+Version: 1.0.0
+Summary: Reusable Django public website and fixed-block CMS kit matching django-design-studio, list-django-kit, cal-django-kit and domain-django-kit.
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: Django>=4.2
+
+# site-django-kit
+
+Öffentlicher Webseiten-Bereich mit 9 festen, redaktionssicheren Inhaltsblöcken (`hero`, `text_image`, `news_feed`, `upcoming_events`, `people_grid`, `downloads`, `faq_list`, `public_form`, `stats_bar`), `SiteConfig`, `sitemap.xml`, `robots.txt` und RSS-Feed.

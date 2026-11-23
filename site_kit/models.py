@@ -73,6 +73,7 @@ class PageBlock(models.Model):
     title = models.CharField(max_length=180, blank=True, default="")
     subtitle = models.CharField(max_length=255, blank=True, default="")
     body = models.TextField(blank=True, default="")
+    image = models.FileField(upload_to="site_kit/blocks/%Y/%m/", blank=True, null=True)
     image_url = models.URLField(blank=True, default="")
     cta_label = models.CharField(max_length=80, blank=True, default="")
     cta_url = models.CharField(max_length=255, blank=True, default="")
@@ -85,3 +86,12 @@ class PageBlock(models.Model):
 
     def __str__(self):
         return f"{self.page.title} · {self.get_block_type_display()}"
+
+    @property
+    def resolved_image_url(self) -> str:
+        if self.image:
+            try:
+                return self.image.url
+            except Exception:
+                pass
+        return (self.image_url or "").strip()

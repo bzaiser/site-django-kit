@@ -157,13 +157,131 @@ def news_detail_view(request, slug):
 def events_list_view(request):
     ctx = _public_base_context(request)
     events = []
+    categories = []
+    grouped_events = []
+    active_calendar = (request.GET.get("kalender") or "").strip()
+
     if apps.is_installed("cal_kit"):
         try:
-            from cal_kit.models import CalendarEvent
-            events = list(CalendarEvent.objects.filter(is_public=True, end_at__gte=timezone.now()).order_by("start_at")[:50])
+            from datetime import timedelta
+            from cal_kit.models import CalendarCategory, CalendarEvent
+
+            now = timezone.now()
+            window_end = now + timedelta(days=180)
+            public_qs = (
+                CalendarEvent.objects.filter(is_public=True)
+                .select_related("category")
+                .order_by("start_at")
+            )
+
+            expanded = []
+            for ev in public_qs:
+                if ev.recurrence_rule == "none":
+                    if ev.end_at >= now and ev.start_at <= window_end:
+                        expanded.append({
+                            "event": ev,
+                            "title": ev.title,
+                            "start_at": ev.start_at,
+                            "end_at": ev.end_at,
+                            "all_day": ev.all_day,
+                            "location": ev.location,
+                            "description": ev.description,
+                            "category": ev.category,
+                        })
+                else:
+                    for occ in ev.get_occurrences(now, window_end):
+                        expanded.append({
+                            "event": ev,
+                            "title": ev.title,
+                            "start_at": occ["start"],
+                            "end_at": occ["end"],
+                            "all_day": ev.all_day,
+                            "location": ev.location,
+                            "description": ev.description,
+                            "category": ev.category,
+                        })
+
+            expanded.sort(key=lambda item: item["start_at"])
+
+            cat_counts = {}
+            uncategorized_count = 0
+            for item in expanded:
+                cat = item["category"]
+                if cat is None:
+                    uncategorized_count += 1
+                else:
+                    if cat.pk not in cat_counts:
+                        cat_counts[cat.pk] = {"obj": cat, "count": 0}
+                    cat_counts[cat.pk]["count"] += 1
+
+            state_colors = {
+                1: "#2563eb",
+                2: "#16a34a",
+                3: "#d97706",
+                4: "#dc2626",
+                5: "#7c3aed",
+                6: "#0891b2",
+                7: "#475569",
+            }
+            for info in sorted(
+                cat_counts.values(),
+                key=lambda x: x["obj"].name.lower(),
+            ):
+                cat = info["obj"]
+                categories.append({
+                    "key": str(cat.pk),
+                    "name": cat.name,
+                    "color": state_colors.get(cat.color_state, "#2563eb"),
+                    "icon": cat.icon or "bi-calendar-event",
+                    "count": info["count"],
+                })
+            if uncategorized_count:
+                categories.append({
+                    "key": "allgemein",
+                    "name": "Allgemein",
+                    "color": "#64748b",
+                    "icon": "bi-calendar-event",
+                    "count": uncategorized_count,
+                })
+
+            if active_calendar == "allgemein":
+                filtered = [item for item in expanded if item["category"] is None]
+            elif active_calendar.isdigit():
+                cat_id = int(active_calendar)
+                filtered = [
+                    item for item in expanded
+                    if item["category"] is not None and item["category"].pk == cat_id
+                ]
+            else:
+                active_calendar = ""
+                filtered = expanded
+
+            events = filtered[:80]
+
+            groups_map = {}
+            for item in events:
+                cat = item["category"]
+                key = str(cat.pk) if cat is not None else "allgemein"
+                if key not in groups_map:
+                    groups_map[key] = {
+                        "key": key,
+                        "name": cat.name if cat is not None else "Allgemein",
+                        "color": state_colors.get(cat.color_state, "#2563eb") if cat is not None else "#64748b",
+                        "icon": (cat.icon or "bi-calendar-event") if cat is not None else "bi-calendar-event",
+                        "items": [],
+                    }
+                groups_map[key]["items"].append(item)
+            grouped_events = list(groups_map.values())
         except Exception:
             events = []
-    ctx["events"] = events
+
+    ctx.update({
+        "events": events,
+        "categories": categories,
+        "grouped_events": grouped_events,
+        "active_calendar": active_calendar,
+        "total_public_events": sum(c["count"] for c in categories),
+    })
     return render(request, "site_kit/events_list.html", ctx)
 
 
@@ -303,6 +421,8 @@ def page_edit_view(request, pk):
                     title=(request.POST.get("title") or "").strip()[:180],
                     subtitle=(request.POST.get("subtitle") or "").strip()[:255],
                     body=(request.POST.get("body") or "").strip(),
+                    image=request.FILES.get("image"),
+                    image_url=(request.POST.get("image_url") or "").strip()[:200],
                     cta_label=(request.POST.get("cta_label") or "").strip()[:80],
                     cta_url=(request.POST.get("cta_url") or "").strip()[:255],
                     position=pos,

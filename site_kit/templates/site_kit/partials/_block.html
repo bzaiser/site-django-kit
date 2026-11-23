@@ -2,7 +2,7 @@
 <section class="card shadow-sm rounded-4 overflow-hidden mb-4">
     <div class="card-body p-4 p-md-5">
         <div class="row align-items-center g-4">
-            <div class="{% if item.block.image_url %}col-lg-7{% else %}col-12{% endif %}">
+            <div class="{% if item.block.resolved_image_url %}col-lg-7{% else %}col-12{% endif %}">
                 {% if item.block.title %}<h1 class="display-6 fw-bold mb-2">{{ item.block.title }}</h1>{% endif %}
                 {% if item.block.subtitle %}<p class="lead text-muted mb-3">{{ item.block.subtitle }}</p>{% endif %}
                 {% if item.block.body %}<p class="mb-3">{{ item.block.body }}</p>{% endif %}
@@ -10,9 +10,9 @@
                 <a href="{{ item.block.cta_url }}" class="btn btn-primary rounded-pill px-4">{{ item.block.cta_label }}</a>
                 {% endif %}
             </div>
-            {% if item.block.image_url %}
+            {% if item.block.resolved_image_url %}
             <div class="col-lg-5 text-center">
-                <img src="{{ item.block.image_url }}" alt="{{ item.block.title }}" class="img-fluid rounded-4 shadow-sm">
+                <img src="{{ item.block.resolved_image_url }}" alt="{{ item.block.title }}" class="img-fluid rounded-4 shadow-sm">
             </div>
             {% endif %}
         </div>
@@ -23,7 +23,7 @@
 <section class="card shadow-sm rounded-4 mb-4">
     <div class="card-body p-4">
         <div class="row align-items-center g-4">
-            <div class="{% if item.block.image_url %}col-md-7{% else %}col-12{% endif %}">
+            <div class="{% if item.block.resolved_image_url %}col-md-7{% else %}col-12{% endif %}">
                 {% if item.block.title %}<h2 class="h4 fw-bold mb-2">{{ item.block.title }}</h2>{% endif %}
                 {% if item.block.subtitle %}<div class="text-muted mb-2">{{ item.block.subtitle }}</div>{% endif %}
                 {% if item.block.body %}<div class="text-break">{{ item.block.body|linebreaksbr }}</div>{% endif %}
@@ -31,9 +31,9 @@
                 <a href="{{ item.block.cta_url }}" class="btn btn-outline-primary btn-sm rounded-pill mt-3">{{ item.block.cta_label }}</a>
                 {% endif %}
             </div>
-            {% if item.block.image_url %}
+            {% if item.block.resolved_image_url %}
             <div class="col-md-5 text-center">
-                <img src="{{ item.block.image_url }}" alt="{{ item.block.title }}" class="img-fluid rounded-3">
+                <img src="{{ item.block.resolved_image_url }}" alt="{{ item.block.title }}" class="img-fluid rounded-3">
             </div>
             {% endif %}
         </div>

@@ -5,20 +5,49 @@
 
 {% block content %}
 <div class="container">
-    <h1 class="h2 fw-bold mb-4"><i class="bi bi-calendar-event text-primary me-2"></i>{% trans "Öffentliche Termine" %}</h1>
-    <div class="list-group shadow-sm rounded-4">
-        {% for ev in events %}
-        <div class="list-group-item d-flex justify-content-between align-items-center gap-2">
-            <div>
-                <div class="fw-bold">{{ ev.title }}</div>
-                {% if ev.location %}<div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ ev.location }}</div>{% endif %}
-                {% if ev.description %}<div class="small text-muted mt-1">{{ ev.description }}</div>{% endif %}
-            </div>
-            <span class="badge text-bg-primary flex-shrink-0">{{ ev.start_at|date:"d.m.Y H:i" }}</span>
-        </div>
-        {% empty %}
-        <div class="list-group-item text-muted p-4 text-center">{% trans "Aktuell keine öffentlichen Termine." %}</div>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h2 fw-bold mb-0"><i class="bi bi-calendar-event text-primary me-2"></i>{% trans "Öffentliche Termine" %}</h1>
+    </div>
+
+    {% if categories %}
+    <div class="d-flex flex-wrap gap-2 mb-4" aria-label="Kalender-Filter">
+        <a href="{% url 'site_kit:events_list' %}" class="btn btn-sm rounded-pill {% if not active_calendar %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            {% trans "Alle" %} <span class="badge bg-white text-dark ms-1">{{ total_public_events }}</span>
+        </a>
+        {% for cat in categories %}
+        <a href="{% url 'site_kit:events_list' %}?kalender={{ cat.key }}" class="btn btn-sm rounded-pill d-inline-flex align-items-center gap-1 {% if active_calendar == cat.key %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+            <span class="rounded-circle d-inline-block" style="width: 8px; height: 8px; background-color: {{ cat.color }};"></span>
+            <span>{{ cat.name }}</span>
+            <span class="badge bg-white text-dark ms-1">{{ cat.count }}</span>
+        </a>
         {% endfor %}
     </div>
+    {% endif %}
+
+    {% for group in grouped_events %}
+    <section class="mb-4">
+        <h2 class="h5 fw-bold mb-2 d-flex align-items-center gap-2">
+            <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background-color: {{ group.color }};"></span>
+            <span>{{ group.name }}</span>
+            <span class="badge bg-light text-dark border">{{ group.items|length }}</span>
+        </h2>
+        <div class="list-group shadow-sm rounded-4">
+            {% for ev in group.items %}
+            <div class="list-group-item d-flex justify-content-between align-items-start gap-2">
+                <div>
+                    <div class="fw-bold">{{ ev.title }}</div>
+                    {% if ev.location %}<div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ ev.location }}</div>{% endif %}
+                    {% if ev.description %}<div class="small text-muted mt-1">{{ ev.description }}</div>{% endif %}
+                </div>
+                <span class="badge text-bg-primary flex-shrink-0">{% if ev.all_day %}{{ ev.start_at|date:"d.m.Y" }} · Ganztägig{% else %}{{ ev.start_at|date:"d.m.Y H:i" }}{% endif %}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% empty %}
+    <div class="list-group shadow-sm rounded-4">
+        <div class="list-group-item text-muted p-4 text-center">{% trans "Aktuell keine öffentlichen Termine." %}</div>
+    </div>
+    {% endfor %}
 </div>
 {% endblock %}
