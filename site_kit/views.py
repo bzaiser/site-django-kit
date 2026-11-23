@@ -638,6 +638,106 @@ def _parse_block_layout_config(request, existing_cfg=None) -> dict:
 
 
 @_editor_required
+def cockpit_view(request):
+    cfg = SiteConfig.get_solo()
+    pages = list(PublicPage.objects.all())
+    published_count = sum(1 for p in pages if p.is_published)
+    draft_count = len(pages) - published_count
+
+    news_col = None
+    recent_news = []
+    news_total = 0
+    open_submissions = []
+    if apps.is_installed("list_kit"):
+        try:
+            from list_kit.models import Collection, Entry
+            from list_kit.services import seed_default_templates
+
+            news_col = Collection.objects.filter(template__content_type="news", is_public=True).first()
+            if request.method == "POST" and request.POST.get("action") == "quick_news":
+                title = (request.POST.get("title") or "").strip()[:255]
+                notes = (request.POST.get("notes") or "").strip()
+                if title:
+                    if news_col is None:
+                        tpl = next((t for t in seed_default_templates() if t.slug == "news-aktuelles"), None)
+                        if tpl:
+                            news_col = Collection.objects.create(
+                                title="Aktuelles & News",
+                                slug="news",
+                                template=tpl,
+                                owner=request.user,
+                                responsible_user=request.user,
+                                is_public=True,
+                            )
+                    if news_col is not None:
+                        Entry.objects.create(
+                            collection=news_col,
+                            title=title,
+                            notes=notes,
+                            visibility="public",
+                            created_by=request.user,
+                        )
+                        messages.success(request, f"News „{title}“ veröffentlicht.")
+                        return redirect("site_kit:cockpit")
+
+            news_qs = Entry.objects.filter(collection__template__content_type="news").select_related("collection")
+            news_total = news_qs.count()
+            recent_news = list(news_qs.order_by("-is_pinned", "-created_at")[:6])
+            open_submissions = list(
+                Entry.objects.filter(collection__template__content_type="form_inbox", is_completed=False)
+                .exclude(status__iexact="Abgelehnt")
+                .select_related("collection")
+                .order_by("-created_at")[:8]
+            )
+        except Exception:
+            pass
+
+    upcoming_events = []
+    events_total = 0
+    if apps.is_installed("cal_kit"):
+        try:
+            from cal_kit.models import CalendarEvent
+
+            now = timezone.now()
+            reg_counts = _get_event_registration_counts()
+            ev_qs = CalendarEvent.objects.filter(is_public=True, end_at__gte=now).select_related("category").order_by("start_at")
+            events_total = ev_qs.count()
+            for ev in ev_qs[:6]:
+                upcoming_events.append({
+                    "event": ev,
+                    "reg_count": reg_counts.get(str(ev.id), 0),
+                })
+        except Exception:
+            pass
+
+    public_docs_count = 0
+    if apps.is_installed("domain_kit"):
+        try:
+            from domain_kit.models import Document
+            public_docs_count = Document.objects.filter(is_public=True).count()
+        except Exception:
+            pass
+
+    return render(
+        request,
+        "site_kit/cockpit.html",
+        {
+            "site_cfg": cfg,
+            "pages": pages,
+            "published_count": published_count,
+            "draft_count": draft_count,
+            "news_col": news_col,
+            "recent_news": recent_news,
+            "news_total": news_total,
+            "open_submissions": open_submissions,
+            "upcoming_events": upcoming_events,
+            "events_total": events_total,
+            "public_docs_count": public_docs_count,
+        },
+    )
+
+
+@_editor_required
 def manage_view(request):
     cfg = SiteConfig.get_solo()
     can_edit_config = _has_site_config_access(request.user)

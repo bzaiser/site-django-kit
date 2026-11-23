@@ -408,6 +408,28 @@ class SiteKitTests(TestCase):
         ev_page = self.client.get(reverse("site_kit:events_list"))
         self.assertContains(ev_page, "Willkommen bei unseren Terminen")
 
+    def test_redakteur_cockpit_and_quick_news(self):
+        from django.contrib.auth import get_user_model
+        from django.contrib.auth.models import Group
+        from list_kit.models import Entry
+
+        User = get_user_model()
+        red_grp, _ = Group.objects.get_or_create(name="Redakteur")
+        red = User.objects.create_user(username="red_cockpit", password="pw", is_staff=False)
+        red.groups.add(red_grp)
+
+        self.client.force_login(red)
+        r_get = self.client.get(reverse("site_kit:cockpit"))
+        self.assertEqual(r_get.status_code, 200)
+        self.assertContains(r_get, "Redaktions-Cockpit")
+
+        r_post = self.client.post(
+            reverse("site_kit:cockpit"),
+            {"action": "quick_news", "title": "Cockpit Eilmeldung", "notes": "Text"},
+        )
+        self.assertEqual(r_post.status_code, 302)
+        self.assertTrue(Entry.objects.filter(title="Cockpit Eilmeldung").exists())
+
 
 if __name__ == "__main__":
     import unittest
