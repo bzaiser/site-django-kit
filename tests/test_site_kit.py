@@ -218,6 +218,68 @@ class SiteKitTests(TestCase):
         cfg_resp = self.client.post(reverse("site_kit:manage"), {"site_name": "Hack"})
         self.assertEqual(cfg_resp.status_code, 403)
 
+    def test_lecturers_vita_courses_and_event_registration_capacity(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        from cal_kit.models import CalendarEvent
+        from domain_kit.models import Person
+        from list_kit.models import Collection, Entry
+        from list_kit.services import seed_default_templates
+
+        now = timezone.now()
+        doz = Person.objects.create(
+            first_name="Erika",
+            last_name="Muster",
+            is_public=True,
+            website="https://erika.example.com",
+            bio="Erfahrene Kursleiterin.\n- Zertifizierte Trainerin\n- 10 Jahre Praxis",
+        )
+        past_ev = CalendarEvent.objects.create(
+            user=self.staff,
+            title="Grundkurs 2025",
+            start_at=now - timedelta(days=30),
+            end_at=now - timedelta(days=30, hours=-2),
+            is_public=True,
+            instructor_ref=f"person:{doz.id}",
+            instructor_name=doz.full_name,
+        )
+        future_ev = CalendarEvent.objects.create(
+            user=self.staff,
+            title="Aufbaukurs Python",
+            start_at=now + timedelta(days=10),
+            end_at=now + timedelta(days=10, hours=2),
+            is_public=True,
+            instructor_ref=f"person:{doz.id}",
+            instructor_name=doz.full_name,
+            allow_registration=True,
+            max_participants=1,
+        )
+        tpls = {t.slug: t for t in seed_default_templates()}
+        col = Collection.objects.create(
+            title="Kursanmeldungen",
+            template=tpls["kurs-anmeldung"],
+            owner=self.staff,
+            is_public=True,
+            allow_public_submit=True,
+        )
+        Entry.objects.create(
+            collection=col,
+            title="Anmeldung 1",
+            custom_data_json={"event_id": str(future_ev.id), "absender_email": "teilnehmer@example.com"},
+        )
+
+        r_doz = self.client.get(reverse("site_kit:lecturers_list"))
+        self.assertEqual(r_doz.status_code, 200)
+        self.assertContains(r_doz, "https://erika.example.com")
+        self.assertContains(r_doz, "<li>Zertifizierte Trainerin</li>", html=True)
+        self.assertContains(r_doz, "Grundkurs 2025")
+        self.assertContains(r_doz, "Aufbaukurs Python")
+
+        r_ev = self.client.get(reverse("site_kit:events_list"))
+        self.assertContains(r_ev, "Ausgebucht (1/1)")
+        r_reg = self.client.get(reverse("site_kit:event_registration") + f"?event={future_ev.id}")
+        self.assertContains(r_reg, "ausgebucht")
+
 
 if __name__ == "__main__":
     import unittest

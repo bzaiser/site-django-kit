@@ -81,6 +81,62 @@ def _public_base_context(request, page: PublicPage | None = None) -> dict:
     return ctx
 
 
+def _format_bio_parts(bio_text: str) -> dict:
+    intro = []
+    bullets = []
+    for raw_line in (bio_text or "").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line.startswith(("- ", "* ", "• ")):
+            bullets.append(line[2:].strip())
+        else:
+            intro.append(line)
+    return {"intro": intro, "bullets": bullets}
+
+
+def _resolve_people_with_courses(people_qs):
+    people = list(people_qs)
+    now = timezone.now()
+    courses_by_ref = {}
+    if people and apps.is_installed("cal_kit"):
+        try:
+            from cal_kit.models import CalendarEvent
+
+            refs = [f"person:{p.id}" for p in people]
+            for ev in CalendarEvent.objects.filter(is_public=True, instructor_ref__in=refs).order_by("-start_at"):
+                courses_by_ref.setdefault(ev.instructor_ref, []).append(ev)
+        except Exception:
+            courses_by_ref = {}
+    for p in people:
+        p.bio_parts = _format_bio_parts(getattr(p, "bio", ""))
+        evs = courses_by_ref.get(f"person:{p.id}", [])
+        p.upcoming_courses = sorted([e for e in evs if e.end_at >= now], key=lambda e: e.start_at)[:6]
+        p.past_courses = [e for e in evs if e.end_at < now][:8]
+    return people
+
+
+def _get_event_registration_counts() -> dict[str, int]:
+    counts = {}
+    if not apps.is_installed("list_kit"):
+        return counts
+    try:
+        from list_kit.models import Entry
+
+        for e in (
+            Entry.objects.filter(collection__template__slug="kurs-anmeldung")
+            .exclude(status__iexact="Abgelehnt")
+            .only("custom_data_json")
+        ):
+            data = e.custom_data_json if isinstance(e.custom_data_json, dict) else {}
+            eid = str(data.get("event_id") or "").strip()
+            if eid:
+                counts[eid] = counts.get(eid, 0) + 1
+    except Exception:
+        pass
+    return counts
+
+
 def _resolve_block_data(block: PageBlock) -> dict:
     cfg = block.config_json if isinstance(block.config_json, dict) else {}
     limit = int(cfg.get("limit") or 6)
@@ -125,7 +181,12 @@ def _resolve_block_data(block: PageBlock) -> dict:
     elif block.block_type == "people_grid" and apps.is_installed("domain_kit"):
         try:
             from domain_kit.models import Person
-            data["people"] = list(Person.objects.filter(is_public=True).prefetch_related("roles")[:limit])
+
+            qs = Person.objects.filter(is_public=True).prefetch_related("roles")
+            role_filter = (cfg.get("role_filter") or "").strip()
+            if role_filter:
+                qs = qs.filter(roles__name__icontains=role_filter).distinct()
+            data["people"] = _resolve_people_with_courses(qs[:limit])
         except Exception:
             data["people"] = []
 
@@ -218,32 +279,36 @@ def events_list_view(request):
                 .order_by("start_at")
             )
 
+            reg_counts = _get_event_registration_counts()
+
+            def _ev_payload(ev, s_at, e_at):
+                rc = reg_counts.get(str(ev.id), 0)
+                mp = ev.max_participants
+                return {
+                    "event": ev,
+                    "title": ev.title,
+                    "start_at": s_at,
+                    "end_at": e_at,
+                    "all_day": ev.all_day,
+                    "location": ev.location,
+                    "description": ev.description,
+                    "category": ev.category,
+                    "instructor_name": ev.instructor_name,
+                    "allow_registration": ev.allow_registration,
+                    "max_participants": mp,
+                    "reg_count": rc,
+                    "is_full": bool(mp and rc >= mp),
+                    "seats_left": max(0, mp - rc) if mp else None,
+                }
+
             expanded = []
             for ev in public_qs:
                 if ev.recurrence_rule == "none":
                     if ev.end_at >= now and ev.start_at <= window_end:
-                        expanded.append({
-                            "event": ev,
-                            "title": ev.title,
-                            "start_at": ev.start_at,
-                            "end_at": ev.end_at,
-                            "all_day": ev.all_day,
-                            "location": ev.location,
-                            "description": ev.description,
-                            "category": ev.category,
-                        })
+                        expanded.append(_ev_payload(ev, ev.start_at, ev.end_at))
                 else:
                     for occ in ev.get_occurrences(now, window_end):
-                        expanded.append({
-                            "event": ev,
-                            "title": ev.title,
-                            "start_at": occ["start"],
-                            "end_at": occ["end"],
-                            "all_day": ev.all_day,
-                            "location": ev.location,
-                            "description": ev.description,
-                            "category": ev.category,
-                        })
+                        expanded.append(_ev_payload(ev, occ["start"], occ["end"]))
 
             expanded.sort(key=lambda item: item["start_at"])
 
@@ -327,6 +392,70 @@ def events_list_view(request):
         "total_public_events": sum(c["count"] for c in categories),
     })
     return render(request, "site_kit/events_list.html", ctx)
+
+
+def lecturers_list_view(request):
+    ctx = _public_base_context(request)
+    lecturers = []
+    if apps.is_installed("domain_kit"):
+        try:
+            from django.db.models import Q
+            from domain_kit.models import Person
+
+            qs = (
+                Person.objects.filter(is_public=True)
+                .filter(
+                    Q(roles__name__icontains="dozent")
+                    | Q(roles__name__icontains="referent")
+                    | Q(roles__name__icontains="kursleiter")
+                    | ~Q(bio="")
+                )
+                .distinct()
+                .prefetch_related("roles")
+            )
+            lecturers = _resolve_people_with_courses(qs)
+        except Exception:
+            lecturers = []
+    ctx["lecturers"] = lecturers
+    return render(request, "site_kit/lecturers_list.html", ctx)
+
+
+def event_registration_view(request):
+    ctx = _public_base_context(request)
+    event_obj = None
+    reg_count = 0
+    is_full = False
+    form_collection = None
+
+    ev_id = (request.GET.get("event") or "").strip()
+    if ev_id.isdigit() and apps.is_installed("cal_kit"):
+        try:
+            from cal_kit.models import CalendarEvent
+
+            event_obj = CalendarEvent.objects.filter(pk=int(ev_id), is_public=True).first()
+            if event_obj:
+                reg_count = _get_event_registration_counts().get(str(event_obj.id), 0)
+                if event_obj.max_participants and reg_count >= event_obj.max_participants:
+                    is_full = True
+        except Exception:
+            event_obj = None
+
+    if apps.is_installed("list_kit"):
+        try:
+            from list_kit.models import Collection
+
+            qs = Collection.objects.select_related("template").filter(is_public=True, allow_public_submit=True)
+            form_collection = qs.filter(template__slug="kurs-anmeldung").first() or qs.filter(template__content_type="form_inbox").first()
+        except Exception:
+            form_collection = None
+
+    ctx.update({
+        "event_obj": event_obj,
+        "reg_count": reg_count,
+        "is_full": is_full,
+        "form_collection": form_collection,
+    })
+    return render(request, "site_kit/event_registration.html", ctx)
 
 
 def imprint_view(request):

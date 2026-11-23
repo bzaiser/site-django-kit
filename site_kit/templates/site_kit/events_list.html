@@ -33,13 +33,26 @@
         </h2>
         <div class="list-group shadow-sm rounded-4">
             {% for ev in group.items %}
-            <div class="list-group-item d-flex justify-content-between align-items-start gap-2">
+            <div class="list-group-item d-flex flex-wrap justify-content-between align-items-start gap-2">
                 <div>
                     <div class="fw-bold">{{ ev.title }}</div>
                     {% if ev.location %}<div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ ev.location }}</div>{% endif %}
+                    {% if ev.instructor_name %}<div class="small text-muted"><i class="bi bi-mortarboard me-1"></i>{{ ev.instructor_name }}</div>{% endif %}
                     {% if ev.description %}<div class="small text-muted mt-1">{{ ev.description }}</div>{% endif %}
                 </div>
-                <span class="badge text-bg-primary flex-shrink-0">{% if ev.all_day %}{{ ev.start_at|date:"d.m.Y" }} · Ganztägig{% else %}{{ ev.start_at|date:"d.m.Y H:i" }}{% endif %}</span>
+                <div class="d-flex flex-column align-items-end gap-1 flex-shrink-0">
+                    <span class="badge text-bg-primary">{% if ev.all_day %}{{ ev.start_at|date:"d.m.Y" }} · Ganztägig{% else %}{{ ev.start_at|date:"d.m.Y H:i" }}{% endif %}</span>
+                    {% if ev.allow_registration %}
+                        {% if ev.is_full %}
+                        <span class="badge text-bg-danger">Ausgebucht ({{ ev.reg_count }}/{{ ev.max_participants }})</span>
+                        {% elif ev.max_participants %}
+                        <span class="badge text-bg-success">Noch {{ ev.seats_left }} Plätze frei</span>
+                        {% endif %}
+                        <a href="{% url 'site_kit:event_registration' %}?event={{ ev.event.id }}" class="btn btn-sm {% if ev.is_full %}btn-outline-secondary{% else %}btn-outline-primary{% endif %} rounded-pill px-3">
+                            {% if ev.is_full %}Warteliste / Anfrage{% else %}Jetzt anmelden{% endif %}
+                        </a>
+                    {% endif %}
+                </div>
             </div>
             {% endfor %}
         </div>

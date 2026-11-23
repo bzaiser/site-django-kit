@@ -1,0 +1,67 @@
+{% extends "site_kit/layouts/public.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Anmeldung" %} – {{ site_cfg.site_name }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 720px;">
+    <h1 class="h2 fw-bold mb-3"><i class="bi bi-calendar-check text-primary me-2"></i>{% trans "Online-Anmeldung" %}</h1>
+
+    {% if event_obj %}
+    <div class="card shadow-sm mb-4 rounded-4">
+        <div class="card-body">
+            <div class="fw-bold fs-5">{{ event_obj.title }}</div>
+            <div class="small text-muted">
+                {{ event_obj.start_at|date:"d.m.Y · H:i" }}{% if event_obj.location %} · {{ event_obj.location }}{% endif %}{% if event_obj.instructor_name %} · {{ event_obj.instructor_name }}{% endif %}
+            </div>
+            {% if is_full %}
+            <div class="alert alert-danger py-2 small mt-2 mb-0">
+                <strong>Hinweis:</strong> Dieser Kurs ist aktuell ausgebucht ({{ reg_count }}/{{ event_obj.max_participants }}). Sie können dennoch eine Anfrage für die Warteliste senden.
+            </div>
+            {% elif event_obj.max_participants %}
+            <div class="alert alert-success py-2 small mt-2 mb-0">
+                Aktuell {{ reg_count }} von {{ event_obj.max_participants }} Plätzen belegt.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if form_collection %}
+    <div class="card shadow-sm rounded-4">
+        <div class="card-body p-4">
+            <form method="post" action="{% url 'list_kit:public_submit' form_collection.id %}" class="d-flex flex-column gap-3">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                {% if event_obj %}<input type="hidden" name="event_id" value="{{ event_obj.id }}">{% endif %}
+                <div>
+                    <label class="form-label small fw-semibold">Betreff / Kurs</label>
+                    <input type="text" name="title" class="form-control" value="{% if event_obj %}Anmeldung: {{ event_obj.title }}{% endif %}" required>
+                </div>
+                {% for cf in form_collection.template.custom_fields_json %}
+                <div>
+                    <label class="form-label small fw-semibold">{{ cf.label }}</label>
+                    {% if cf.key == 'kurs_termin' and event_obj %}
+                    <input type="text" name="custom_{{ cf.key }}" class="form-control" value="{{ event_obj.title }} ({{ event_obj.start_at|date:'d.m.Y' }})">
+                    {% else %}
+                    <input type="{% if cf.type == 'email' %}email{% elif cf.type == 'date' %}date{% else %}text{% endif %}" name="custom_{{ cf.key }}" class="form-control">
+                    {% endif %}
+                </div>
+                {% endfor %}
+                <div>
+                    <label class="form-label small fw-semibold">Bemerkung</label>
+                    <textarea name="notes" rows="3" class="form-control"></textarea>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Anmeldung absenden</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">
+        Aktuell ist noch kein öffentliches Anmelde-Formular (<code>list_kit</code>) freigegeben.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

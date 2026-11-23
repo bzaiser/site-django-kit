@@ -1,0 +1,68 @@
+{% extends "site_kit/layouts/public.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Dozenten & Referenten" %} – {{ site_cfg.site_name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="h2 fw-bold mb-4"><i class="bi bi-mortarboard text-primary me-2"></i>{% trans "Dozenten & Referenten" %}</h1>
+    <div class="row g-4">
+        {% for p in lecturers %}
+        <div class="col-12 col-md-6">
+            <div class="card shadow-sm h-100 rounded-4">
+                <div class="card-body p-4 d-flex flex-column gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        {% if p.photo %}
+                        <img src="{{ p.photo.url }}" alt="{{ p.full_name }}" class="rounded-circle object-fit-cover flex-shrink-0" style="width: 64px; height: 64px;">
+                        {% else %}
+                        <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center flex-shrink-0 fw-bold fs-4" style="width: 64px; height: 64px;">{{ p.first_name|slice:":1" }}</div>
+                        {% endif %}
+                        <div>
+                            <h2 class="h5 fw-bold mb-0">{{ p.full_name }}</h2>
+                            {% if p.job_title %}<div class="small text-primary">{{ p.job_title }}</div>{% endif %}
+                            <div class="d-flex flex-wrap gap-2 small mt-1">
+                                {% if p.email %}<span class="text-muted"><i class="bi bi-envelope me-1"></i>{{ p.email }}</span>{% endif %}
+                                {% if p.website %}<a href="{{ p.website }}" target="_blank" rel="noopener" class="text-decoration-none"><i class="bi bi-globe2 me-1"></i>Webseite</a>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if p.bio_parts.intro or p.bio_parts.bullets %}
+                    <div class="small border-top pt-2">
+                        {% for line in p.bio_parts.intro %}<p class="mb-1">{{ line }}</p>{% endfor %}
+                        {% if p.bio_parts.bullets %}
+                        <ul class="mb-0 ps-3">
+                            {% for b in p.bio_parts.bullets %}<li>{{ b }}</li>{% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    {% if p.upcoming_courses %}
+                    <div class="small border-top pt-2">
+                        <div class="fw-semibold text-primary mb-1"><i class="bi bi-calendar-event me-1"></i>Aktuelle Kurse &amp; Termine</div>
+                        <ul class="mb-0 ps-3">
+                            {% for c in p.upcoming_courses %}<li>{{ c.title }} ({{ c.start_at|date:"d.m.Y H:i" }})</li>{% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    {% if p.past_courses %}
+                    <div class="small text-muted border-top pt-2">
+                        <div class="fw-semibold mb-1"><i class="bi bi-clock-history me-1"></i>Bereits geleitete Kurse</div>
+                        <ul class="mb-0 ps-3">
+                            {% for c in p.past_courses %}<li>{{ c.title }} ({{ c.start_at|date:"m/Y" }})</li>{% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-light border">Aktuell sind keine öffentlichen Dozenten hinterlegt.</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
