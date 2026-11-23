@@ -187,6 +187,9 @@ def _resolve_block_data(block: PageBlock) -> dict:
             role_filter = (cfg.get("role_filter") or "").strip()
             if role_filter:
                 qs = qs.filter(roles__name__icontains=role_filter).distinct()
+            cat_filter = (cfg.get("category_filter") or "").strip()
+            if cat_filter:
+                qs = qs.filter(category__name__icontains=cat_filter)
             data["people"] = _resolve_people_with_courses(qs[:limit])
         except Exception:
             data["people"] = []
@@ -599,13 +602,19 @@ def _parse_col_span(raw_val) -> int:
 def _parse_block_layout_config(request, existing_cfg=None) -> dict:
     cfg = dict(existing_cfg) if isinstance(existing_cfg, dict) else {}
     sv = (request.POST.get("style_variant") or cfg.get("style_variant") or "card").strip()
-    cfg["style_variant"] = sv if sv in ("card", "flat", "subtle", "primary") else "card"
+    cfg["style_variant"] = sv if sv in ("card", "solid", "flat", "subtle", "primary") else "card"
     ip = (request.POST.get("image_position") or cfg.get("image_position") or "right").strip()
     cfg["image_position"] = ip if ip in ("right", "left", "top") else "right"
+    ishape = (request.POST.get("image_shape") or cfg.get("image_shape") or "rounded").strip()
+    cfg["image_shape"] = ishape if ishape in ("rounded", "square", "circle") else "rounded"
+    iasp = (request.POST.get("image_aspect") or cfg.get("image_aspect") or "auto").strip()
+    cfg["image_aspect"] = iasp if iasp in ("auto", "landscape", "portrait", "square") else "auto"
     if "compact" in request.POST or "layout_fields_present" in request.POST:
         cfg["compact"] = request.POST.get("compact") == "on"
     if "role_filter" in request.POST:
         cfg["role_filter"] = (request.POST.get("role_filter") or "").strip()[:60]
+    if "category_filter" in request.POST:
+        cfg["category_filter"] = (request.POST.get("category_filter") or "").strip()[:60]
     if "collection_slug" in request.POST:
         cfg["collection_slug"] = (request.POST.get("collection_slug") or "").strip()[:80]
     return cfg
@@ -794,10 +803,23 @@ def page_edit_view(request, pk):
         (k, lbl) for k, lbl in PageBlock.BLOCK_TYPE_CHOICES
         if is_admin or k != "rich_html"
     ]
+    domain_roles = []
+    domain_person_categories = []
+    if apps.is_installed("domain_kit"):
+        try:
+            from domain_kit.models import Category, Role
+            domain_roles = list(Role.objects.order_by("position", "name").values_list("name", flat=True))
+            domain_person_categories = list(
+                Category.for_purpose("person", "general").values_list("name", flat=True)
+            )
+        except Exception:
+            pass
     return render(request, "site_kit/page_editor.html", {
         "page": page,
         "blocks": page.blocks.all(),
         "block_choices": visible_choices,
         "col_choices": PageBlock.COL_SPAN_CHOICES,
         "is_admin": is_admin,
+        "domain_roles": domain_roles,
+        "domain_person_categories": domain_person_categories,
     })

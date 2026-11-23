@@ -353,6 +353,48 @@ class SiteKitTests(TestCase):
         self.assertContains(pub, "container-xxl")
         self.assertContains(pub, "logo")
 
+    def test_hero_image_shape_aspect_solid_and_people_role_filter(self):
+        from domain_kit.models import Category, Person, Role
+
+        r_vor = Role.objects.create(name="Vorstand")
+        r_doz = Role.objects.create(name="Dozent")
+        c_art = Category.objects.create(name="Kunst", purpose="person")
+        p_vor = Person.objects.create(first_name="Viktor", last_name="Vorstand", is_public=True, category=c_art)
+        p_vor.roles.add(r_vor)
+        p_doz = Person.objects.create(first_name="Dora", last_name="Dozentin", is_public=True)
+        p_doz.roles.add(r_doz)
+
+        self.client.force_login(self.staff)
+        p = PublicPage.objects.create(title="DesignTest", slug="designtest", is_published=True)
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "add_block",
+                "block_type": "hero",
+                "style_variant": "solid",
+                "image_shape": "square",
+                "image_aspect": "landscape",
+                "image_url": "https://example.com/hero.jpg",
+                "title": "Hero Solid",
+            },
+        )
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "add_block",
+                "block_type": "people_grid",
+                "role_filter": "Vorstand",
+                "category_filter": "Kunst",
+                "title": "Unser Vorstand",
+            },
+        )
+        pub = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(pub, "rounded-0")
+        self.assertContains(pub, "aspect-ratio: 16 / 9")
+        self.assertContains(pub, "backdrop-filter: none")
+        self.assertContains(pub, "Viktor")
+        self.assertNotContains(pub, "Dora")
+
 
 if __name__ == "__main__":
     import unittest

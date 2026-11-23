@@ -1,5 +1,5 @@
 {% if item.block.block_type == 'hero' %}
-<section class="{% if item.block.style_variant == 'flat' %}py-3{% elif item.block.style_variant == 'subtle' %}bg-body-tertiary rounded-4 p-4 p-md-5{% elif item.block.style_variant == 'primary' %}card border-primary border-2 shadow-sm rounded-4 overflow-hidden{% else %}card shadow-sm rounded-4 overflow-hidden{% endif %} h-100">
+<section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
     <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4 p-md-5{% endif %}{% endif %}">
         <div class="row align-items-center g-4 {% if item.block.image_position == 'left' %}flex-lg-row-reverse{% elif item.block.image_position == 'top' %}flex-column-reverse{% endif %}">
             <div class="{% if item.block.resolved_image_url and item.block.image_position != 'top' %}col-lg-7{% else %}col-12{% endif %}">
@@ -12,7 +12,7 @@
             </div>
             {% if item.block.resolved_image_url %}
             <div class="{% if item.block.image_position == 'top' %}col-12{% else %}col-lg-5{% endif %} text-center">
-                <img src="{{ item.block.resolved_image_url }}" alt="{{ item.block.title }}" class="img-fluid rounded-4 shadow-sm">
+                <img src="{{ item.block.resolved_image_url }}" alt="{{ item.block.title }}" class="img-fluid {{ item.block.image_shape_class }}" {% if item.block.image_aspect_style %}style="{{ item.block.image_aspect_style }}"{% endif %}>
             </div>
             {% endif %}
         </div>
@@ -20,7 +20,7 @@
 </section>
 
 {% elif item.block.block_type == 'text_image' %}
-<section class="{% if item.block.style_variant == 'flat' %}py-2{% elif item.block.style_variant == 'subtle' %}bg-body-tertiary rounded-4 p-4{% elif item.block.style_variant == 'primary' %}card border-primary border-2 shadow-sm rounded-4{% else %}card shadow-sm rounded-4{% endif %} h-100">
+<section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
     <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
         <div class="row align-items-center g-4 {% if item.block.image_position == 'left' %}flex-md-row-reverse{% elif item.block.image_position == 'top' %}flex-column-reverse{% endif %}">
             <div class="{% if item.block.resolved_image_url and item.block.image_position != 'top' %}col-md-7{% else %}col-12{% endif %}">
@@ -33,7 +33,7 @@
             </div>
             {% if item.block.resolved_image_url %}
             <div class="{% if item.block.image_position == 'top' %}col-12{% else %}col-md-5{% endif %} text-center">
-                <img src="{{ item.block.resolved_image_url }}" alt="{{ item.block.title }}" class="img-fluid rounded-3">
+                <img src="{{ item.block.resolved_image_url }}" alt="{{ item.block.title }}" class="img-fluid {{ item.block.image_shape_class }}" {% if item.block.image_aspect_style %}style="{{ item.block.image_aspect_style }}"{% endif %}>
             </div>
             {% endif %}
         </div>
@@ -80,23 +80,25 @@
 </section>
 
 {% elif item.block.block_type == 'upcoming_events' %}
-<section class="mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="h4 fw-bold mb-0"><i class="bi bi-calendar-event text-primary me-2"></i>{{ item.block.title|default:"Nächste Termine" }}</h2>
-        <a href="{% url 'site_kit:events_list' %}" class="btn btn-outline-primary btn-sm rounded-pill">Alle Termine &rarr;</a>
-    </div>
-    <div class="list-group shadow-sm rounded-4">
-        {% for ev in item.events %}
-        <div class="list-group-item d-flex justify-content-between align-items-center gap-2">
-            <div>
-                <div class="fw-semibold">{{ ev.title }}</div>
-                {% if ev.location %}<div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ ev.location }}</div>{% endif %}
-            </div>
-            <span class="badge text-bg-primary">{{ ev.start_at|date:"d.m.Y H:i" }}</span>
+<section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
+    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h4 fw-bold mb-0"><i class="bi bi-calendar-event text-primary me-2"></i>{{ item.block.title|default:"Nächste Termine" }}</h2>
+            <a href="{% url 'site_kit:events_list' %}" class="btn btn-outline-primary btn-sm rounded-pill">Alle Termine &rarr;</a>
         </div>
-        {% empty %}
-        <div class="list-group-item text-muted small">Keine anstehenden öffentlichen Termine.</div>
-        {% endfor %}
+        <div class="d-flex flex-column divide-y">
+            {% for ev in item.events %}
+            <div class="d-flex justify-content-between align-items-center gap-2 py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                <div>
+                    <div class="fw-semibold">{{ ev.title }}</div>
+                    {% if ev.location %}<div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ ev.location }}</div>{% endif %}
+                </div>
+                <span class="badge text-bg-primary flex-shrink-0">{{ ev.start_at|date:"d.m.Y H:i" }}</span>
+            </div>
+            {% empty %}
+            <div class="text-muted small py-2">Keine anstehenden öffentlichen Termine.</div>
+            {% endfor %}
+        </div>
     </div>
 </section>
 
@@ -150,17 +152,19 @@
 </section>
 
 {% elif item.block.block_type == 'downloads' %}
-<section class="mb-4">
-    <h2 class="h4 fw-bold mb-3"><i class="bi bi-file-earmark-arrow-down text-primary me-2"></i>{{ item.block.title|default:"Downloads & Formulare" }}</h2>
-    <div class="list-group shadow-sm rounded-4">
-        {% for doc in item.documents %}
-        <div class="list-group-item d-flex justify-content-between align-items-center gap-2">
-            <span class="fw-semibold">{{ doc.title }}</span>
-            {% if doc.file %}<a href="{{ doc.file.url }}" class="btn btn-sm btn-outline-primary rounded-pill">Download</a>{% elif doc.file_url %}<a href="{{ doc.file_url }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill">Öffnen</a>{% endif %}
+<section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
+    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
+        <h2 class="h4 fw-bold mb-3"><i class="bi bi-file-earmark-arrow-down text-primary me-2"></i>{{ item.block.title|default:"Downloads & Formulare" }}</h2>
+        <div class="d-flex flex-column">
+            {% for doc in item.documents %}
+            <div class="d-flex justify-content-between align-items-center gap-2 py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                <span class="fw-semibold">{{ doc.title }}</span>
+                {% if doc.file %}<a href="{{ doc.file.url }}" class="btn btn-sm btn-outline-primary rounded-pill">Download</a>{% elif doc.file_url %}<a href="{{ doc.file_url }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill">Öffnen</a>{% endif %}
+            </div>
+            {% empty %}
+            <div class="text-muted small py-2">Keine öffentlichen Dokumente hinterlegt.</div>
+            {% endfor %}
         </div>
-        {% empty %}
-        <div class="list-group-item text-muted small">Keine öffentlichen Dokumente hinterlegt.</div>
-        {% endfor %}
     </div>
 </section>
 
@@ -212,7 +216,7 @@
 </section>
 
 {% elif item.block.block_type == 'rich_html' %}
-<section class="{% if item.block.style_variant == 'flat' %}py-2{% elif item.block.style_variant == 'subtle' %}bg-body-tertiary rounded-4 p-4{% elif item.block.style_variant == 'primary' %}card border-primary border-2 shadow-sm rounded-4{% else %}card shadow-sm rounded-4{% endif %} h-100">
+<section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
     <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
         {% if item.block.title %}<h2 class="h4 fw-bold mb-2">{{ item.block.title }}</h2>{% endif %}
         {% if item.block.subtitle %}<div class="text-muted mb-2">{{ item.block.subtitle }}</div>{% endif %}

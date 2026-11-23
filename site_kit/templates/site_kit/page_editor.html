@@ -27,6 +27,8 @@
                         <span class="badge text-bg-primary me-1">{{ b.get_block_type_display }}</span>
                         <span class="badge text-bg-secondary me-1">{{ b.col_span }}/12</span>
                         <span class="badge bg-light text-dark border me-1">{{ b.style_variant }}</span>
+                        {% if b.role_filter %}<span class="badge text-bg-info me-1">Rolle: {{ b.role_filter }}</span>{% endif %}
+                        {% if b.category_filter %}<span class="badge text-bg-info me-1">Kategorie: {{ b.category_filter }}</span>{% endif %}
                         <strong>{{ b.title|default:"(ohne Titel)" }}</strong>
                     </div>
                     <div class="d-flex align-items-center gap-1">
@@ -83,7 +85,8 @@
                     <div class="row g-2">
                         <div class="col-md-4">
                             <select name="style_variant" class="form-select form-select-sm">
-                                <option value="card">Stil: Karte (Card)</option>
+                                <option value="card">Stil: Design-Standard (ggf. durchscheinend)</option>
+                                <option value="solid">Stil: Volldeckend (opak)</option>
                                 <option value="flat">Stil: Flat (ohne Card)</option>
                                 <option value="subtle">Stil: Dezent (Hell)</option>
                                 <option value="primary">Stil: Primär-Akzent</option>
@@ -101,6 +104,37 @@
                                 <input type="checkbox" name="compact" id="addBlockCompact" class="form-check-input">
                                 <label class="form-check-label small" for="addBlockCompact">Einzeilig / Kompakt</label>
                             </div>
+                        </div>
+                    </div>
+                    <div class="row g-2" id="addImageStyleRow">
+                        <div class="col-md-6">
+                            <select name="image_shape" class="form-select form-select-sm">
+                                <option value="rounded">Bildform: Abgerundet</option>
+                                <option value="square">Bildform: Eckig</option>
+                                <option value="circle">Bildform: Kreisrund</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <select name="image_aspect" class="form-select form-select-sm">
+                                <option value="auto">Format: Original</option>
+                                <option value="landscape">Format: Landscape (16:9)</option>
+                                <option value="portrait">Format: Portrait (3:4)</option>
+                                <option value="square">Format: Quadratisch (1:1)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2 d-none" id="addPeopleFilterWrap">
+                        <div class="col-md-6">
+                            <select name="role_filter" class="form-select form-select-sm">
+                                <option value="">Personen-Filter: Alle Rollen</option>
+                                {% for rn in domain_roles %}<option value="{{ rn }}">Rolle: {{ rn }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <select name="category_filter" class="form-select form-select-sm">
+                                <option value="">Kategorie: Alle</option>
+                                {% for cn in domain_person_categories %}<option value="{{ cn }}">Kategorie: {{ cn }}</option>{% endfor %}
+                            </select>
                         </div>
                     </div>
                     <input type="text" name="title" class="form-control form-control-sm" placeholder="Überschrift">
@@ -181,7 +215,8 @@
                     <div class="col-md-4">
                         <label class="form-label small mb-1">Darstellung</label>
                         <select name="style_variant" class="form-select form-select-sm">
-                            <option value="card" {% if b.style_variant == 'card' %}selected{% endif %}>Karte (Card)</option>
+                            <option value="card" {% if b.style_variant == 'card' %}selected{% endif %}>Design-Standard (ggf. durchscheinend)</option>
+                            <option value="solid" {% if b.style_variant == 'solid' %}selected{% endif %}>Volldeckend (opak)</option>
                             <option value="flat" {% if b.style_variant == 'flat' %}selected{% endif %}>Flat (ohne Card)</option>
                             <option value="subtle" {% if b.style_variant == 'subtle' %}selected{% endif %}>Dezent (Hell)</option>
                             <option value="primary" {% if b.style_variant == 'primary' %}selected{% endif %}>Primär-Akzent</option>
@@ -196,6 +231,45 @@
                         </select>
                     </div>
                 </div>
+                {% if b.block_type == 'hero' or b.block_type == 'text_image' %}
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1">Bildform</label>
+                        <select name="image_shape" class="form-select form-select-sm">
+                            <option value="rounded" {% if b.image_shape == 'rounded' %}selected{% endif %}>Abgerundet</option>
+                            <option value="square" {% if b.image_shape == 'square' %}selected{% endif %}>Eckig</option>
+                            <option value="circle" {% if b.image_shape == 'circle' %}selected{% endif %}>Kreisrund</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1">Bild-Format</label>
+                        <select name="image_aspect" class="form-select form-select-sm">
+                            <option value="auto" {% if b.image_aspect == 'auto' %}selected{% endif %}>Original</option>
+                            <option value="landscape" {% if b.image_aspect == 'landscape' %}selected{% endif %}>Landscape (16:9)</option>
+                            <option value="portrait" {% if b.image_aspect == 'portrait' %}selected{% endif %}>Portrait (3:4)</option>
+                            <option value="square" {% if b.image_aspect == 'square' %}selected{% endif %}>Quadratisch (1:1)</option>
+                        </select>
+                    </div>
+                </div>
+                {% endif %}
+                {% if b.block_type == 'people_grid' %}
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1">Personen-Filter (Rolle)</label>
+                        <select name="role_filter" class="form-select form-select-sm">
+                            <option value="">Alle Rollen</option>
+                            {% for rn in domain_roles %}<option value="{{ rn }}" {% if b.role_filter == rn %}selected{% endif %}>{{ rn }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1">Personen-Filter (Kategorie)</label>
+                        <select name="category_filter" class="form-select form-select-sm">
+                            <option value="">Alle Kategorien</option>
+                            {% for cn in domain_person_categories %}<option value="{{ cn }}" {% if b.category_filter == cn %}selected{% endif %}>{{ cn }}</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+                {% endif %}
                 <div class="form-check">
                     <input type="checkbox" name="compact" id="editCompact-{{ b.id }}" class="form-check-input" {% if b.is_compact %}checked{% endif %}>
                     <label class="form-check-label small" for="editCompact-{{ b.id }}">Einzeilig / Kompakt</label>
@@ -245,9 +319,12 @@ document.addEventListener("DOMContentLoaded", function () {
     function syncAddType() {
         if (!typeSel) return;
         const isRich = typeSel.value === "rich_html";
+        const isPeople = typeSel.value === "people_grid";
+        const peopleWrap = document.getElementById("addPeopleFilterWrap");
         if (wysiWrap) wysiWrap.classList.toggle("d-none", !isRich);
         if (addBody) addBody.classList.toggle("d-none", isRich);
         if (addImg) addImg.classList.toggle("d-none", isRich);
+        if (peopleWrap) peopleWrap.classList.toggle("d-none", !isPeople);
     }
     if (typeSel) {
         typeSel.addEventListener("change", syncAddType);

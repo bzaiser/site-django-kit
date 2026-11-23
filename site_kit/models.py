@@ -143,13 +143,67 @@ class PageBlock(models.Model):
     def style_variant(self) -> str:
         cfg = self.config_json if isinstance(self.config_json, dict) else {}
         val = (cfg.get("style_variant") or "card").strip()
-        return val if val in ("card", "flat", "subtle", "primary") else "card"
+        return val if val in ("card", "solid", "flat", "subtle", "primary") else "card"
+
+    @property
+    def card_wrapper_class(self) -> str:
+        sv = self.style_variant
+        if sv == "flat":
+            return "py-2 h-100"
+        if sv == "subtle":
+            return "bg-body-tertiary rounded-4 p-4 h-100"
+        if sv == "primary":
+            return "card border-primary border-2 shadow-sm rounded-4 overflow-hidden h-100"
+        return "card shadow-sm rounded-4 overflow-hidden h-100"
+
+    @property
+    def card_wrapper_style(self) -> str:
+        if self.style_variant == "solid":
+            return "background-color: var(--bs-body-bg, #ffffff) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;"
+        return ""
 
     @property
     def image_position(self) -> str:
         cfg = self.config_json if isinstance(self.config_json, dict) else {}
         val = (cfg.get("image_position") or "right").strip()
         return val if val in ("right", "left", "top") else "right"
+
+    @property
+    def image_shape(self) -> str:
+        cfg = self.config_json if isinstance(self.config_json, dict) else {}
+        val = (cfg.get("image_shape") or "rounded").strip()
+        return val if val in ("rounded", "square", "circle") else "rounded"
+
+    @property
+    def image_aspect(self) -> str:
+        cfg = self.config_json if isinstance(self.config_json, dict) else {}
+        val = (cfg.get("image_aspect") or "auto").strip()
+        return val if val in ("auto", "landscape", "portrait", "square") else "auto"
+
+    @property
+    def image_shape_class(self) -> str:
+        return {
+            "square": "rounded-0 shadow-sm",
+            "circle": "rounded-circle shadow-sm",
+        }.get(self.image_shape, "rounded-4 shadow-sm")
+
+    @property
+    def image_aspect_style(self) -> str:
+        return {
+            "landscape": "aspect-ratio: 16 / 9; object-fit: cover; width: 100%;",
+            "portrait": "aspect-ratio: 3 / 4; object-fit: cover; width: 100%;",
+            "square": "aspect-ratio: 1 / 1; object-fit: cover; width: 100%;",
+        }.get(self.image_aspect, "")
+
+    @property
+    def role_filter(self) -> str:
+        cfg = self.config_json if isinstance(self.config_json, dict) else {}
+        return (cfg.get("role_filter") or "").strip()
+
+    @property
+    def category_filter(self) -> str:
+        cfg = self.config_json if isinstance(self.config_json, dict) else {}
+        return (cfg.get("category_filter") or "").strip()
 
     @property
     def is_compact(self) -> bool:
