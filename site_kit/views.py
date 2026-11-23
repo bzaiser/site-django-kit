@@ -322,8 +322,8 @@ def events_list_view(request):
                     if ev.end_at >= now and ev.start_at <= window_end:
                         expanded.append(_ev_payload(ev, ev.start_at, ev.end_at))
                 else:
-                    for occ in ev.get_occurrences(now, window_end):
-                        expanded.append(_ev_payload(ev, occ["start"], occ["end"]))
+                    for occ_start, occ_end, _occ_title in ev.get_occurrences(now, window_end):
+                        expanded.append(_ev_payload(ev, occ_start, occ_end))
 
             expanded.sort(key=lambda item: item["start_at"])
 
@@ -397,6 +397,8 @@ def events_list_view(request):
                 groups_map[key]["items"].append(item)
             grouped_events = list(groups_map.values())
         except Exception:
+            import logging
+            logging.getLogger(__name__).exception("events_list_view failed")
             events = []
 
     ctx.update({

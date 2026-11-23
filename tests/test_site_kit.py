@@ -179,6 +179,7 @@ class SiteKitTests(TestCase):
             end_at=now + timedelta(days=3, hours=1),
             category=cat_courses,
             is_public=True,
+            recurrence_rule="weekly",
         )
         all_resp = self.client.get(reverse("site_kit:events_list"))
         self.assertEqual(all_resp.status_code, 200)
