@@ -15,9 +15,14 @@ from .models import PageBlock, PublicPage, SiteConfig
 def _public_base_context(request, page: PublicPage | None = None) -> dict:
     cfg = SiteConfig.get_solo()
     nav_pages = list(PublicPage.objects.filter(is_published=True, show_in_nav=True))
+    nav_keys = {p.slug.lower() for p in nav_pages if not p.is_home} | {
+        p.title.strip().lower() for p in nav_pages if not p.is_home
+    }
     ctx = {
         "site_cfg": cfg,
         "public_nav_pages": nav_pages,
+        "show_default_news_nav": "news" not in nav_keys,
+        "show_default_events_nav": "termine" not in nav_keys,
         "page": page,
     }
     genre_key = (getattr(page, "genre", "") or cfg.default_genre or "").strip()
