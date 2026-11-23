@@ -3,6 +3,8 @@
 
 {% block title %}{% if page %}{{ page.title }} – {% endif %}{{ site_cfg.site_name }}{% endblock %}
 
+{% block body_attrs %}{% include "design_studio/includes/body_attrs.html" with ds_menu_layout_override="top" %}{% endblock %}
+
 {% block head_extra %}
 <style>
 .site-hover-row {
