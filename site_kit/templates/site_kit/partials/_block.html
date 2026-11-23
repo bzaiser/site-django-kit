@@ -86,7 +86,7 @@
     <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h2 class="h4 fw-bold mb-0"><i class="bi bi-calendar-event text-primary me-2"></i>{{ item.block.title|default:"Nächste Termine" }}</h2>
-            <a href="{% url 'site_kit:events_list' %}" class="btn btn-outline-primary btn-sm rounded-pill">Alle Termine &rarr;</a>
+            <a href="{% url 'site_kit:events_list' %}{% if item.calendar_category_id %}?kalender={{ item.calendar_category_id }}{% endif %}" class="btn btn-outline-primary btn-sm rounded-pill">Alle Termine &rarr;</a>
         </div>
         <div class="d-flex flex-column gap-1">
             {% for ev in item.events %}

@@ -137,6 +137,22 @@
                             </select>
                         </div>
                     </div>
+                    <div class="row g-2 d-none" id="addEventsFilterWrap">
+                        <div class="col-md-6">
+                            <select name="calendar_category" class="form-select form-select-sm">
+                                <option value="">Kalender: Alle öffentlichen</option>
+                                {% for cc in cal_categories %}<option value="{{ cc.id }}">Kalender: {{ cc.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <select name="limit" class="form-select form-select-sm">
+                                <option value="6">Anzahl: 6 Termine</option>
+                                <option value="12">Anzahl: 12 Termine</option>
+                                <option value="25">Anzahl: 25 Termine</option>
+                                <option value="50">Anzahl: 50 Termine</option>
+                            </select>
+                        </div>
+                    </div>
                     <input type="text" name="title" class="form-control form-control-sm" placeholder="Überschrift">
                     <input type="text" name="subtitle" class="form-control form-control-sm" placeholder="Untertitel (optional)">
 
@@ -270,6 +286,26 @@
                     </div>
                 </div>
                 {% endif %}
+                {% if b.block_type == 'upcoming_events' %}
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1">Kalender / Art</label>
+                        <select name="calendar_category" class="form-select form-select-sm">
+                            <option value="">Alle öffentlichen Kalender</option>
+                            {% for cc in cal_categories %}<option value="{{ cc.id }}" {% if b.config_json.calendar_category == cc.id|stringformat:'s' %}selected{% endif %}>{{ cc.name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1">Anzahl Termine</label>
+                        <select name="limit" class="form-select form-select-sm">
+                            <option value="6" {% if b.config_json.limit == 6 or not b.config_json.limit %}selected{% endif %}>6 Termine</option>
+                            <option value="12" {% if b.config_json.limit == 12 %}selected{% endif %}>12 Termine</option>
+                            <option value="25" {% if b.config_json.limit == 25 %}selected{% endif %}>25 Termine</option>
+                            <option value="50" {% if b.config_json.limit == 50 %}selected{% endif %}>50 Termine</option>
+                        </select>
+                    </div>
+                </div>
+                {% endif %}
                 <div class="form-check">
                     <input type="checkbox" name="compact" id="editCompact-{{ b.id }}" class="form-check-input" {% if b.is_compact %}checked{% endif %}>
                     <label class="form-check-label small" for="editCompact-{{ b.id }}">Einzeilig / Kompakt</label>
@@ -320,11 +356,14 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!typeSel) return;
         const isRich = typeSel.value === "rich_html";
         const isPeople = typeSel.value === "people_grid";
+        const isEvents = typeSel.value === "upcoming_events";
         const peopleWrap = document.getElementById("addPeopleFilterWrap");
+        const eventsWrap = document.getElementById("addEventsFilterWrap");
         if (wysiWrap) wysiWrap.classList.toggle("d-none", !isRich);
         if (addBody) addBody.classList.toggle("d-none", isRich);
         if (addImg) addImg.classList.toggle("d-none", isRich);
         if (peopleWrap) peopleWrap.classList.toggle("d-none", !isPeople);
+        if (eventsWrap) eventsWrap.classList.toggle("d-none", !isEvents);
     }
     if (typeSel) {
         typeSel.addEventListener("change", syncAddType);

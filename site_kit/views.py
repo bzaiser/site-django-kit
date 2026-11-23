@@ -173,9 +173,12 @@ def _resolve_block_data(block: PageBlock) -> dict:
         try:
             from cal_kit.models import CalendarEvent
             now = timezone.now()
-            data["events"] = list(
-                CalendarEvent.objects.filter(is_public=True, end_at__gte=now).order_by("start_at")[:limit]
-            )
+            qs = CalendarEvent.objects.filter(is_public=True, end_at__gte=now)
+            cal_cat = (cfg.get("calendar_category") or "").strip()
+            if cal_cat.isdigit():
+                qs = qs.filter(category_id=int(cal_cat))
+                data["calendar_category_id"] = cal_cat
+            data["events"] = list(qs.order_by("start_at")[: max(1, min(50, limit))])
         except Exception:
             data["events"] = []
 
@@ -222,6 +225,10 @@ def home_view(request):
 
 
 def page_detail_view(request, slug):
+    if slug == "termine":
+        return events_list_view(request)
+    if slug == "news":
+        return news_list_view(request)
     qs = PublicPage.objects.all() if (request.user.is_authenticated and request.user.is_staff) else PublicPage.objects.filter(is_published=True)
     page = get_object_or_404(qs, slug=slug)
     ctx = _public_base_context(request, page=page)
@@ -621,6 +628,12 @@ def _parse_block_layout_config(request, existing_cfg=None) -> dict:
         cfg["category_filter"] = (request.POST.get("category_filter") or "").strip()[:60]
     if "collection_slug" in request.POST:
         cfg["collection_slug"] = (request.POST.get("collection_slug") or "").strip()[:80]
+    if "calendar_category" in request.POST:
+        cfg["calendar_category"] = (request.POST.get("calendar_category") or "").strip()[:20]
+    if "limit" in request.POST:
+        raw_lim = (request.POST.get("limit") or "").strip()
+        if raw_lim.isdigit():
+            cfg["limit"] = max(1, min(50, int(raw_lim)))
     return cfg
 
 
@@ -834,6 +847,13 @@ def page_edit_view(request, pk):
             )
         except Exception:
             pass
+    cal_categories = []
+    if apps.is_installed("cal_kit"):
+        try:
+            from cal_kit.models import CalendarCategory
+            cal_categories = list(CalendarCategory.objects.order_by("name").values("id", "name"))
+        except Exception:
+            pass
     return render(request, "site_kit/page_editor.html", {
         "page": page,
         "blocks": page.blocks.all(),
@@ -842,4 +862,5 @@ def page_edit_view(request, pk):
         "is_admin": is_admin,
         "domain_roles": domain_roles,
         "domain_person_categories": domain_person_categories,
+        "cal_categories": cal_categories,
     })
