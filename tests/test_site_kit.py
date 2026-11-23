@@ -192,6 +192,32 @@ class SiteKitTests(TestCase):
         self.assertContains(filtered_resp, "Yoga-Kurs")
         self.assertNotContains(filtered_resp, "Sommerfest")
 
+    def test_redakteur_can_manage_pages_without_is_staff_and_cannot_edit_site_config(self):
+        from django.contrib.auth import get_user_model
+        from django.contrib.auth.models import Group
+
+        User = get_user_model()
+        red_grp, _ = Group.objects.get_or_create(name="Redakteur")
+        mem_grp, _ = Group.objects.get_or_create(name="Mitglied / Portal")
+        red = User.objects.create_user(username="red_u", password="pw", is_staff=False)
+        red.groups.add(red_grp)
+        mem = User.objects.create_user(username="mem_u", password="pw", is_staff=False)
+        mem.groups.add(mem_grp)
+
+        self.client.force_login(mem)
+        self.assertEqual(self.client.get(reverse("site_kit:manage")).status_code, 403)
+        home_mem = self.client.get(reverse("site_kit:home"))
+        self.assertContains(home_mem, "Mein Bereich")
+
+        self.client.force_login(red)
+        m_resp = self.client.get(reverse("site_kit:manage"))
+        self.assertEqual(m_resp.status_code, 200)
+        c_resp = self.client.post(reverse("site_kit:page_create"), {"title": "Redakteur-Seite", "is_published": "on"})
+        self.assertEqual(c_resp.status_code, 302)
+        self.assertTrue(PublicPage.objects.filter(title="Redakteur-Seite").exists())
+        cfg_resp = self.client.post(reverse("site_kit:manage"), {"site_name": "Hack"})
+        self.assertEqual(cfg_resp.status_code, 403)
+
 
 if __name__ == "__main__":
     import unittest

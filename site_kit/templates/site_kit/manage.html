@@ -51,6 +51,7 @@
         <div class="card shadow-sm h-100">
             <div class="card-header fw-bold"><i class="bi bi-sliders me-1"></i> {% trans "Webseiten-Einstellungen" %}</div>
             <div class="card-body p-3">
+                {% if can_edit_site_config %}
                 <form method="post" class="d-flex flex-column gap-2">
                     {% csrf_token %}
                     <div><label class="form-label small fw-semibold mb-1">Seitenname</label><input type="text" name="site_name" class="form-control form-control-sm" value="{{ site_cfg.site_name }}"></div>
@@ -60,6 +61,11 @@
                     <div><label class="form-label small fw-semibold mb-1">Datenschutz</label><textarea name="privacy_text" rows="2" class="form-control form-control-sm">{{ site_cfg.privacy_text }}</textarea></div>
                     <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 align-self-end mt-1">Speichern</button>
                 </form>
+                {% else %}
+                <div class="alert alert-light border small mb-0">
+                    Globale Seiteneinstellungen (Seitenname, Impressum, Datenschutz) können nur von der Leitung oder Administratoren geändert werden. Seiten, Blöcke, News und Termine können Sie frei bearbeiten.
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>

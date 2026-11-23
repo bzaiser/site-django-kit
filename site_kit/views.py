@@ -1,15 +1,47 @@
+from functools import wraps
 import json
 from xml.sax.saxutils import escape
 
 from django.apps import apps
 from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
-from django.http import Http404, HttpResponse
+from django.contrib.auth.decorators import login_required
+from django.http import Http404, HttpResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .models import PageBlock, PublicPage, SiteConfig
+
+
+SITE_EDITOR_GROUPS = ("Redakteur", "Leitung / Vorstand", "Vorstand")
+SITE_CONFIG_GROUPS = ("Leitung / Vorstand", "Vorstand")
+
+
+def _has_site_editor_access(user) -> bool:
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+        return True
+    return user.groups.filter(name__in=SITE_EDITOR_GROUPS).exists()
+
+
+def _has_site_config_access(user) -> bool:
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+        return True
+    return user.groups.filter(name__in=SITE_CONFIG_GROUPS).exists()
+
+
+def _editor_required(view_func):
+    @login_required
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if not _has_site_editor_access(request.user):
+            return HttpResponseForbidden("Redakteurs- oder Admin-Zugriff erforderlich.")
+        return view_func(request, *args, **kwargs)
+
+    return _wrapped
 
 
 def _public_base_context(request, page: PublicPage | None = None) -> dict:
@@ -18,12 +50,24 @@ def _public_base_context(request, page: PublicPage | None = None) -> dict:
     nav_keys = {p.slug.lower() for p in nav_pages if not p.is_home} | {
         p.title.strip().lower() for p in nav_pages if not p.is_home
     }
+    can_access_internal = False
+    if request.user.is_authenticated:
+        if getattr(request.user, "is_staff", False) or getattr(request.user, "is_superuser", False) or _has_site_editor_access(request.user):
+            can_access_internal = True
+        elif apps.is_installed("domain_kit"):
+            try:
+                from domain_kit.services import has_any_domain_access
+                can_access_internal = has_any_domain_access(request.user)
+            except Exception:
+                can_access_internal = False
+
     ctx = {
         "site_cfg": cfg,
         "public_nav_pages": nav_pages,
         "show_default_news_nav": "news" not in nav_keys,
         "show_default_events_nav": "termine" not in nav_keys,
         "page": page,
+        "can_access_internal": can_access_internal,
     }
     genre_key = (getattr(page, "genre", "") or cfg.default_genre or "").strip()
     if genre_key:
@@ -348,10 +392,13 @@ def news_rss_view(request):
     return HttpResponse("\n".join(xml), content_type="application/rss+xml; charset=utf-8")
 
 
-@staff_member_required
+@_editor_required
 def manage_view(request):
     cfg = SiteConfig.get_solo()
+    can_edit_config = _has_site_config_access(request.user)
     if request.method == "POST":
+        if not can_edit_config:
+            return HttpResponseForbidden("Nur Leitung oder Administrator darf globale Webseiten-Einstellungen ändern.")
         cfg.site_name = (request.POST.get("site_name") or cfg.site_name).strip()[:140]
         cfg.tagline = (request.POST.get("tagline") or "").strip()[:220]
         cfg.contact_email = (request.POST.get("contact_email") or "").strip()
@@ -364,7 +411,11 @@ def manage_view(request):
         return redirect("site_kit:manage")
 
     pages = PublicPage.objects.all()
-    return render(request, "site_kit/manage.html", {"site_cfg": cfg, "pages": pages})
+    return render(
+        request,
+        "site_kit/manage.html",
+        {"site_cfg": cfg, "pages": pages, "can_edit_site_config": can_edit_config},
+    )
 
 
 def _warn_if_reserved_nav_page(request, page: PublicPage):
@@ -379,7 +430,7 @@ def _warn_if_reserved_nav_page(request, page: PublicPage):
             )
 
 
-@staff_member_required
+@_editor_required
 def page_create_view(request):
     if request.method == "POST":
         title = (request.POST.get("title") or "").strip()
@@ -396,7 +447,7 @@ def page_create_view(request):
     return redirect("site_kit:manage")
 
 
-@staff_member_required
+@_editor_required
 def page_delete_view(request, pk):
     page = get_object_or_404(PublicPage, pk=pk)
     if request.method == "POST":
@@ -406,7 +457,7 @@ def page_delete_view(request, pk):
     return redirect("site_kit:manage")
 
 
-@staff_member_required
+@_editor_required
 def page_edit_view(request, pk):
     page = get_object_or_404(PublicPage, pk=pk)
     if request.method == "POST":

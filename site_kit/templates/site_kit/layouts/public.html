@@ -19,9 +19,15 @@
             {% if show_default_news_nav is not False %}<a href="{% url 'site_kit:news_list' %}" class="btn btn-sm btn-link text-decoration-none">{% trans "News" %}</a>{% endif %}
             {% if show_default_events_nav is not False %}<a href="{% url 'site_kit:events_list' %}" class="btn btn-sm btn-link text-decoration-none">{% trans "Termine" %}</a>{% endif %}
             {% if request.user.is_authenticated %}
+                {% if can_access_internal %}
                 <a href="{{ site_cfg.member_app_url|default:'/app/' }}" class="btn btn-sm btn-primary rounded-pill px-3">
                     <i class="bi bi-speedometer2 me-1"></i>{% trans "Intern" %}
                 </a>
+                {% else %}
+                <a href="/domain/me/" class="btn btn-sm btn-primary rounded-pill px-3">
+                    <i class="bi bi-person-badge me-1"></i>{% trans "Mein Bereich" %}
+                </a>
+                {% endif %}
             {% else %}
                 <a href="{{ site_cfg.member_login_url|default:'/accounts/login/' }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
                     <i class="bi bi-box-arrow-in-right me-1"></i>{% trans "Mitglieder-Login" %}
