@@ -4,10 +4,16 @@
 
 {% block content %}
 <div class="container">
-    <a href="{% url 'site_kit:news_list' %}" class="btn btn-outline-secondary btn-sm mb-3">&larr; Alle News</a>
+    <div class="d-flex gap-2 mb-3">
+        <a href="{% url 'site_kit:news_list' %}" class="btn btn-outline-secondary btn-sm">&larr; Alle News</a>
+        {% if is_archived %}<a href="{% url 'site_kit:news_archive' %}" class="btn btn-outline-secondary btn-sm">Zum Archiv</a>{% endif %}
+    </div>
     <article class="card shadow-sm rounded-4">
         <div class="card-body p-4 p-md-5">
-            <div class="small text-muted mb-2">{{ entry.publish_at|default:entry.created_at|date:"d.m.Y" }}</div>
+            <div class="small text-muted mb-2">
+                {{ entry.publish_at|default:entry.created_at|date:"d.m.Y" }}
+                {% if is_archived %}<span class="badge bg-secondary-subtle text-body ms-2">Archivierte Meldung</span>{% endif %}
+            </div>
             <h1 class="h2 fw-bold mb-3">{{ entry.title }}</h1>
             {% if entry.image_url %}<img src="{{ entry.image_url }}" alt="{{ entry.title }}" class="img-fluid rounded-3 mb-4">{% endif %}
             <div class="text-break">{{ rendered_body|safe }}</div>

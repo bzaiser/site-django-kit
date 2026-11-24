@@ -8,6 +8,7 @@ urlpatterns = [
     path("", views.home_view, name="home"),
     path("seite/<slug:slug>/", views.page_detail_view, name="page_detail"),
     path("news/", views.news_list_view, name="news_list"),
+    path("news/archiv/", views.news_archive_view, name="news_archive"),
     path("news/feed.xml", views.news_rss_view, name="news_rss"),
     path("news/<slug:slug>/", views.news_detail_view, name="news_detail"),
     path("termine/", views.events_list_view, name="events_list"),

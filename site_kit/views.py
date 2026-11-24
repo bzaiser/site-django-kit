@@ -287,18 +287,49 @@ def page_detail_view(request, slug):
 
 
 def news_list_view(request):
+    from django.core.paginator import Paginator
     sys_page = PublicPage.objects.filter(slug="news").first()
     ctx = _public_base_context(request, page=sys_page)
     ctx["extra_blocks"] = [_resolve_block_data(b) for b in sys_page.blocks.filter(is_visible=True)] if sys_page else []
     items = []
+    archive_count = 0
     if apps.is_installed("list_kit"):
         try:
-            from list_kit.services import get_published_entries
-            items = get_published_entries(content_type="news", limit=30)
+            from list_kit.services import get_archived_entries, get_published_entries
+            items = get_published_entries(content_type="news")
+            archive_count = len(get_archived_entries(content_type="news"))
         except Exception:
             items = []
-    ctx["news_items"] = items
+    page_obj = Paginator(items, 18).get_page(request.GET.get("page"))
+    ctx["news_items"] = page_obj
+    ctx["page_obj"] = page_obj
+    ctx["archive_count"] = archive_count
     return render(request, "site_kit/news_list.html", ctx)
+
+
+def news_archive_view(request):
+    from django.core.paginator import Paginator
+    ctx = _public_base_context(request)
+    raw_year = (request.GET.get("jahr") or "").strip()
+    sel_year = int(raw_year) if raw_year.isdigit() else None
+    items = []
+    years = []
+    if apps.is_installed("list_kit"):
+        try:
+            from list_kit.services import get_archived_entries
+            all_archived = get_archived_entries(content_type="news")
+            years = sorted({(e.publish_at or e.created_at).year for e in all_archived}, reverse=True)
+            items = [e for e in all_archived if not sel_year or (e.publish_at or e.created_at).year == sel_year]
+        except Exception:
+            items = []
+    page_obj = Paginator(items, 20).get_page(request.GET.get("page"))
+    ctx.update({
+        "news_items": page_obj,
+        "page_obj": page_obj,
+        "archive_years": years,
+        "active_year": sel_year,
+    })
+    return render(request, "site_kit/news_archive.html", ctx)
 
 
 def news_detail_view(request, slug):
@@ -309,14 +340,16 @@ def news_detail_view(request, slug):
     qs = Entry.objects.select_related("collection", "collection__template", "created_by").filter(
         slug=slug, collection__template__content_type="news"
     )
+    now = timezone.now()
     if not (request.user.is_authenticated and request.user.is_staff):
         entry = get_object_or_404(qs, collection__is_public=True, visibility="public")
-        if not entry.is_currently_published():
+        if entry.publish_at and entry.publish_at > now:
             raise Http404()
     else:
         entry = get_object_or_404(qs)
     ctx = _public_base_context(request)
     ctx["entry"] = entry
+    ctx["is_archived"] = bool(entry.expires_at and entry.expires_at <= now)
     ctx["rendered_body"] = render_safe_markdown(entry.notes)
     return render(request, "site_kit/news_detail.html", ctx)
 

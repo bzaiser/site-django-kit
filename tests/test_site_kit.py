@@ -552,6 +552,35 @@ class SiteKitTests(TestCase):
         self.assertContains(pub, "Klara Vorstand")
         self.assertNotContains(pub, "Lange Vita die im Kompaktmodus nicht erscheint.")
 
+    def test_news_archive_shows_expired_news_and_link_from_news_list(self):
+        from list_kit.models import Collection, Entry
+        from list_kit.services import seed_default_templates
+
+        seed_default_templates()
+        from list_kit.models import ListTemplate
+        tpl = ListTemplate.objects.filter(content_type="news").first()
+        col = Collection.objects.create(title="News", template=tpl, owner=self.staff, is_public=True)
+        Entry.objects.create(collection=col, title="Frische News", visibility="public")
+        old_e = Entry.objects.create(
+            collection=col,
+            title="Alte News",
+            visibility="public",
+            expires_at=timezone.now() - timedelta(days=2),
+        )
+
+        r_list = self.client.get(reverse("site_kit:news_list"))
+        self.assertContains(r_list, "Frische News")
+        self.assertNotContains(r_list, "Alte News")
+        self.assertContains(r_list, reverse("site_kit:news_archive"))
+
+        r_arch = self.client.get(reverse("site_kit:news_archive"))
+        self.assertContains(r_arch, "Alte News")
+        self.assertNotContains(r_arch, "Frische News")
+
+        r_det = self.client.get(reverse("site_kit:news_detail", args=[old_e.slug]))
+        self.assertEqual(r_det.status_code, 200)
+        self.assertContains(r_det, "Archivierte Meldung")
+
 
 if __name__ == "__main__":
     import unittest
