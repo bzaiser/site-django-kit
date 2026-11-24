@@ -399,7 +399,7 @@ def news_detail_view(request, slug):
     if not apps.is_installed("list_kit"):
         raise Http404()
     from list_kit.models import Entry
-    from list_kit.services import render_safe_markdown
+    from list_kit.services import get_linked_domain_document, render_safe_markdown
     qs = Entry.objects.select_related("collection", "collection__template", "created_by").filter(
         slug=slug, collection__template__content_type="news"
     )
@@ -414,6 +414,8 @@ def news_detail_view(request, slug):
     ctx["entry"] = entry
     ctx["is_archived"] = bool(entry.expires_at and entry.expires_at <= now)
     ctx["rendered_body"] = render_safe_markdown(entry.notes)
+    ctx["public_documents"] = list(entry.documents.filter(is_public=True))
+    ctx["linked_document"] = get_linked_domain_document(entry.linked_document_id, require_public=True) if entry.linked_document_id else None
     return render(request, "site_kit/news_detail.html", ctx)
 
 
