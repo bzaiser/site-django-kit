@@ -114,6 +114,7 @@ class PageBlock(models.Model):
     body = models.TextField(blank=True, default="")
     image = models.FileField(upload_to="site_kit/blocks/%Y/%m/", blank=True, null=True)
     image_url = models.URLField(blank=True, default="")
+    bg_image = models.FileField(upload_to="site_kit/block_bg/%Y/%m/", blank=True, null=True)
     video_file = models.FileField(upload_to="site_kit/videos/%Y/%m/", blank=True, null=True)
     cta_label = models.CharField(max_length=80, blank=True, default="")
     cta_url = models.CharField(max_length=255, blank=True, default="")
@@ -156,26 +157,84 @@ class PageBlock(models.Model):
         }.get(self.col_span, "col-12")
 
     @property
+    def resolved_bg_image_url(self) -> str:
+        if self.bg_image:
+            try:
+                return self.bg_image.url
+            except Exception:
+                pass
+        cfg = self.config_json if isinstance(self.config_json, dict) else {}
+        return (cfg.get("bg_image_url") or "").strip()
+
+    @property
+    def bg_color(self) -> str:
+        cfg = self.config_json if isinstance(self.config_json, dict) else {}
+        val = (cfg.get("bg_color") or "").strip()
+        if val.startswith("#") and len(val) in (4, 7):
+            return val
+        return ""
+
+    @property
+    def bg_overlay(self) -> str:
+        cfg = self.config_json if isinstance(self.config_json, dict) else {}
+        val = (cfg.get("bg_overlay") or "dark").strip()
+        return val if val in ("dark", "light", "none") else "dark"
+
+    @property
+    def is_dark_surface(self) -> bool:
+        sv = self.style_variant
+        return sv == "primary" or (sv == "bg_image" and self.bg_overlay == "dark")
+
+    @property
     def style_variant(self) -> str:
         cfg = self.config_json if isinstance(self.config_json, dict) else {}
         val = (cfg.get("style_variant") or "card").strip()
-        return val if val in ("card", "solid", "flat", "subtle", "primary") else "card"
+        return val if val in ("card", "solid", "flat", "flat_solid", "subtle", "primary", "bg_image") else "card"
 
     @property
     def card_wrapper_class(self) -> str:
         sv = self.style_variant
         if sv == "flat":
             return "py-2 h-100"
+        if sv == "flat_solid":
+            return "rounded-4 overflow-hidden h-100"
         if sv == "subtle":
-            return "bg-body-tertiary rounded-4 p-4 h-100"
+            return "rounded-4 overflow-hidden border h-100"
         if sv == "primary":
-            return "card border-primary border-2 shadow-sm rounded-4 overflow-hidden h-100"
+            return "rounded-4 overflow-hidden shadow-sm text-white h-100"
+        if sv == "bg_image":
+            txt = "text-white" if self.bg_overlay == "dark" else "text-dark"
+            return f"rounded-4 overflow-hidden shadow-sm {txt} h-100"
         return "card shadow-sm rounded-4 overflow-hidden h-100"
 
     @property
     def card_wrapper_style(self) -> str:
-        if self.style_variant == "solid":
-            return "background-color: var(--bs-body-bg, #ffffff) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;"
+        sv = self.style_variant
+        if sv == "solid":
+            bg = self.bg_color or "var(--bs-body-bg, #ffffff)"
+            return f"background: {bg} !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;"
+        if sv == "flat_solid":
+            bg = self.bg_color or "var(--bs-body-bg, #ffffff)"
+            return f"background: {bg} !important; box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;"
+        if sv == "subtle":
+            bg = self.bg_color or "color-mix(in srgb, var(--app-primary, #0d6efd) 10%, var(--bs-body-bg, #ffffff))"
+            return f"background: {bg} !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;"
+        if sv == "primary":
+            if self.bg_color:
+                return f"background: {self.bg_color} !important; border: none !important;"
+            return "background: var(--app-gradient, var(--app-primary, #0d6efd)) !important; border: none !important;"
+        if sv == "bg_image":
+            img = self.resolved_bg_image_url
+            if img:
+                safe_img = img.replace("'", "").replace('"', "")
+                if self.bg_overlay == "dark":
+                    ov = "linear-gradient(rgba(15, 23, 42, 0.56), rgba(15, 23, 42, 0.56)), "
+                elif self.bg_overlay == "light":
+                    ov = "linear-gradient(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.72)), "
+                else:
+                    ov = ""
+                return f"background: {ov}url('{safe_img}') center / cover no-repeat !important;"
+            return "background: var(--app-gradient, var(--app-primary, #0d6efd)) !important;"
         return ""
 
     @property

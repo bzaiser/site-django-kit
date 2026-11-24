@@ -117,8 +117,10 @@
                                 <option value="card">Stil: Design-Standard (ggf. durchscheinend)</option>
                                 <option value="solid">Stil: Volldeckend (opak)</option>
                                 <option value="flat">Stil: Flat (ohne Card)</option>
-                                <option value="subtle">Stil: Dezent (Hell)</option>
-                                <option value="primary">Stil: Primär-Akzent</option>
+                                <option value="flat_solid">Stil: Flat mit Farbe (ohne Glas)</option>
+                                <option value="subtle">Stil: Dezent (getönt)</option>
+                                <option value="primary">Stil: Primär-Akzent (Banner)</option>
+                                <option value="bg_image">Stil: Hintergrundbild</option>
                             </select>
                         </div>
                         <div class="col-md-4">
@@ -133,6 +135,27 @@
                                 <input type="checkbox" name="compact" id="addBlockCompact" class="form-check-input">
                                 <label class="form-check-label small" for="addBlockCompact">Einzeilig / Kompakt</label>
                             </div>
+                        </div>
+                    </div>
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-3">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text">Farbe</span>
+                                <input type="text" name="bg_color" class="form-control" placeholder="#ffffff" maxlength="7">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="file" name="bg_image" accept="image/*" class="form-control form-control-sm" title="Hintergrundbild hochladen">
+                        </div>
+                        <div class="col-md-3">
+                            <input type="text" name="bg_image_url" class="form-control form-control-sm" placeholder="Hintergrund-URL">
+                        </div>
+                        <div class="col-md-2">
+                            <select name="bg_overlay" class="form-select form-select-sm" title="Hintergrund-Overlay">
+                                <option value="dark">Dunkel</option>
+                                <option value="light">Hell</option>
+                                <option value="none">Ohne</option>
+                            </select>
                         </div>
                     </div>
                     <div class="row g-2" id="addImageStyleRow">
@@ -353,8 +376,10 @@
                             <option value="card" {% if b.style_variant == 'card' %}selected{% endif %}>Design-Standard (ggf. durchscheinend)</option>
                             <option value="solid" {% if b.style_variant == 'solid' %}selected{% endif %}>Volldeckend (opak)</option>
                             <option value="flat" {% if b.style_variant == 'flat' %}selected{% endif %}>Flat (ohne Card)</option>
-                            <option value="subtle" {% if b.style_variant == 'subtle' %}selected{% endif %}>Dezent (Hell)</option>
-                            <option value="primary" {% if b.style_variant == 'primary' %}selected{% endif %}>Primär-Akzent</option>
+                            <option value="flat_solid" {% if b.style_variant == 'flat_solid' %}selected{% endif %}>Flat mit Farbe (ohne Glas)</option>
+                            <option value="subtle" {% if b.style_variant == 'subtle' %}selected{% endif %}>Dezent (getönt)</option>
+                            <option value="primary" {% if b.style_variant == 'primary' %}selected{% endif %}>Primär-Akzent (Banner)</option>
+                            <option value="bg_image" {% if b.style_variant == 'bg_image' %}selected{% endif %}>Hintergrundbild</option>
                         </select>
                     </div>
                     <div class="col-md-4">
@@ -363,6 +388,34 @@
                             <option value="right" {% if b.image_position == 'right' %}selected{% endif %}>Bild rechts</option>
                             <option value="left" {% if b.image_position == 'left' %}selected{% endif %}>Bild links</option>
                             <option value="top" {% if b.image_position == 'top' %}selected{% endif %}>Bild oben</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Hintergrundfarbe</label>
+                        <input type="text" name="bg_color" value="{{ b.bg_color }}" class="form-control form-control-sm" placeholder="#ffffff" maxlength="7">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small mb-1">Hintergrundbild (Upload)</label>
+                        <input type="file" name="bg_image" accept="image/*" class="form-control form-control-sm">
+                        {% if b.bg_image %}
+                        <div class="form-check mt-1">
+                            <input type="checkbox" name="remove_bg_image" value="1" id="rmBgImg{{ b.id }}" class="form-check-input">
+                            <label class="form-check-label small" for="rmBgImg{{ b.id }}">Hintergrundbild entfernen</label>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Hintergrundbild-URL</label>
+                        <input type="text" name="bg_image_url" value="{{ b.bg_image_url }}" class="form-control form-control-sm" placeholder="https://...">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1">Overlay</label>
+                        <select name="bg_overlay" class="form-select form-select-sm">
+                            <option value="dark" {% if b.bg_overlay == 'dark' %}selected{% endif %}>Dunkel</option>
+                            <option value="light" {% if b.bg_overlay == 'light' %}selected{% endif %}>Hell</option>
+                            <option value="none" {% if b.bg_overlay == 'none' %}selected{% endif %}>Ohne</option>
                         </select>
                     </div>
                 </div>

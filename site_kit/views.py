@@ -1082,7 +1082,20 @@ def _parse_col_span(raw_val) -> int:
 def _parse_block_layout_config(request, existing_cfg=None) -> dict:
     cfg = dict(existing_cfg) if isinstance(existing_cfg, dict) else {}
     sv = (request.POST.get("style_variant") or cfg.get("style_variant") or "card").strip()
-    cfg["style_variant"] = sv if sv in ("card", "solid", "flat", "subtle", "primary") else "card"
+    cfg["style_variant"] = (
+        sv if sv in ("card", "solid", "flat", "flat_solid", "subtle", "primary", "bg_image") else "card"
+    )
+    if "bg_color" in request.POST:
+        raw_bgc = (request.POST.get("bg_color") or "").strip()
+        if len(raw_bgc) == 7 and raw_bgc.startswith("#") and all(c in "0123456789abcdefABCDEF" for c in raw_bgc[1:]):
+            cfg["bg_color"] = raw_bgc.lower()
+        else:
+            cfg["bg_color"] = ""
+    if "bg_image_url" in request.POST:
+        cfg["bg_image_url"] = (request.POST.get("bg_image_url") or "").strip()[:300]
+    if "bg_overlay" in request.POST:
+        bo = (request.POST.get("bg_overlay") or "dark").strip()
+        cfg["bg_overlay"] = bo if bo in ("dark", "light", "none") else "dark"
     ip = (request.POST.get("image_position") or cfg.get("image_position") or "right").strip()
     cfg["image_position"] = ip if ip in ("right", "left", "top") else "right"
     ishape = (request.POST.get("image_shape") or cfg.get("image_shape") or "rounded").strip()
@@ -1333,6 +1346,13 @@ def page_delete_view(request, pk):
 
 
 @_editor_required
+def _apply_block_bg_image(request, block: PageBlock) -> None:
+    if request.FILES.get("bg_image"):
+        block.bg_image = request.FILES["bg_image"]
+    elif request.POST.get("remove_bg_image") == "1":
+        block.bg_image = None
+
+
 def page_edit_view(request, pk):
     page = get_object_or_404(PublicPage, pk=pk)
     is_admin = bool(getattr(request.user, "is_staff", False) or getattr(request.user, "is_superuser", False))
@@ -1365,6 +1385,7 @@ def page_edit_view(request, pk):
                     body=raw_body,
                     image=request.FILES.get("image"),
                     image_url=(request.POST.get("image_url") or "").strip()[:200],
+                    bg_image=request.FILES.get("bg_image"),
                     video_file=request.FILES.get("video_file"),
                     cta_label=(request.POST.get("cta_label") or "").strip()[:80],
                     cta_url=(request.POST.get("cta_url") or "").strip()[:255],
@@ -1388,6 +1409,7 @@ def page_edit_view(request, pk):
                         block.image = request.FILES["image"]
                     elif request.POST.get("remove_image") == "1":
                         block.image = None
+                    _apply_block_bg_image(request, block)
                 else:
                     # Redakteure können bei Admin-HTML-Blöcken nur Text/Inhalt ändern, nicht Layout/Struktur
                     block.body = _sanitize_rich_html(raw_body)
@@ -1401,6 +1423,7 @@ def page_edit_view(request, pk):
                     block.image = request.FILES["image"]
                 elif request.POST.get("remove_image") == "1":
                     block.image = None
+                _apply_block_bg_image(request, block)
                 if request.FILES.get("video_file"):
                     block.video_file = request.FILES["video_file"]
                 elif request.POST.get("remove_video") == "1":
@@ -1456,6 +1479,12 @@ def page_edit_view(request, pk):
                     try:
                         with src.image.open("rb") as fh:
                             dup.image.save((src.image.name or "block.jpg").rsplit("/", 1)[-1], ContentFile(fh.read()), save=True)
+                    except Exception:
+                        pass
+                if src.bg_image:
+                    try:
+                        with src.bg_image.open("rb") as fh:
+                            dup.bg_image.save((src.bg_image.name or "block-bg.jpg").rsplit("/", 1)[-1], ContentFile(fh.read()), save=True)
                     except Exception:
                         pass
                 if src.video_file:

@@ -1,13 +1,13 @@
 {% load i18n %}{% if item.block.block_type == 'hero' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
-    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4 p-md-5{% endif %}{% endif %}">
+    <div class="{% if item.block.style_variant == 'flat' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4 p-md-5{% endif %}{% endif %}">
         <div class="row align-items-center g-4 {% if item.block.image_position == 'left' %}flex-lg-row-reverse{% elif item.block.image_position == 'top' %}flex-column-reverse{% endif %}">
             <div class="{% if item.block.resolved_image_url and item.block.image_position != 'top' %}col-lg-7{% else %}col-12{% endif %}">
                 {% if item.block.title %}<h1 class="{% if item.block.is_compact %}h3{% else %}display-6{% endif %} fw-bold mb-2">{{ item.block.title }}</h1>{% endif %}
-                {% if item.block.subtitle %}<p class="lead text-muted mb-3">{{ item.block.subtitle }}</p>{% endif %}
+                {% if item.block.subtitle %}<p class="lead {% if item.block.is_dark_surface %}opacity-75{% else %}text-muted{% endif %} mb-3">{{ item.block.subtitle }}</p>{% endif %}
                 {% if item.block.body %}<p class="mb-3">{{ item.block.body }}</p>{% endif %}
                 {% if item.block.cta_label and item.block.cta_url %}
-                <a href="{{ item.block.cta_url }}" class="btn btn-primary rounded-pill px-4">{{ item.block.cta_label }}</a>
+                <a href="{{ item.block.cta_url }}" class="btn {% if item.block.is_dark_surface %}btn-light{% else %}btn-primary{% endif %} rounded-pill px-4">{{ item.block.cta_label }}</a>
                 {% endif %}
             </div>
             {% if item.block.resolved_image_url %}
@@ -21,14 +21,14 @@
 
 {% elif item.block.block_type == 'text_image' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
-    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
+    <div class="{% if item.block.style_variant == 'flat' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
         <div class="row align-items-center g-4 {% if item.block.image_position == 'left' %}flex-md-row-reverse{% elif item.block.image_position == 'top' %}flex-column-reverse{% endif %}">
             <div class="{% if item.block.resolved_image_url and item.block.image_position != 'top' %}col-md-7{% else %}col-12{% endif %}">
                 {% if item.block.title %}<h2 class="h4 fw-bold mb-2">{{ item.block.title }}</h2>{% endif %}
-                {% if item.block.subtitle %}<div class="text-muted mb-2">{{ item.block.subtitle }}</div>{% endif %}
+                {% if item.block.subtitle %}<div class="{% if item.block.is_dark_surface %}opacity-75{% else %}text-muted{% endif %} mb-2">{{ item.block.subtitle }}</div>{% endif %}
                 {% if item.block.body %}<div class="text-break">{{ item.block.body|linebreaksbr }}</div>{% endif %}
                 {% if item.block.cta_label and item.block.cta_url %}
-                <a href="{{ item.block.cta_url }}" class="btn btn-outline-primary btn-sm rounded-pill mt-3">{{ item.block.cta_label }}</a>
+                <a href="{{ item.block.cta_url }}" class="btn {% if item.block.is_dark_surface %}btn-outline-light{% else %}btn-outline-primary{% endif %} btn-sm rounded-pill mt-3">{{ item.block.cta_label }}</a>
                 {% endif %}
             </div>
             {% if item.block.resolved_image_url %}
@@ -71,7 +71,7 @@
 
 {% elif item.block.block_type == 'news_feed' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
-    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
+    <div class="{% if item.block.style_variant == 'flat' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h2 class="h4 fw-bold mb-0"><i class="bi bi-newspaper text-primary me-2"></i>{{ item.block.title|default:"Aktuelles & News" }}</h2>
             <a href="{% url 'site_kit:news_list' %}" class="btn btn-outline-primary btn-sm rounded-pill">Alle News &rarr;</a>
@@ -105,7 +105,7 @@
 
 {% elif item.block.block_type == 'upcoming_events' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
-    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
+    <div class="{% if item.block.style_variant == 'flat' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h2 class="h4 fw-bold mb-0"><i class="bi bi-calendar-event text-primary me-2"></i>{{ item.block.title|default:"Nächste Termine" }}</h2>
             <a href="{% url 'site_kit:events_list' %}{% if item.calendar_category_id %}?kalender={{ item.calendar_category_id }}{% endif %}" class="btn btn-outline-primary btn-sm rounded-pill">Alle Termine &rarr;</a>
@@ -128,7 +128,7 @@
 
 {% elif item.block.block_type == 'people_grid' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
-    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
+    <div class="{% if item.block.style_variant == 'flat' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
         <h2 class="h4 fw-bold mb-3"><i class="bi bi-people text-primary me-2"></i>{{ item.block.title|default:"Ansprechpartner & Vorstand" }}</h2>
         <div class="row g-3">
         {% for p in item.people %}
@@ -192,7 +192,7 @@
 
 {% elif item.block.block_type == 'downloads' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
-    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
+    <div class="{% if item.block.style_variant == 'flat' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
         <h2 class="h4 fw-bold mb-3"><i class="bi bi-file-earmark-arrow-down text-primary me-2"></i>{{ item.block.title|default:"Downloads & Formulare" }}</h2>
         <div class="d-flex flex-column">
             {% for doc in item.documents %}
@@ -209,7 +209,7 @@
 
 {% elif item.block.block_type == 'faq_list' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
-    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
+    <div class="{% if item.block.style_variant == 'flat' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
         <h2 class="h4 fw-bold mb-3"><i class="bi bi-question-circle text-primary me-2"></i>{{ item.block.title|default:"Häufige Fragen (FAQ)" }}</h2>
         <div class="accordion rounded-4 overflow-hidden" id="faqAcc{{ item.block.id }}">
             {% for faq in item.faq_items %}
@@ -267,7 +267,7 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
             {% if item.block.title %}<h2 class="h4 fw-bold mb-0">{{ item.block.title }}</h2>{% else %}<h2 class="h4 fw-bold mb-0">{{ item.program_title|default:"Jahresprogramm" }} {{ item.program_year }}</h2>{% endif %}
-            {% if item.block.subtitle %}<div class="text-muted small">{{ item.block.subtitle }}</div>{% endif %}
+            {% if item.block.subtitle %}<div class="{% if item.block.is_dark_surface %}opacity-75{% else %}text-muted{% endif %} small">{{ item.block.subtitle }}</div>{% endif %}
         </div>
         <a href="{% url 'site_kit:annual_program' %}" class="btn btn-outline-primary btn-sm rounded-pill">Komplettes Programm &rarr;</a>
     </div>
@@ -276,11 +276,11 @@
 
 {% elif item.block.block_type == 'photo_gallery' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
-    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
+    <div class="{% if item.block.style_variant == 'flat' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
             <div>
                 <h2 class="h4 fw-bold mb-0"><i class="bi bi-images text-primary me-2"></i>{{ item.block.title|default:"Impressionen & Galerie" }}</h2>
-                {% if item.block.subtitle %}<div class="text-muted small">{{ item.block.subtitle }}</div>{% endif %}
+                {% if item.block.subtitle %}<div class="{% if item.block.is_dark_surface %}opacity-75{% else %}text-muted{% endif %} small">{{ item.block.subtitle }}</div>{% endif %}
             </div>
             <div class="d-flex flex-wrap gap-2">
                 {% if item.linked_event %}
@@ -387,7 +387,7 @@
 
 {% elif item.block.block_type == 'video' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
-    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
+    <div class="{% if item.block.style_variant == 'flat' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
         {% if item.block.title %}<h2 class="h4 fw-bold mb-1">{{ item.block.title }}</h2>{% endif %}
         {% if item.block.subtitle %}<div class="text-muted small mb-3">{{ item.block.subtitle }}</div>{% endif %}
         {% if item.video_is_file and item.video_src %}
@@ -413,11 +413,11 @@
 
 {% elif item.block.block_type == 'rich_html' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
-    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
+    <div class="{% if item.block.style_variant == 'flat' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
         <div class="row align-items-center g-4 {% if item.block.image_position == 'left' %}flex-md-row-reverse{% elif item.block.image_position == 'top' %}flex-column-reverse{% endif %}">
             <div class="{% if item.block.resolved_image_url and item.block.image_position != 'top' %}col-md-7{% else %}col-12{% endif %}">
                 {% if item.block.title %}<h2 class="h4 fw-bold mb-2">{{ item.block.title }}</h2>{% endif %}
-                {% if item.block.subtitle %}<div class="text-muted mb-2">{{ item.block.subtitle }}</div>{% endif %}
+                {% if item.block.subtitle %}<div class="{% if item.block.is_dark_surface %}opacity-75{% else %}text-muted{% endif %} mb-2">{{ item.block.subtitle }}</div>{% endif %}
                 <div class="site-rich-html">{{ item.block.body|safe }}</div>
             </div>
             {% if item.block.resolved_image_url %}
