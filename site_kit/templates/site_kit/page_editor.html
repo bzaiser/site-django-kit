@@ -16,6 +16,29 @@
     </div>
 </div>
 
+{% if page.slug == 'termine' %}
+<form method="post" class="card shadow-sm mb-3">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="save_events_layout">
+    <div class="card-body py-2 px-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <span class="fw-semibold small"><i class="bi bi-calendar-event me-1 text-primary"></i>Öffentliche Termine: Standard-Darstellung</span>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <select name="events_layout" class="form-select form-select-sm w-auto">
+                <option value="row" {% if site_cfg.events_layout == 'row' or not site_cfg.events_layout %}selected{% endif %}>Zeilen</option>
+                <option value="cards" {% if site_cfg.events_layout == 'cards' %}selected{% endif %}>Karten</option>
+                <option value="stacked" {% if site_cfg.events_layout == 'stacked' %}selected{% endif %}>Stapel</option>
+            </select>
+            <select name="events_image_position" class="form-select form-select-sm w-auto">
+                <option value="left" {% if site_cfg.events_image_position == 'left' or not site_cfg.events_image_position %}selected{% endif %}>Bild links</option>
+                <option value="right" {% if site_cfg.events_image_position == 'right' %}selected{% endif %}>Bild rechts</option>
+                <option value="top" {% if site_cfg.events_image_position == 'top' %}selected{% endif %}>Bild oben</option>
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3">Übernehmen</button>
+        </div>
+    </div>
+</form>
+{% endif %}
+
 <div class="row g-4">
     <div class="col-lg-7">
         <div class="card shadow-sm mb-3">

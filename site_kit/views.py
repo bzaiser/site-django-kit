@@ -437,7 +437,7 @@ def events_list_view(request):
             window_end = now + timedelta(days=180)
             public_qs = (
                 CalendarEvent.objects.filter(is_public=True)
-                .select_related("category")
+                .select_related("category", "offering_template")
                 .order_by("start_at")
             )
 
@@ -454,6 +454,7 @@ def events_list_view(request):
                     "all_day": ev.all_day,
                     "location": ev.location,
                     "description": ev.description,
+                    "image_url": getattr(ev, "resolved_image_url", ""),
                     "category": ev.category,
                     "instructor_name": ev.instructor_name,
                     "allow_registration": ev.allow_registration,
@@ -1223,6 +1224,15 @@ def page_edit_view(request, pk):
     is_admin = bool(getattr(request.user, "is_staff", False) or getattr(request.user, "is_superuser", False))
     if request.method == "POST":
         action = request.POST.get("action") or "save_page"
+        if action == "save_events_layout" and page.slug == "termine":
+            sc = SiteConfig.get_solo()
+            el = (request.POST.get("events_layout") or "row").strip()
+            ep = (request.POST.get("events_image_position") or "left").strip()
+            sc.events_layout = el if el in ("row", "cards", "stacked") else "row"
+            sc.events_image_position = ep if ep in ("left", "right", "top") else "left"
+            sc.save(update_fields=["events_layout", "events_image_position"])
+            messages.success(request, "Darstellung der öffentlichen Termine gespeichert.")
+            return redirect("site_kit:page_edit", pk=page.id)
         if action == "add_block":
             btype = request.POST.get("block_type") or "text_image"
             if btype == "rich_html" and not is_admin:

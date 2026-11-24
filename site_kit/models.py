@@ -21,6 +21,8 @@ class SiteConfig(models.Model):
     default_genre = models.CharField(max_length=40, blank=True, default="")
     member_login_url = models.CharField(max_length=160, default="/accounts/login/")
     member_app_url = models.CharField(max_length=160, default="/app/")
+    events_layout = models.CharField(max_length=16, default="row")
+    events_image_position = models.CharField(max_length=16, default="left")
 
     @classmethod
     def get_solo(cls):
