@@ -169,6 +169,19 @@ def _parse_video_embed(raw_url: str) -> tuple[str, str]:
     return ("", "")
 
 
+def _attach_news_preview_html(entries):
+    from django.utils.html import escape, linebreaks
+    for e in entries:
+        raw = (getattr(e, "notes", "") or "").strip()
+        if not raw:
+            e.preview_html = ""
+        elif "<" in raw and ">" in raw:
+            e.preview_html = _sanitize_rich_html(raw)
+        else:
+            e.preview_html = linebreaks(escape(raw))
+    return entries
+
+
 def _resolve_block_data(block: PageBlock) -> dict:
     cfg = block.config_json if isinstance(block.config_json, dict) else {}
     limit = int(cfg.get("limit") or 6)
@@ -178,7 +191,9 @@ def _resolve_block_data(block: PageBlock) -> dict:
         try:
             from list_kit.services import get_published_entries
             col_slug = (cfg.get("collection_slug") or "").strip() or None
-            data["news_items"] = get_published_entries(content_type="news", collection_slug=col_slug, limit=limit)
+            data["news_items"] = _attach_news_preview_html(
+                get_published_entries(content_type="news", collection_slug=col_slug, limit=limit)
+            )
         except Exception:
             data["news_items"] = []
 
@@ -373,7 +388,7 @@ def news_list_view(request):
     if apps.is_installed("list_kit"):
         try:
             from list_kit.services import get_archived_entries, get_published_entries
-            items = get_published_entries(content_type="news")
+            items = _attach_news_preview_html(get_published_entries(content_type="news"))
             archive_count = len(get_archived_entries(content_type="news"))
         except Exception:
             items = []
@@ -396,7 +411,9 @@ def news_archive_view(request):
             from list_kit.services import get_archived_entries
             all_archived = get_archived_entries(content_type="news")
             years = sorted({(e.publish_at or e.created_at).year for e in all_archived}, reverse=True)
-            items = [e for e in all_archived if not sel_year or (e.publish_at or e.created_at).year == sel_year]
+            items = _attach_news_preview_html(
+                [e for e in all_archived if not sel_year or (e.publish_at or e.created_at).year == sel_year]
+            )
         except Exception:
             items = []
     page_obj = Paginator(items, 20).get_page(request.GET.get("page"))

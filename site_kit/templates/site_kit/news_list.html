@@ -35,7 +35,7 @@
                     <div>
                         {% if entry.is_pinned %}<span class="badge text-bg-primary mb-1">Angepinnt</span>{% endif %}
                         <h2 class="h5 fw-bold mb-1">{{ entry.title }}</h2>
-                        <p class="small text-muted mb-0">{{ entry.notes|truncatechars:140 }}</p>
+                        <div class="small text-muted mb-0">{{ entry.preview_html|truncatechars_html:140|safe }}</div>
                     </div>
                     <div class="small text-muted border-top pt-2">{{ entry.publish_at|default:entry.created_at|date:"d.m.Y" }}</div>
                 </div>
