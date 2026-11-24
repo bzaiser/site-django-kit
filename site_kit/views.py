@@ -297,9 +297,23 @@ def _resolve_block_data(block: PageBlock) -> dict:
         raw_stats = []
         for line in (block.body or "").splitlines():
             if "|" in line:
-                val_part, lbl_part = line.split("|", 1)
-                if val_part.strip() and lbl_part.strip():
-                    raw_stats.append({"value": val_part.strip()[:40], "label": lbl_part.strip()[:80]})
+                parts = [p.strip() for p in line.split("|")]
+                val_part = parts[0] if len(parts) >= 1 else ""
+                lbl_part = parts[1] if len(parts) >= 2 else ""
+                icon_part = parts[2][:40] if len(parts) >= 3 else ""
+                mode_raw = parts[3].upper() if len(parts) >= 4 and parts[3].strip() else ("F" if icon_part else "")
+                if mode_raw == "BF":
+                    mode_raw = "FB"
+                if mode_raw not in ("F", "B", "FB"):
+                    mode_raw = "F" if icon_part else ""
+                if val_part and lbl_part:
+                    raw_stats.append({
+                        "value": val_part[:40],
+                        "label": lbl_part[:80],
+                        "icon": icon_part,
+                        "is_bi": icon_part.startswith("bi-"),
+                        "icon_mode": mode_raw,
+                    })
         if not raw_stats and isinstance(cfg.get("stats"), list):
             raw_stats = cfg.get("stats") or []
         if not raw_stats:

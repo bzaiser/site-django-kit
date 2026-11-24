@@ -47,11 +47,20 @@
     <div class="row g-3">
         {% for st in item.stats %}
         <div class="col-6 col-md-3">
-            <div class="card shadow-sm text-center h-100">
-                <div class="card-body p-3">
-                    <div class="fs-3 fw-bold text-primary">{{ st.value }}</div>
-                    <div class="small text-muted">{{ st.label }}</div>
+            <div class="card metric-card shadow-sm h-100 position-relative overflow-hidden">
+                <div class="kpi-spotlight"></div>
+                <div class="card-body p-3 d-flex flex-column justify-content-between position-relative" style="z-index: 2;">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div class="small text-uppercase fw-semibold text-muted">{{ st.label }}</div>
+                        {% if st.icon and 'F' in st.icon_mode %}
+                        <span class="fs-4 lh-1 flex-shrink-0">{% if st.is_bi %}<i class="bi {{ st.icon }} text-primary"></i>{% else %}{{ st.icon }}{% endif %}</span>
+                        {% endif %}
+                    </div>
+                    <div class="fs-2 fw-bold text-primary mt-1">{{ st.value }}</div>
                 </div>
+                {% if st.icon and 'B' in st.icon_mode %}
+                <div class="kpi-watermark-icon">{% if st.is_bi %}<i class="bi {{ st.icon }}"></i>{% else %}{{ st.icon }}{% endif %}</div>
+                {% endif %}
             </div>
         </div>
         {% empty %}
