@@ -153,26 +153,20 @@
                             </select>
                         </div>
                     </div>
+                    <div class="row g-2 d-none" id="addPublicFormWrap">
+                        <div class="col-12">
+                            <select name="collection_slug" class="form-select form-select-sm">
+                                <option value="">Formular: Standard (erstes öffentliches Formular)</option>
+                                {% for fc in form_collections %}<option value="{{ fc.slug }}">Formular: {{ fc.title }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
                     <input type="text" name="title" class="form-control form-control-sm" placeholder="Überschrift">
                     <input type="text" name="subtitle" class="form-control form-control-sm" placeholder="Untertitel (optional)">
 
                     <!-- Built-in WYSIWYG toolbar (shown for rich_html by Admin) -->
                     <div id="addWysiwygWrap" class="d-none border rounded-3 p-2 bg-body-tertiary">
-                        <div class="d-flex flex-wrap gap-1 mb-2" data-wysiwyg-toolbar="addWysiwyg">
-                            <button type="button" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" data-cmd="bold"><strong>F</strong></button>
-                            <button type="button" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" data-cmd="italic"><em>K</em></button>
-                            <button type="button" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" data-cmd="formatBlock" data-val="H3">H3</button>
-                            <button type="button" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" data-cmd="insertUnorderedList"><i class="bi bi-list-ul"></i></button>
-                            <button type="button" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" data-cmd="createLink">Link</button>
-                            <select class="form-select form-select-sm d-inline-block w-auto py-0" data-style-insert="addWysiwyg">
-                                <option value="">+ Theme-Style / Farbe…</option>
-                                <option value='<span class="text-primary fw-semibold">Akzent-Text</span>'>Primärfarbe Text</option>
-                                <option value='<span class="badge text-bg-primary rounded-pill">Badge</span>'>Primär-Badge</option>
-                                <option value='<div class="alert alert-info py-2">Hinweisbox</div>'>Theme-Hinweisbox</option>
-                                <option value='<a href="#" class="btn btn-primary btn-sm rounded-pill">Button</a>'>Primär-Button</option>
-                            </select>
-                            <button type="button" class="btn btn-xs btn-sm btn-outline-dark py-0 px-2 ms-auto" data-toggle-html="addWysiwyg">HTML</button>
-                        </div>
+                        {% include "site_kit/partials/_wysiwyg_toolbar.html" with toolbar_key="addWysiwyg" show_html_toggle=True %}
                         <div id="addWysiwygEditor" contenteditable="true" class="form-control form-control-sm bg-body" style="min-height: 110px;"></div>
                     </div>
 
@@ -306,6 +300,15 @@
                     </div>
                 </div>
                 {% endif %}
+                {% if b.block_type == 'public_form' %}
+                <div>
+                    <label class="form-label small mb-1">Verknüpftes Formular</label>
+                    <select name="collection_slug" class="form-select form-select-sm">
+                        <option value="">Standard (erstes öffentliches Formular)</option>
+                        {% for fc in form_collections %}<option value="{{ fc.slug }}" {% if b.config_json.collection_slug == fc.slug %}selected{% endif %}>{{ fc.title }}</option>{% endfor %}
+                    </select>
+                </div>
+                {% endif %}
                 <div class="form-check">
                     <input type="checkbox" name="compact" id="editCompact-{{ b.id }}" class="form-check-input" {% if b.is_compact %}checked{% endif %}>
                     <label class="form-check-label small" for="editCompact-{{ b.id }}">Einzeilig / Kompakt</label>
@@ -317,14 +320,11 @@
                 <input type="text" name="subtitle" value="{{ b.subtitle }}" class="form-control form-control-sm" placeholder="Untertitel">
                 {% if b.block_type == 'rich_html' %}
                 <div class="border rounded-3 p-2 bg-body-tertiary">
-                    <div class="d-flex flex-wrap gap-1 mb-2" data-wysiwyg-toolbar="edit-{{ b.id }}">
-                        <button type="button" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" data-cmd="bold"><strong>F</strong></button>
-                        <button type="button" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" data-cmd="italic"><em>K</em></button>
-                        <button type="button" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" data-cmd="insertUnorderedList"><i class="bi bi-list-ul"></i></button>
-                        {% if is_admin %}
-                        <button type="button" class="btn btn-xs btn-sm btn-outline-dark py-0 px-2 ms-auto" data-toggle-html="edit-{{ b.id }}">HTML</button>
-                        {% endif %}
-                    </div>
+                    {% with bid=b.id|stringformat:"s" %}
+                        {% with tb_key="edit-"|add:bid %}
+                            {% include "site_kit/partials/_wysiwyg_toolbar.html" with toolbar_key=tb_key show_html_toggle=is_admin %}
+                        {% endwith %}
+                    {% endwith %}
                     <div id="edit-{{ b.id }}-editor" contenteditable="true" class="form-control form-control-sm bg-body" style="min-height: 120px;">{{ b.body|safe }}</div>
                     <textarea name="body" id="edit-{{ b.id }}-textarea" rows="4" class="form-control form-control-sm d-none mt-2">{{ b.body }}</textarea>
                 </div>
@@ -357,13 +357,16 @@ document.addEventListener("DOMContentLoaded", function () {
         const isRich = typeSel.value === "rich_html";
         const isPeople = typeSel.value === "people_grid";
         const isEvents = typeSel.value === "upcoming_events";
+        const isForm = typeSel.value === "public_form";
         const peopleWrap = document.getElementById("addPeopleFilterWrap");
         const eventsWrap = document.getElementById("addEventsFilterWrap");
+        const formWrap = document.getElementById("addPublicFormWrap");
         if (wysiWrap) wysiWrap.classList.toggle("d-none", !isRich);
         if (addBody) addBody.classList.toggle("d-none", isRich);
         if (addImg) addImg.classList.toggle("d-none", isRich);
         if (peopleWrap) peopleWrap.classList.toggle("d-none", !isPeople);
         if (eventsWrap) eventsWrap.classList.toggle("d-none", !isEvents);
+        if (formWrap) formWrap.classList.toggle("d-none", !isForm);
     }
     if (typeSel) {
         typeSel.addEventListener("change", syncAddType);
@@ -379,12 +382,22 @@ document.addEventListener("DOMContentLoaded", function () {
         bar.querySelectorAll("[data-cmd]").forEach(function (btn) {
             btn.addEventListener("click", function () {
                 const cmd = btn.dataset.cmd;
+                editor.focus();
                 if (cmd === "createLink") {
                     const url = prompt("Link-URL eingeben:", "https://");
                     if (url) document.execCommand("createLink", false, url);
                 } else {
                     document.execCommand(cmd, false, btn.dataset.val || null);
                 }
+                ta.value = editor.innerHTML;
+            });
+        });
+
+        bar.querySelectorAll("[data-cmd-color]").forEach(function (inp) {
+            inp.addEventListener("input", function () {
+                editor.focus();
+                try { document.execCommand("styleWithCSS", false, true); } catch (e) {}
+                document.execCommand(inp.dataset.cmdColor || "foreColor", false, inp.value);
                 ta.value = editor.innerHTML;
             });
         });

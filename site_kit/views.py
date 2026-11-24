@@ -205,8 +205,31 @@ def _resolve_block_data(block: PageBlock) -> dict:
             data["documents"] = []
 
     elif block.block_type == "stats_bar":
-        raw_stats = cfg.get("stats") or []
-        data["stats"] = raw_stats if isinstance(raw_stats, list) else []
+        raw_stats = []
+        for line in (block.body or "").splitlines():
+            if "|" in line:
+                val_part, lbl_part = line.split("|", 1)
+                if val_part.strip() and lbl_part.strip():
+                    raw_stats.append({"value": val_part.strip()[:40], "label": lbl_part.strip()[:80]})
+        if not raw_stats and isinstance(cfg.get("stats"), list):
+            raw_stats = cfg.get("stats") or []
+        if not raw_stats:
+            try:
+                if apps.is_installed("cal_kit"):
+                    from cal_kit.models import CalendarEvent
+                    ev_cnt = CalendarEvent.objects.filter(is_public=True, end_at__gte=timezone.now()).count()
+                    raw_stats.append({"value": ev_cnt, "label": "Öffentliche Termine"})
+                if apps.is_installed("list_kit"):
+                    from list_kit.services import get_published_entries
+                    news_cnt = len(get_published_entries(content_type="news", limit=100))
+                    raw_stats.append({"value": news_cnt, "label": "Aktuelle News"})
+                if apps.is_installed("domain_kit"):
+                    from domain_kit.models import Document, Person
+                    raw_stats.append({"value": Person.objects.filter(is_public=True).count(), "label": "Ansprechpartner"})
+                    raw_stats.append({"value": Document.objects.filter(is_public=True).count(), "label": "Downloads"})
+            except Exception:
+                pass
+        data["stats"] = raw_stats
 
     return data
 
@@ -540,11 +563,29 @@ def news_rss_view(request):
 
 _ALLOWED_HTML_TAGS = {
     "p", "br", "hr", "h2", "h3", "h4", "h5", "strong", "b", "em", "i", "u",
-    "ul", "ol", "li", "blockquote", "a", "div", "span", "table", "thead",
+    "ul", "ol", "li", "blockquote", "a", "div", "span", "font", "table", "thead",
     "tbody", "tr", "th", "td",
 }
 _VOID_HTML_TAGS = {"br", "hr"}
 _STRIP_WITH_CONTENT_TAGS = {"script", "style", "iframe", "object", "embed", "svg", "form"}
+_ALLOWED_STYLE_PROPS = {"color", "background-color", "text-align", "font-weight", "font-style", "text-decoration"}
+
+
+def _sanitize_inline_style(raw_style: str) -> str:
+    safe_parts = []
+    for decl in (raw_style or "").split(";"):
+        if ":" not in decl:
+            continue
+        prop, val = decl.split(":", 1)
+        prop_l = prop.strip().lower()
+        val_s = val.strip()
+        if prop_l not in _ALLOWED_STYLE_PROPS or not val_s:
+            continue
+        val_l = val_s.lower()
+        if any(bad in val_l for bad in ("url(", "expression(", "javascript:", "@import")):
+            continue
+        safe_parts.append(f"{prop_l}: {val_s}")
+    return "; ".join(safe_parts)
 
 
 class _SafeHtmlSanitizer(HTMLParser):
@@ -565,6 +606,14 @@ class _SafeHtmlSanitizer(HTMLParser):
             kl = (k or "").lower()
             if kl == "class" and v:
                 clean_attrs.append(f'class="{escape(v)}"')
+            elif kl == "style" and v:
+                safe_style = _sanitize_inline_style(v)
+                if safe_style:
+                    clean_attrs.append(f'style="{escape(safe_style)}"')
+            elif t == "font" and kl == "color" and v:
+                safe_col = _sanitize_inline_style(f"color: {v}")
+                if safe_col:
+                    clean_attrs.append(f'style="{escape(safe_col)}"')
             elif t == "a" and kl == "href" and v:
                 vl = v.strip()
                 if vl.startswith(("http://", "https://", "/", "#")):
@@ -956,6 +1005,21 @@ def page_edit_view(request, pk):
             cal_categories = list(CalendarCategory.objects.order_by("name").values("id", "name"))
         except Exception:
             pass
+    form_collections = []
+    if apps.is_installed("list_kit"):
+        try:
+            from list_kit.models import Collection
+            form_collections = list(
+                Collection.objects.filter(
+                    template__content_type="form_inbox",
+                    is_public=True,
+                    allow_public_submit=True,
+                )
+                .order_by("title")
+                .values("slug", "title")
+            )
+        except Exception:
+            pass
     return render(request, "site_kit/page_editor.html", {
         "page": page,
         "blocks": page.blocks.all(),
@@ -965,4 +1029,5 @@ def page_edit_view(request, pk):
         "domain_roles": domain_roles,
         "domain_person_categories": domain_person_categories,
         "cal_categories": cal_categories,
+        "form_collections": form_collections,
     })

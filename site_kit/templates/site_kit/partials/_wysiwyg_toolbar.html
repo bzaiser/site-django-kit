@@ -1,0 +1,23 @@
+<div class="d-flex flex-wrap align-items-center gap-1 mb-2" data-wysiwyg-toolbar="{{ toolbar_key }}">
+    <button type="button" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" data-cmd="bold" title="Fett"><strong>F</strong></button>
+    <button type="button" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" data-cmd="italic" title="Kursiv"><em>K</em></button>
+    <button type="button" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" data-cmd="underline" title="Unterstrichen"><u>U</u></button>
+    <button type="button" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" data-cmd="formatBlock" data-val="H3" title="Überschrift H3">H3</button>
+    <button type="button" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" data-cmd="insertUnorderedList" title="Aufzählung"><i class="bi bi-list-ul"></i></button>
+    <button type="button" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" data-cmd="insertOrderedList" title="Nummerierte Liste"><i class="bi bi-list-ol"></i></button>
+    <button type="button" class="btn btn-xs btn-sm btn-outline-secondary py-0 px-2" data-cmd="createLink" title="Link einfügen"><i class="bi bi-link-45deg"></i> Link</button>
+    <label class="btn btn-xs btn-sm btn-outline-secondary py-0 px-1 d-inline-flex align-items-center gap-1 mb-0" title="Textfarbe">
+        <i class="bi bi-palette"></i>
+        <input type="color" value="#0d6efd" data-cmd-color="foreColor" class="border-0 bg-transparent p-0" style="width: 18px; height: 18px; cursor: pointer;">
+    </label>
+    <select class="form-select form-select-sm d-inline-block w-auto py-0" data-style-insert="{{ toolbar_key }}">
+        <option value="">+ Theme-Style / Farbe…</option>
+        <option value='<span class="text-primary fw-semibold">Akzent-Text</span>'>Primärfarbe Text</option>
+        <option value='<span class="badge text-bg-primary rounded-pill">Badge</span>'>Primär-Badge</option>
+        <option value='<div class="alert alert-info py-2">Hinweisbox</div>'>Theme-Hinweisbox</option>
+        <option value='<a href="#" class="btn btn-primary btn-sm rounded-pill">Button</a>'>Primär-Button</option>
+    </select>
+    {% if show_html_toggle %}
+    <button type="button" class="btn btn-xs btn-sm btn-outline-dark py-0 px-2 ms-auto" data-toggle-html="{{ toolbar_key }}">HTML</button>
+    {% endif %}
+</div>

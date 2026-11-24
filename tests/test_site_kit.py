@@ -312,7 +312,7 @@ class SiteKitTests(TestCase):
                 "style_variant": "flat",
                 "layout_fields_present": "1",
                 "title": "HTML Box",
-                "body": '<p class="text-primary" style="color:red" onclick="alert(1)">Hallo</p><script>bad()</script>',
+                "body": '<p class="text-primary" style="position:fixed; background-image:url(javascript:alert(1))" onclick="alert(1)">Hallo</p><script>bad()</script>',
             },
         )
         rich_b = p.blocks.get(title="HTML Box")
@@ -430,6 +430,50 @@ class SiteKitTests(TestCase):
         )
         self.assertEqual(r_post.status_code, 302)
         self.assertTrue(Entry.objects.filter(title="Cockpit Eilmeldung").exists())
+
+    def test_rich_html_preserves_color_link_in_editor_and_stats_bar_renders(self):
+        self.client.force_login(self.staff)
+        p = PublicPage.objects.create(title="BlockTest", slug="blocktest", is_published=True)
+
+        # Add rich_html block with inline color, link, and unsafe style attempt
+        r_rich = self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "add_block",
+                "block_type": "rich_html",
+                "col_span": "12",
+                "title": "Farbtest",
+                "body": '<p><span style="color: #e11d48; background-image: url(javascript:alert(1))">Rot</span> <a href="https://example.org">Link</a></p>',
+            },
+        )
+        self.assertEqual(r_rich.status_code, 302)
+        rb = PageBlock.objects.get(page=p, block_type="rich_html")
+        self.assertIn("color: #e11d48", rb.body)
+        self.assertNotIn("javascript:", rb.body)
+        self.assertIn('href="https://example.org"', rb.body)
+
+        # Add stats_bar & public_form without extra config
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {"action": "add_block", "block_type": "stats_bar", "col_span": "12", "body": "42 | Mitglieder"},
+        )
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {"action": "add_block", "block_type": "public_form", "col_span": "12", "title": "Kontaktformular"},
+        )
+
+        # Editor modal must include Link, color picker, and style-insert
+        ed = self.client.get(reverse("site_kit:page_edit", args=[p.id]))
+        self.assertContains(ed, f'data-wysiwyg-toolbar="edit-{rb.id}"')
+        self.assertContains(ed, f'data-style-insert="edit-{rb.id}"')
+        self.assertContains(ed, 'data-cmd-color="foreColor"')
+
+        # Public page renders color, stats_bar, and public_form fallback/form
+        pub = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(pub, "color: #e11d48")
+        self.assertContains(pub, "42")
+        self.assertContains(pub, "Mitglieder")
+        self.assertContains(pub, "Kontaktformular")
 
 
 if __name__ == "__main__":
