@@ -73,6 +73,12 @@
                         {% if b.block_type != 'rich_html' or is_admin %}
                         <form method="post" class="d-inline">
                             {% csrf_token %}
+                            <input type="hidden" name="action" value="duplicate_block">
+                            <input type="hidden" name="block_id" value="{{ b.id }}">
+                            <button type="submit" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Duplizieren"><i class="bi bi-copy"></i></button>
+                        </form>
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
                             <input type="hidden" name="action" value="delete_block">
                             <input type="hidden" name="block_id" value="{{ b.id }}">
                             <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Löschen"><i class="bi bi-trash3"></i></button>
@@ -596,6 +602,19 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const eb = params.get("edit_block");
+        if (eb && window.bootstrap) {
+            const m = document.getElementById("editBlockModal-" + eb);
+            if (m) {
+                bootstrap.Modal.getOrCreateInstance(m).show();
+                params.delete("edit_block");
+                const q = params.toString();
+                window.history.replaceState({}, "", window.location.pathname + (q ? "?" + q : ""));
+            }
+        }
+    } catch (e) {}
     const typeSel = document.getElementById("addBlockTypeSelect");
     const wysiWrap = document.getElementById("addWysiwygWrap");
     const addBody = document.getElementById("addBlockBody");

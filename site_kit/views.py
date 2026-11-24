@@ -1317,6 +1317,43 @@ def page_edit_view(request, pk):
                     return HttpResponseForbidden("Nur Administratoren dürfen HTML-/WYSIWYG-Blöcke löschen.")
                 block.delete()
                 messages.success(request, "Block entfernt.")
+        elif action == "duplicate_block":
+            bid = request.POST.get("block_id")
+            if bid:
+                src = get_object_or_404(PageBlock, pk=bid, page=page)
+                if src.block_type == "rich_html" and not is_admin:
+                    return HttpResponseForbidden("Nur Administratoren dürfen HTML-/WYSIWYG-Blöcke duplizieren.")
+                from django.core.files.base import ContentFile
+                dup = PageBlock.objects.create(
+                    page=page,
+                    block_type=src.block_type,
+                    col_span=src.col_span,
+                    title=(f"{src.title[:172]} (Kopie)" if src.title else ""),
+                    subtitle=src.subtitle,
+                    body=src.body,
+                    cta_label=src.cta_label,
+                    cta_url=src.cta_url,
+                    image_url=src.image_url,
+                    position=src.position + 5,
+                    is_visible=src.is_visible,
+                    config_json=dict(src.config_json or {}),
+                )
+                if src.image:
+                    try:
+                        with src.image.open("rb") as fh:
+                            dup.image.save((src.image.name or "block.jpg").rsplit("/", 1)[-1], ContentFile(fh.read()), save=True)
+                    except Exception:
+                        pass
+                if src.video_file:
+                    try:
+                        with src.video_file.open("rb") as fh:
+                            dup.video_file.save((src.video_file.name or "video.mp4").rsplit("/", 1)[-1], ContentFile(fh.read()), save=True)
+                    except Exception:
+                        pass
+                for pos_i, item_b in enumerate(page.blocks.order_by("position", "id")):
+                    PageBlock.objects.filter(pk=item_b.id).update(position=(pos_i + 1) * 10)
+                messages.success(request, "Block dupliziert.")
+                return redirect(f"{reverse('site_kit:page_edit', args=[page.id])}?edit_block={dup.id}")
         elif action == "reorder_blocks":
             order_raw = (request.POST.get("order_json") or "").strip()
             try:
