@@ -475,6 +475,49 @@ class SiteKitTests(TestCase):
         self.assertContains(pub, "Mitglieder")
         self.assertContains(pub, "Kontaktformular")
 
+    def test_person_detail_and_annual_program_views_and_pdf(self):
+        from cal_kit.models import CalendarEvent, OfferingTemplate
+        from domain_kit.models import Person
+
+        p = Person.objects.create(
+            first_name="Ursula",
+            last_name="Wolke",
+            job_title="Aquarell-Dozentin",
+            bio="Studium der Malerei.\n- Schwerpunkt Landschaft",
+            is_public=True,
+        )
+        r_pers = self.client.get(reverse("site_kit:person_detail", args=[p.id]))
+        self.assertEqual(r_pers.status_code, 200)
+        self.assertContains(r_pers, "Ursula Wolke")
+        self.assertContains(r_pers, "Schwerpunkt Landschaft")
+
+        tpl = OfferingTemplate.objects.create(
+            user=self.staff,
+            title="Aquarellkurs",
+            instructor_ref=f"person:{p.id}",
+            instructor_name="Ursula Wolke",
+            description="Lichtdurchflutetes Aquarell.",
+            fee_amount=35,
+            show_in_program=True,
+        )
+        CalendarEvent.objects.create(
+            user=self.staff,
+            offering_template=tpl,
+            title="Aquarellkurs",
+            start_at=timezone.now() + timedelta(days=10),
+            end_at=timezone.now() + timedelta(days=10, hours=3),
+            is_public=True,
+            allow_registration=True,
+        )
+
+        prog = self.client.get(reverse("site_kit:annual_program"))
+        self.assertEqual(prog.status_code, 200)
+        self.assertContains(prog, "Aquarellkurs")
+        self.assertContains(prog, reverse("site_kit:person_detail", args=[p.id]))
+
+        pdf_r = self.client.get(reverse("site_kit:annual_program_pdf"))
+        self.assertEqual(pdf_r.status_code, 200)
+
 
 if __name__ == "__main__":
     import unittest

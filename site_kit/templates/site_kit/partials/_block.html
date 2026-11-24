@@ -41,19 +41,23 @@
 </section>
 
 {% elif item.block.block_type == 'stats_bar' %}
-<section class="row g-3 mb-4">
-    {% for st in item.stats %}
-    <div class="col-6 col-md-3">
-        <div class="card shadow-sm text-center h-100">
-            <div class="card-body p-3">
-                <div class="fs-3 fw-bold text-primary">{{ st.value }}</div>
-                <div class="small text-muted">{{ st.label }}</div>
+<section class="mb-4">
+    {% if item.block.title %}<h2 class="h4 fw-bold mb-1">{{ item.block.title }}</h2>{% endif %}
+    {% if item.block.subtitle %}<p class="text-muted small mb-3">{{ item.block.subtitle }}</p>{% endif %}
+    <div class="row g-3">
+        {% for st in item.stats %}
+        <div class="col-6 col-md-3">
+            <div class="card shadow-sm text-center h-100">
+                <div class="card-body p-3">
+                    <div class="fs-3 fw-bold text-primary">{{ st.value }}</div>
+                    <div class="small text-muted">{{ st.label }}</div>
+                </div>
             </div>
         </div>
+        {% empty %}
+        <div class="col-12"><div class="text-muted small py-2">Noch keine Kennzahlen hinterlegt.</div></div>
+        {% endfor %}
     </div>
-    {% empty %}
-    <div class="col-12"><div class="text-muted small py-2">Noch keine Kennzahlen hinterlegt.</div></div>
-    {% endfor %}
 </section>
 
 {% elif item.block.block_type == 'news_feed' %}
@@ -116,7 +120,7 @@
             <div class="card shadow-sm h-100">
                 <div class="card-body p-3 d-flex flex-column gap-2">
                     <div>
-                        <div class="fw-bold">{{ p.display_name|default:p.first_name }} {{ p.last_name }}</div>
+                        <a href="{% url 'site_kit:person_detail' p.id %}" class="fw-bold text-decoration-none text-reset stretched-link">{{ p.display_name|default:p.first_name }} {{ p.last_name }}</a>
                         {% if p.job_title %}<div class="small text-primary">{{ p.job_title }}</div>{% endif %}
                         {% if p.email %}<div class="small text-muted mt-1"><i class="bi bi-envelope me-1"></i>{{ p.email }}</div>{% endif %}
                         {% if p.website %}<div class="small mt-1"><a href="{{ p.website }}" target="_blank" rel="noopener" class="text-decoration-none"><i class="bi bi-globe2 me-1"></i>Webseite</a></div>{% endif %}
@@ -227,6 +231,18 @@
     {% else %}
     <div class="card-body p-3 text-muted small"><i class="bi bi-envelope-paper me-1"></i>{{ item.block.title|default:"Öffentliches Formular" }}: Aktuell ist kein öffentliches Formular verknüpft.</div>
     {% endif %}
+</section>
+
+{% elif item.block.block_type == 'annual_program' %}
+<section class="mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            {% if item.block.title %}<h2 class="h4 fw-bold mb-0">{{ item.block.title }}</h2>{% else %}<h2 class="h4 fw-bold mb-0">{{ item.program_title|default:"Jahresprogramm" }} {{ item.program_year }}</h2>{% endif %}
+            {% if item.block.subtitle %}<div class="text-muted small">{{ item.block.subtitle }}</div>{% endif %}
+        </div>
+        <a href="{% url 'site_kit:annual_program' %}" class="btn btn-outline-primary btn-sm rounded-pill">Komplettes Programm &rarr;</a>
+    </div>
+    {% include "site_kit/partials/_program_cards.html" with program_items=item.program_items %}
 </section>
 
 {% elif item.block.block_type == 'rich_html' %}

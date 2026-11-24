@@ -170,6 +170,9 @@
                         <div id="addWysiwygEditor" contenteditable="true" class="form-control form-control-sm bg-body" style="min-height: 110px;"></div>
                     </div>
 
+                    <div id="addStatsHint" class="d-none alert alert-info py-2 small mb-0">
+                        Pro Zeile eine Kennzahl im Format <code>Wert | Bezeichnung</code> (z. B. <code>42 | Mitglieder</code>). Leer lassen für automatische Live-Zahlen.
+                    </div>
                     <textarea name="body" id="addBlockBody" rows="2" class="form-control form-control-sm" placeholder="Text (optional)"></textarea>
                     <div id="addImageFields">
                         <label class="form-label small text-muted mb-1">Bild hochladen (für Hero / Text &amp; Bild / WYSIWYG)</label>
@@ -341,7 +344,10 @@
                 {% endif %}
                 {% endif %}
                 {% else %}
-                <textarea name="body" rows="3" class="form-control form-control-sm" placeholder="Text">{{ b.body }}</textarea>
+                {% if b.block_type == 'stats_bar' %}
+                <div class="alert alert-info py-2 small mb-0">Pro Zeile eine Kennzahl im Format <code>Wert | Bezeichnung</code> (z. B. <code>42 | Mitglieder</code>).</div>
+                {% endif %}
+                <textarea name="body" rows="3" class="form-control form-control-sm" placeholder="{% if b.block_type == 'stats_bar' %}42 | Aktive Mitglieder&#10;12 | Kurse pro Jahr{% else %}Text{% endif %}">{{ b.body }}</textarea>
                 <div class="row g-2">
                     <div class="col-md-6"><input type="file" name="image" accept="image/*" class="form-control form-control-sm"></div>
                     <div class="col-md-6"><input type="url" name="image_url" value="{{ b.image_url }}" class="form-control form-control-sm" placeholder="Bild-URL"></div>
@@ -370,15 +376,18 @@ document.addEventListener("DOMContentLoaded", function () {
         const isPeople = typeSel.value === "people_grid";
         const isEvents = typeSel.value === "upcoming_events";
         const isForm = typeSel.value === "public_form";
+        const isStats = typeSel.value === "stats_bar";
         const peopleWrap = document.getElementById("addPeopleFilterWrap");
         const eventsWrap = document.getElementById("addEventsFilterWrap");
         const formWrap = document.getElementById("addPublicFormWrap");
+        const statsHint = document.getElementById("addStatsHint");
         if (wysiWrap) wysiWrap.classList.toggle("d-none", !isRich);
         if (addBody) addBody.classList.toggle("d-none", isRich);
         if (addImg) addImg.classList.toggle("d-none", !(isRich || typeSel.value === "hero" || typeSel.value === "text_image"));
         if (peopleWrap) peopleWrap.classList.toggle("d-none", !isPeople);
         if (eventsWrap) eventsWrap.classList.toggle("d-none", !isEvents);
         if (formWrap) formWrap.classList.toggle("d-none", !isForm);
+        if (statsHint) statsHint.classList.toggle("d-none", !isStats);
     }
     if (typeSel) {
         typeSel.addEventListener("change", syncAddType);

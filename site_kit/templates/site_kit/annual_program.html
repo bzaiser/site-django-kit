@@ -1,0 +1,40 @@
+{% extends "site_kit/layouts/public.html" %}
+{% load i18n %}
+
+{% block title %}{{ program_title|default:"Jahresprogramm" }} {{ active_year }} – {{ site_cfg.site_name }}{% endblock %}
+
+{% block content %}
+<div class="{{ site_cfg.container_class|default:'container' }} py-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h2 fw-bold mb-1"><i class="bi bi-journal-richtext text-primary me-2"></i>{{ program_title|default:"Jahresprogramm" }} {{ active_year }}</h1>
+            <p class="text-muted mb-0">{{ site_cfg.tagline|default:"Alle Angebote, Termine, Referenten und Kosten im Überblick." }}</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2 d-print-none">
+            <a href="{% url 'site_kit:annual_program_pdf' %}?jahr={{ active_year }}{% if active_category %}&kategorie={{ active_category }}{% endif %}{% if active_instructor %}&dozent={{ active_instructor }}{% endif %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                <i class="bi bi-file-earmark-pdf me-1"></i>Als PDF / Broschüre
+            </a>
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="window.print()">
+                <i class="bi bi-printer me-1"></i>Drucken
+            </button>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-4 d-print-none">
+        {% for y in program_years %}
+        <a href="?jahr={{ y }}{% if active_category %}&kategorie={{ active_category }}{% endif %}{% if active_instructor %}&dozent={{ active_instructor }}{% endif %}"
+           class="btn btn-sm rounded-pill {% if active_year == y %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ y }}</a>
+        {% endfor %}
+        {% if program_categories %}
+        <span class="text-muted mx-1">|</span>
+        <a href="?jahr={{ active_year }}{% if active_instructor %}&dozent={{ active_instructor }}{% endif %}" class="btn btn-sm rounded-pill {% if not active_category %}btn-dark{% else %}btn-outline-secondary{% endif %}">Alle Kategorien</a>
+        {% for c in program_categories %}
+        <a href="?jahr={{ active_year }}&kategorie={{ c.id }}{% if active_instructor %}&dozent={{ active_instructor }}{% endif %}"
+           class="btn btn-sm rounded-pill {% if active_category == c.id|stringformat:'s' %}btn-dark{% else %}btn-outline-secondary{% endif %}">{{ c.name }}</a>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    {% include "site_kit/partials/_program_cards.html" %}
+</div>
+{% endblock %}

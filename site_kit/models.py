@@ -90,6 +90,7 @@ class PageBlock(models.Model):
         ("downloads", "Downloads (domain_kit)"),
         ("faq_list", "FAQ-Akkordeon (list_kit)"),
         ("public_form", "Öffentliches Formular (list_kit)"),
+        ("annual_program", "Jahresprogramm / Angebotskatalog (cal_kit)"),
         ("stats_bar", "Kennzahlen-Leiste"),
         ("rich_html", "HTML / WYSIWYG (Admin-Layout)"),
     ]

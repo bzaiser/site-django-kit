@@ -1,0 +1,96 @@
+<div class="row g-4">
+    {% for item in program_items %}
+    {% with o=item.offering %}
+    <div class="col-12 col-lg-6">
+        <article class="card shadow-sm h-100">
+            <div class="card-body p-4 d-flex flex-column justify-content-between gap-3">
+                <div>
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <div class="flex-grow-1 min-w-0">
+                            <h3 class="h4 fw-bold mb-1">{{ o.title }}</h3>
+                            {% if o.instructor_name %}
+                            <div class="small text-muted mb-2">
+                                mit
+                                {% if item.instructor_person %}
+                                <a href="{% url 'site_kit:person_detail' item.instructor_person.id %}" class="fw-semibold text-decoration-none">{{ o.instructor_name }}</a>
+                                {% else %}
+                                <span class="fw-semibold">{{ o.instructor_name }}</span>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            {% if o.category %}<span class="badge bg-body-secondary text-body border mb-2">{{ o.category.name }}</span>{% endif %}
+                        </div>
+                        {% if o.resolved_image_url %}
+                        <img src="{{ o.resolved_image_url }}" alt="{{ o.title }}" class="rounded-3 object-fit-cover flex-shrink-0 shadow-sm" style="width: 112px; height: 112px;">
+                        {% endif %}
+                    </div>
+
+                    {% if o.description %}
+                    <div class="small mt-2 text-break">{{ o.description|linebreaksbr }}</div>
+                    {% endif %}
+
+                    {% if o.bring_along_note %}
+                    <div class="small text-muted mt-2"><strong>Bitte mitbringen:</strong> {{ o.bring_along_note }}</div>
+                    {% endif %}
+                    {% if o.material_note %}
+                    <div class="small text-muted mt-1">{{ o.material_note }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="border-top pt-3">
+                    {% if item.events %}
+                    <div class="d-flex flex-column gap-2 mb-3">
+                        {% for er in item.events %}
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 small {% if er.is_past %}opacity-50{% endif %}">
+                            <div>
+                                <span class="fw-semibold">{{ forloop.counter }}. Termin:</span>
+                                {{ er.event.start_at|date:"D d.m.Y, H:i" }}–{{ er.event.end_at|date:"H:i" }} Uhr
+                                {% if er.event.location %}<span class="text-muted">· {{ er.event.location }}</span>{% endif %}
+                            </div>
+                            <div>
+                                {% if er.is_past %}
+                                <span class="badge bg-secondary-subtle text-body">Bereits stattgefunden</span>
+                                {% elif er.is_full %}
+                                <span class="badge text-bg-danger">Ausgebucht</span>
+                                {% elif er.can_register %}
+                                <a href="{% url 'site_kit:event_registration' %}?event={{ er.event.id }}" class="btn btn-xs btn-sm btn-primary rounded-pill py-0 px-2">Anmelden</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="small text-muted mb-3">Termine in Planung / auf Anfrage.</div>
+                    {% endif %}
+
+                    {% if o.fee_amount is not None or o.fee_non_member is not None or o.fee_reduced is not None %}
+                    <div class="small bg-body-tertiary rounded-3 p-2 mb-2">
+                        <strong>Kosten:</strong>
+                        {% if o.fee_amount is not None %}<span class="me-3">{% if o.fee_non_member is not None %}Mitglieder {% endif %}{{ o.fee_amount|floatformat:2 }} €</span>{% endif %}
+                        {% if o.fee_non_member is not None %}<span class="me-3">Nichtmitglieder {{ o.fee_non_member|floatformat:2 }} €</span>{% endif %}
+                        {% if o.fee_reduced is not None %}<span>Ermäßigt {{ o.fee_reduced|floatformat:2 }} €</span>{% endif %}
+                        {% if o.min_participants %}<div class="text-muted mt-1">Mindestteilnehmerzahl: {{ o.min_participants }} Personen</div>{% endif %}
+                    </div>
+                    {% endif %}
+
+                    {% if o.responsible_name or item.responsible_person %}
+                    <div class="small text-muted">
+                        <strong>Anmeldung &amp; Ansprechpartner:</strong>
+                        {{ o.responsible_name|default:item.responsible_person.full_name }}
+                        {% if item.responsible_person %}
+                            {% if item.responsible_person.phone %} · {{ item.responsible_person.phone }}{% endif %}
+                            {% if item.responsible_person.email %} · <a href="mailto:{{ item.responsible_person.email }}" class="text-decoration-none">{{ item.responsible_person.email }}</a>{% endif %}
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </article>
+    </div>
+    {% endwith %}
+    {% empty %}
+    <div class="col-12">
+        <div class="card shadow-sm p-4 text-center text-muted">Aktuell sind keine öffentlichen Angebote im Programm hinterlegt.</div>
+    </div>
+    {% endfor %}
+</div>

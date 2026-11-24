@@ -1,0 +1,99 @@
+{% extends "site_kit/layouts/public.html" %}
+{% load i18n %}
+
+{% block title %}{{ person.display_name|default:person.first_name }} {{ person.last_name }} – {{ site_cfg.site_name }}{% endblock %}
+
+{% block content %}
+<div class="{{ site_cfg.container_class|default:'container' }} py-3">
+    <div class="mb-3">
+        <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="bi bi-arrow-left me-1"></i>Zurück</a>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-4">
+            <div class="row g-4 align-items-center">
+                <div class="col-12 col-md-3 text-center">
+                    {% if person.photo %}
+                    <img src="{% url 'domain_kit:person_photo' person.id %}" alt="{{ person.display_name|default:person.first_name }}" class="img-fluid rounded-4 object-fit-cover shadow-sm" style="max-height: 220px; width: 100%;">
+                    {% else %}
+                    <div class="rounded-4 bg-primary bg-opacity-10 text-primary fw-bold d-inline-flex align-items-center justify-content-center display-5" style="width: 150px; height: 150px;">
+                        {{ person.first_name|slice:":1"|upper }}{{ person.last_name|slice:":1"|upper }}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col-12 col-md-9">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <h1 class="h2 fw-bold mb-0">{% if person.title_prefix %}{{ person.title_prefix }} {% endif %}{{ person.display_name|default:person.first_name }} {% if not person.display_name %}{{ person.last_name }}{% endif %}</h1>
+                        {% for r in person.roles.all %}
+                        <span class="badge bg-primary bg-opacity-10 text-primary border">{{ r.name }}</span>
+                        {% endfor %}
+                    </div>
+                    {% if person.job_title %}<div class="lead text-muted mb-2">{{ person.job_title }}</div>{% endif %}
+                    <div class="d-flex flex-wrap gap-3 small text-muted mb-3">
+                        {% if person.email %}<span><i class="bi bi-envelope me-1"></i><a href="mailto:{{ person.email }}" class="text-decoration-none">{{ person.email }}</a></span>{% endif %}
+                        {% if person.phone %}<span><i class="bi bi-telephone me-1"></i>{{ person.phone }}</span>{% endif %}
+                        {% if person.website %}<span><i class="bi bi-globe2 me-1"></i><a href="{{ person.website }}" target="_blank" rel="noopener" class="text-decoration-none">Webseite</a></span>{% endif %}
+                    </div>
+                    {% if person.bio_parts.intro or person.bio_parts.bullets %}
+                    <div class="border-top pt-3">
+                        {% for line in person.bio_parts.intro %}<p class="mb-2">{{ line }}</p>{% endfor %}
+                        {% if person.bio_parts.bullets %}
+                        <ul class="mb-0 ps-3">
+                            {% for b in person.bio_parts.bullets %}<li>{{ b }}</li>{% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12 col-lg-7">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold"><i class="bi bi-calendar-check text-primary me-1"></i>Aktuelle &amp; kommende Termine</div>
+                <div class="card-body p-3">
+                    {% for c in person.upcoming_courses %}
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 {% if not forloop.last %}border-bottom{% endif %}">
+                        <div>
+                            <div class="fw-semibold">{{ c.title }}</div>
+                            <div class="small text-muted">{{ c.start_at|date:"d.m.Y H:i" }}{% if c.location %} · {{ c.location }}{% endif %}</div>
+                        </div>
+                        {% if c.allow_registration %}
+                        <a href="{% url 'site_kit:event_registration' %}?event={{ c.id }}" class="btn btn-sm btn-primary rounded-pill px-3">Anmelden</a>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="text-muted small py-2">Aktuell keine kommenden öffentlichen Termine.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-5">
+            <div class="card shadow-sm h-100">
+                <div class="card-header fw-bold"><i class="bi bi-clock-history text-primary me-1"></i>Bereits geleitet</div>
+                <div class="card-body p-3">
+                    {% for c in person.past_courses %}
+                    <div class="py-1 {% if not forloop.last %}border-bottom{% endif %} small">
+                        <span class="fw-semibold">{{ c.title }}</span> <span class="text-muted">({{ c.start_at|date:"m/Y" }})</span>
+                    </div>
+                    {% empty %}
+                    <div class="text-muted small py-2">Noch keine vergangenen Termine.</div>
+                    {% endfor %}
+                    {% if person_docs %}
+                    <div class="mt-3 pt-3 border-top">
+                        <div class="fw-bold small mb-2"><i class="bi bi-file-earmark-text me-1"></i>Öffentliche Materialien</div>
+                        {% for d in person_docs %}
+                        <div class="small py-1">
+                            {% if d.file %}<a href="{{ d.file.url }}" target="_blank" class="text-decoration-none"><i class="bi bi-download me-1"></i>{{ d.title }}</a>{% else %}{{ d.title }}{% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

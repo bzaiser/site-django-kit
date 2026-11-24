@@ -62,11 +62,25 @@ def _public_base_context(request, page: PublicPage | None = None) -> dict:
             except Exception:
                 can_access_internal = False
 
+    show_default_program_nav = False
+    program_nav_label = "Programm"
+    if apps.is_installed("cal_kit"):
+        try:
+            from cal_kit.models import OfferingTemplate
+            from cal_kit.services import get_cal_profile_labels
+            if "programm" not in nav_keys and "jahresprogramm" not in nav_keys and OfferingTemplate.objects.filter(show_in_program=True).exists():
+                show_default_program_nav = True
+            program_nav_label = get_cal_profile_labels().get("program_title") or "Programm"
+        except Exception:
+            pass
+
     ctx = {
         "site_cfg": cfg,
         "public_nav_pages": nav_pages,
         "show_default_news_nav": "news" not in nav_keys,
         "show_default_events_nav": "termine" not in nav_keys,
+        "show_default_program_nav": show_default_program_nav,
+        "program_nav_label": program_nav_label,
         "page": page,
         "can_access_internal": can_access_internal,
     }
@@ -203,6 +217,15 @@ def _resolve_block_data(block: PageBlock) -> dict:
             data["documents"] = list(Document.objects.filter(is_public=True).order_by("-created_at")[:limit])
         except Exception:
             data["documents"] = []
+
+    elif block.block_type == "annual_program":
+        prog = _build_program_data(
+            year=cfg.get("program_year"),
+            cat_id=cfg.get("calendar_category"),
+        )
+        data["program_items"] = prog["items"]
+        data["program_year"] = prog["year"]
+        data["program_title"] = prog["program_title"]
 
     elif block.block_type == "stats_bar":
         raw_stats = []
@@ -458,6 +481,176 @@ def lecturers_list_view(request):
             lecturers = []
     ctx["lecturers"] = lecturers
     return render(request, "site_kit/lecturers_list.html", ctx)
+
+
+def person_detail_view(request, pk):
+    ctx = _public_base_context(request)
+    if not apps.is_installed("domain_kit"):
+        raise Http404("Personenmodul nicht aktiviert.")
+    from domain_kit.models import Document, Person
+
+    can_preview = request.user.is_authenticated and (
+        getattr(request.user, "is_staff", False)
+        or getattr(request.user, "is_superuser", False)
+        or _has_site_editor_access(request.user)
+    )
+    qs = Person.objects.prefetch_related("roles")
+    if not can_preview:
+        qs = qs.filter(is_public=True)
+    person_obj = get_object_or_404(qs, pk=pk)
+    resolved = _resolve_people_with_courses([person_obj])
+    person = resolved[0]
+    docs = list(Document.objects.filter(person=person_obj, is_public=True).order_by("-document_date", "-created_at")[:12])
+    ctx.update({"person": person, "person_docs": docs})
+    return render(request, "site_kit/person_detail.html", ctx)
+
+
+def _build_program_data(year=None, cat_id=None, instructor_ref=None) -> dict:
+    items = []
+    categories = []
+    instructors = []
+    years = []
+    program_title = "Jahresprogramm"
+    now = timezone.now()
+    sel_year = int(year) if year and str(year).isdigit() else None
+
+    if not apps.is_installed("cal_kit"):
+        return {
+            "items": items,
+            "categories": categories,
+            "instructors": instructors,
+            "years": years,
+            "year": sel_year or now.year,
+            "program_title": program_title,
+        }
+
+    try:
+        from cal_kit.models import CalendarCategory, CalendarEvent, OfferingTemplate
+        from cal_kit.services import get_cal_profile_labels
+
+        program_title = get_cal_profile_labels().get("program_title") or "Jahresprogramm"
+        categories = list(CalendarCategory.objects.filter(is_public_default=True).order_by("name").values("id", "name"))
+        if not categories:
+            categories = list(CalendarCategory.objects.filter(is_shared=True).order_by("name").values("id", "name"))
+
+        people_map = {}
+        if apps.is_installed("domain_kit"):
+            from domain_kit.models import Person
+            for p in Person.objects.all():
+                people_map[f"person:{p.id}"] = p
+
+        reg_counts = {}
+        if apps.is_installed("list_kit"):
+            from list_kit.models import Entry
+            for ev_id in (
+                Entry.objects.filter(collection__template__slug="kurs-anmeldung")
+                .exclude(status__iexact="Abgelehnt")
+                .exclude(status__iexact="Abgesagt")
+                .values_list("custom_data_json__event_id", flat=True)
+            ):
+                if ev_id:
+                    reg_counts[str(ev_id)] = reg_counts.get(str(ev_id), 0) + 1
+
+        ev_years = set(CalendarEvent.objects.filter(is_public=True).dates("start_at", "year"))
+        years = sorted({d.year for d in ev_years} | {now.year}, reverse=True)
+        if not sel_year:
+            sel_year = now.year
+
+        qs = OfferingTemplate.objects.filter(show_in_program=True).select_related("category").order_by("title")
+        if cat_id and str(cat_id).isdigit():
+            qs = qs.filter(category_id=int(cat_id))
+        if instructor_ref:
+            qs = qs.filter(instructor_ref=instructor_ref)
+
+        seen_instructors = {}
+        for tpl in OfferingTemplate.objects.filter(show_in_program=True).order_by("instructor_name"):
+            if tpl.instructor_ref and tpl.instructor_name and tpl.instructor_ref not in seen_instructors:
+                seen_instructors[tpl.instructor_ref] = tpl.instructor_name
+        instructors = [{"ref": k, "name": v} for k, v in seen_instructors.items()]
+
+        for tpl in qs:
+            ev_qs = tpl.events.filter(is_public=True).order_by("start_at")
+            if sel_year:
+                ev_qs = ev_qs.filter(start_at__year=sel_year)
+            ev_rows = []
+            for ev in ev_qs:
+                cnt = reg_counts.get(str(ev.id), 0)
+                is_past = ev.end_at < now
+                is_full = bool(ev.max_participants and cnt >= ev.max_participants)
+                ev_rows.append({
+                    "event": ev,
+                    "reg_count": cnt,
+                    "is_past": is_past,
+                    "is_full": is_full,
+                    "can_register": bool(ev.allow_registration and not is_past and not is_full),
+                })
+
+            inst_person = people_map.get(tpl.instructor_ref)
+            resp_person = people_map.get(tpl.responsible_ref)
+            items.append({
+                "offering": tpl,
+                "events": ev_rows,
+                "instructor_person": inst_person if (inst_person and inst_person.is_public) else None,
+                "responsible_person": resp_person,
+            })
+    except Exception:
+        pass
+
+    return {
+        "items": items,
+        "categories": categories,
+        "instructors": instructors,
+        "years": years,
+        "year": sel_year or now.year,
+        "program_title": program_title,
+    }
+
+
+def annual_program_view(request):
+    ctx = _public_base_context(request)
+    year = (request.GET.get("jahr") or "").strip()
+    cat_id = (request.GET.get("kategorie") or "").strip()
+    inst_ref = (request.GET.get("dozent") or "").strip()
+    prog = _build_program_data(year=year or None, cat_id=cat_id or None, instructor_ref=inst_ref or None)
+    ctx.update({
+        "program_items": prog["items"],
+        "program_categories": prog["categories"],
+        "program_instructors": prog["instructors"],
+        "program_years": prog["years"],
+        "active_year": prog["year"],
+        "active_category": cat_id,
+        "active_instructor": inst_ref,
+        "program_title": prog["program_title"],
+    })
+    return render(request, "site_kit/annual_program.html", ctx)
+
+
+def annual_program_pdf_view(request):
+    from io import BytesIO
+    from django.template.loader import get_template
+
+    ctx = _public_base_context(request)
+    year = (request.GET.get("jahr") or "").strip()
+    cat_id = (request.GET.get("kategorie") or "").strip()
+    inst_ref = (request.GET.get("dozent") or "").strip()
+    prog = _build_program_data(year=year or None, cat_id=cat_id or None, instructor_ref=inst_ref or None)
+    ctx.update({
+        "program_items": prog["items"],
+        "active_year": prog["year"],
+        "program_title": prog["program_title"],
+    })
+    html = get_template("site_kit/annual_program_pdf.html").render(ctx)
+    try:
+        from xhtml2pdf import pisa
+        result = BytesIO()
+        pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+        if not pdf.err:
+            resp = HttpResponse(result.getvalue(), content_type="application/pdf")
+            resp["Content-Disposition"] = f'inline; filename="programm-{prog["year"]}.pdf"'
+            return resp
+    except ImportError:
+        pass
+    return HttpResponse(html)
 
 
 def event_registration_view(request):

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>{{ program_title|default:"Jahresprogramm" }} {{ active_year }}</title>
+<style>
+@page { size: A4 landscape; margin: 14mm; }
+body { font-family: Helvetica, Arial, sans-serif; font-size: 9.5pt; color: #1e293b; line-height: 1.4; }
+.header { text-align: center; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 14px; }
+.header h1 { font-size: 18pt; margin: 0 0 4px 0; }
+.header p { margin: 0; color: #64748b; font-size: 9pt; }
+table.grid { width: 100%; border-collapse: separate; border-spacing: 12px 10px; }
+td.col { width: 50%; vertical-align: top; border: 1px solid #cbd5e1; padding: 10px 12px; background: #ffffff; }
+h2.title { font-size: 13pt; margin: 0 0 2px 0; color: #0f172a; }
+.sub { font-size: 9pt; color: #475569; margin-bottom: 8px; }
+.desc { margin-bottom: 8px; }
+.meta { font-size: 8.5pt; color: #334155; margin-bottom: 6px; }
+.box { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 6px 8px; font-size: 8.5pt; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="header">
+    <h1>{{ site_cfg.site_name }} – {{ program_title|default:"Jahresprogramm" }} {{ active_year }}</h1>
+    {% if site_cfg.tagline %}<p>{{ site_cfg.tagline }}</p>{% endif %}
+</div>
+
+<table class="grid">
+    {% for item in program_items %}
+    {% if forloop.counter0|divisibleby:2 %}<tr>{% endif %}
+    <td class="col">
+        {% with o=item.offering %}
+        <h2 class="title">{{ o.title }}</h2>
+        {% if o.instructor_name %}<div class="sub">mit {{ o.instructor_name }}</div>{% endif %}
+        {% if o.description %}<div class="desc">{{ o.description|linebreaksbr }}</div>{% endif %}
+        {% if o.bring_along_note %}<div class="meta"><strong>Bitte mitbringen:</strong> {{ o.bring_along_note }}</div>{% endif %}
+        {% if o.material_note %}<div class="meta">{{ o.material_note }}</div>{% endif %}
+        {% if item.events %}
+        <div class="box">
+            {% for er in item.events %}
+            <div><strong>{{ forloop.counter }}. Termin:</strong> {{ er.event.start_at|date:"d.m.Y H:i" }}–{{ er.event.end_at|date:"H:i" }} Uhr{% if er.event.location %} · {{ er.event.location }}{% endif %}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if o.fee_amount is not None or o.fee_non_member is not None %}
+        <div class="box">
+            <strong>Kosten:</strong>
+            {% if o.fee_amount is not None %}Mitglieder {{ o.fee_amount|floatformat:2 }} €{% endif %}
+            {% if o.fee_non_member is not None %} · Nichtmitglieder {{ o.fee_non_member|floatformat:2 }} €{% endif %}
+            {% if o.fee_reduced is not None %} · Ermäßigt {{ o.fee_reduced|floatformat:2 }} €{% endif %}
+        </div>
+        {% endif %}
+        {% if o.responsible_name or item.responsible_person %}
+        <div class="meta" style="margin-top:6px;">
+            <strong>Anmeldung &amp; Ansprechpartner:</strong> {{ o.responsible_name|default:item.responsible_person.full_name }}
+            {% if item.responsible_person and item.responsible_person.phone %} · {{ item.responsible_person.phone }}{% endif %}
+            {% if item.responsible_person and item.responsible_person.email %} · {{ item.responsible_person.email }}{% endif %}
+        </div>
+        {% endif %}
+        {% endwith %}
+    </td>
+    {% if forloop.last and not forloop.counter0|divisibleby:2 %}</tr>{% elif forloop.last and forloop.counter0|divisibleby:2 %}<td class="col" style="border:none;"></td></tr>{% elif not forloop.counter0|divisibleby:2 %}</tr>{% endif %}
+    {% endfor %}
+</table>
+</body>
+</html>
