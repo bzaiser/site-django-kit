@@ -232,9 +232,18 @@
 {% elif item.block.block_type == 'rich_html' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
     <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
-        {% if item.block.title %}<h2 class="h4 fw-bold mb-2">{{ item.block.title }}</h2>{% endif %}
-        {% if item.block.subtitle %}<div class="text-muted mb-2">{{ item.block.subtitle }}</div>{% endif %}
-        <div class="site-rich-html">{{ item.block.body|safe }}</div>
+        <div class="row align-items-center g-4 {% if item.block.image_position == 'left' %}flex-md-row-reverse{% elif item.block.image_position == 'top' %}flex-column-reverse{% endif %}">
+            <div class="{% if item.block.resolved_image_url and item.block.image_position != 'top' %}col-md-7{% else %}col-12{% endif %}">
+                {% if item.block.title %}<h2 class="h4 fw-bold mb-2">{{ item.block.title }}</h2>{% endif %}
+                {% if item.block.subtitle %}<div class="text-muted mb-2">{{ item.block.subtitle }}</div>{% endif %}
+                <div class="site-rich-html">{{ item.block.body|safe }}</div>
+            </div>
+            {% if item.block.resolved_image_url %}
+            <div class="{% if item.block.image_position == 'top' %}col-12{% else %}col-md-5{% endif %} text-center">
+                <img src="{{ item.block.resolved_image_url }}" alt="{{ item.block.title }}" class="img-fluid {{ item.block.image_shape_class }}" {% if item.block.image_aspect_style %}style="{{ item.block.image_aspect_style }}"{% endif %}>
+            </div>
+            {% endif %}
+        </div>
     </div>
 </section>
 {% endif %}

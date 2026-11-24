@@ -563,12 +563,15 @@ def news_rss_view(request):
 
 _ALLOWED_HTML_TAGS = {
     "p", "br", "hr", "h2", "h3", "h4", "h5", "strong", "b", "em", "i", "u",
-    "ul", "ol", "li", "blockquote", "a", "div", "span", "font", "table", "thead",
+    "ul", "ol", "li", "blockquote", "a", "img", "div", "span", "font", "table", "thead",
     "tbody", "tr", "th", "td",
 }
-_VOID_HTML_TAGS = {"br", "hr"}
+_VOID_HTML_TAGS = {"br", "hr", "img"}
 _STRIP_WITH_CONTENT_TAGS = {"script", "style", "iframe", "object", "embed", "svg", "form"}
-_ALLOWED_STYLE_PROPS = {"color", "background-color", "text-align", "font-weight", "font-style", "text-decoration"}
+_ALLOWED_STYLE_PROPS = {
+    "color", "background-color", "text-align", "font-weight", "font-style",
+    "text-decoration", "max-width", "width", "height", "border-radius",
+}
 
 
 def _sanitize_inline_style(raw_style: str) -> str:
@@ -620,6 +623,12 @@ class _SafeHtmlSanitizer(HTMLParser):
                     clean_attrs.append(f'href="{escape(vl)}"')
             elif t == "a" and kl == "target" and v in ("_blank", "_self"):
                 clean_attrs.append(f'target="{v}"')
+            elif t == "img" and kl == "src" and v:
+                vl = v.strip()
+                if vl.startswith(("http://", "https://", "/", "data:image/")):
+                    clean_attrs.append(f'src="{escape(vl)}"')
+            elif t == "img" and kl == "alt" and v is not None:
+                clean_attrs.append(f'alt="{escape(v)}"')
         attr_str = (" " + " ".join(clean_attrs)) if clean_attrs else ""
         self.out.append(f"<{t}{attr_str}>")
 
@@ -923,6 +932,12 @@ def page_edit_view(request, pk):
                     block.body = _sanitize_rich_html(raw_body)
                     block.col_span = _parse_col_span(request.POST.get("col_span"))
                     block.config_json = _parse_block_layout_config(request, block.config_json)
+                    if "image_url" in request.POST:
+                        block.image_url = (request.POST.get("image_url") or "").strip()[:200]
+                    if request.FILES.get("image"):
+                        block.image = request.FILES["image"]
+                    elif request.POST.get("remove_image") == "1":
+                        block.image = None
                 else:
                     # Redakteure können bei Admin-HTML-Blöcken nur Text/Inhalt ändern, nicht Layout/Struktur
                     block.body = _sanitize_rich_html(raw_body)
