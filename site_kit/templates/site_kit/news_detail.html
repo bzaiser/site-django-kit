@@ -39,7 +39,18 @@
                 {% endif %}
             {% endif %}
             {% endwith %}
+            {% if entry.collection.template.use_cover_image and entry.cover_image %}
+            {% with ccfg=entry.collection.template.ui_style_json.cover_image %}
+            <div class="d-flex flex-column flex-md-row gap-4 mb-4 {% if ccfg.position == 'right' %}flex-md-row-reverse{% elif ccfg.position == 'top' %}flex-md-column{% elif ccfg.position == 'bottom' %}flex-md-column-reverse{% endif %}">
+                <img src="{{ entry.cover_image.url }}" alt="{{ entry.title }}"
+                     class="object-fit-cover shadow-sm flex-shrink-0 {% if ccfg.shape == 'circle' %}rounded-circle{% elif ccfg.shape == 'square' %}rounded-0{% else %}rounded-4{% endif %}"
+                     style="{% if ccfg.position == 'top' or ccfg.position == 'bottom' %}width:100%;max-height:{% if ccfg.size == 'sm' %}280px{% elif ccfg.size == 'lg' %}520px{% else %}400px{% endif %};{% else %}width:100%;max-width:{% if ccfg.size == 'sm' %}200px{% elif ccfg.size == 'lg' %}380px{% else %}280px{% endif %};{% endif %}{% if ccfg.aspect == 'landscape' %}aspect-ratio:16/9;{% elif ccfg.aspect == 'portrait' %}aspect-ratio:3/4;{% elif ccfg.aspect == 'square' or ccfg.shape == 'circle' %}aspect-ratio:1/1;{% endif %}">
+                <div class="flex-grow-1 min-w-0 text-break">{{ rendered_body|safe }}</div>
+            </div>
+            {% endwith %}
+            {% else %}
             <div class="text-break">{{ rendered_body|safe }}</div>
+            {% endif %}
             {% if entry.collection.template.use_url and entry.url %}
             <div class="mt-4">
                 <a href="{{ entry.url }}" {% if entry.is_external_url %}target="_blank" rel="noopener noreferrer"{% endif %} class="btn btn-primary rounded-pill px-4">
