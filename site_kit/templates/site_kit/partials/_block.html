@@ -116,17 +116,28 @@
         <h2 class="h4 fw-bold mb-3"><i class="bi bi-people text-primary me-2"></i>{{ item.block.title|default:"Ansprechpartner & Vorstand" }}</h2>
         <div class="row g-3">
         {% for p in item.people %}
-        <div class="col-12 col-sm-6 col-md-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body p-3 d-flex flex-column gap-2">
-                    <div>
+        <div class="{% if item.person_col_span == 12 %}col-12{% elif item.person_col_span == 6 %}col-12 col-md-6{% elif item.person_col_span == 3 %}col-12 col-sm-6 col-lg-3{% else %}col-12 col-sm-6 col-md-4{% endif %}">
+            <div class="{% if item.person_card_style == 'flat' %}border-bottom pb-2 h-100{% else %}card shadow-sm h-100{% endif %}">
+                <div class="{% if item.person_card_style == 'flat' %}py-2{% else %}card-body {% if item.block.is_compact %}p-2{% else %}p-3{% endif %}{% endif %} d-flex {% if item.person_card_style == 'horizontal' or item.block.is_compact %}flex-row align-items-center gap-3{% else %}flex-column gap-2{% endif %} position-relative">
+                    {% if item.show_photos %}
+                    <div class="flex-shrink-0 {% if item.person_card_style != 'horizontal' and not item.block.is_compact %}text-center{% endif %}">
+                        {% if p.photo %}
+                        <img src="{% url 'domain_kit:person_photo' p.id %}" alt="{{ p.display_name|default:p.first_name }}" class="object-fit-cover {{ item.block.image_shape_class }}" style="width: {% if item.block.is_compact %}48px{% elif item.person_card_style == 'horizontal' %}64px{% else %}84px{% endif %}; height: {% if item.block.is_compact %}48px{% elif item.person_card_style == 'horizontal' %}64px{% else %}84px{% endif %};">
+                        {% else %}
+                        <span class="bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center {{ item.block.image_shape_class }}" style="width: {% if item.block.is_compact %}48px{% elif item.person_card_style == 'horizontal' %}64px{% else %}84px{% endif %}; height: {% if item.block.is_compact %}48px{% elif item.person_card_style == 'horizontal' %}64px{% else %}84px{% endif %};">
+                            <i class="bi bi-person-fill {% if item.block.is_compact %}fs-4{% elif item.person_card_style == 'horizontal' %}fs-3{% else %}fs-1{% endif %}"></i>
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    <div class="flex-grow-1 min-w-0">
                         <a href="{% url 'site_kit:person_detail' p.id %}" class="fw-bold text-decoration-none text-reset stretched-link">{{ p.display_name|default:p.first_name }} {{ p.last_name }}</a>
                         {% if p.job_title %}<div class="small text-primary">{{ p.job_title }}</div>{% endif %}
-                        {% if p.email %}<div class="small text-muted mt-1"><i class="bi bi-envelope me-1"></i>{{ p.email }}</div>{% endif %}
-                        {% if p.website %}<div class="small mt-1"><a href="{{ p.website }}" target="_blank" rel="noopener" class="text-decoration-none"><i class="bi bi-globe2 me-1"></i>Webseite</a></div>{% endif %}
-                    </div>
+                        {% if p.email %}<div class="small text-muted {% if not item.block.is_compact %}mt-1{% endif %}"><i class="bi bi-envelope me-1"></i>{{ p.email }}</div>{% endif %}
+                        {% if not item.block.is_compact and p.website %}<div class="small mt-1"><a href="{{ p.website }}" target="_blank" rel="noopener" class="text-decoration-none position-relative" style="z-index:2;"><i class="bi bi-globe2 me-1"></i>Webseite</a></div>{% endif %}
+                    {% if not item.block.is_compact %}
                     {% if p.bio_parts.intro or p.bio_parts.bullets %}
-                    <div class="small border-top pt-2">
+                    <div class="small border-top pt-2 mt-2">
                         {% for line in p.bio_parts.intro %}<p class="mb-1">{{ line }}</p>{% endfor %}
                         {% if p.bio_parts.bullets %}
                         <ul class="mb-0 ps-3">
@@ -136,7 +147,7 @@
                     </div>
                     {% endif %}
                     {% if p.upcoming_courses %}
-                    <div class="small border-top pt-2">
+                    <div class="small border-top pt-2 mt-2">
                         <div class="fw-semibold text-primary mb-1">Aktuelle Kurse:</div>
                         <ul class="mb-0 ps-3">
                             {% for c in p.upcoming_courses %}<li>{{ c.title }} ({{ c.start_at|date:"d.m.Y" }})</li>{% endfor %}
@@ -144,13 +155,15 @@
                     </div>
                     {% endif %}
                     {% if p.past_courses %}
-                    <div class="small text-muted border-top pt-2">
+                    <div class="small text-muted border-top pt-2 mt-2">
                         <div class="fw-semibold mb-1">Bereits geleitet:</div>
                         <ul class="mb-0 ps-3">
                             {% for c in p.past_courses %}<li>{{ c.title }} ({{ c.start_at|date:"m/Y" }})</li>{% endfor %}
                         </ul>
                     </div>
                     {% endif %}
+                    {% endif %}
+                    </div>
                 </div>
             </div>
         </div>

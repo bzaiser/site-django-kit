@@ -210,6 +210,9 @@ def _resolve_block_data(block: PageBlock) -> dict:
             data["people"] = _resolve_people_with_courses(qs[:limit])
         except Exception:
             data["people"] = []
+        data["show_photos"] = cfg.get("show_photos", True)
+        data["person_col_span"] = int(cfg.get("person_col_span") or 4)
+        data["person_card_style"] = cfg.get("person_card_style") or "card"
 
     elif block.block_type == "downloads" and apps.is_installed("domain_kit"):
         try:
@@ -875,6 +878,14 @@ def _parse_block_layout_config(request, existing_cfg=None) -> dict:
     cfg["image_aspect"] = iasp if iasp in ("auto", "landscape", "portrait", "square") else "auto"
     if "compact" in request.POST or "layout_fields_present" in request.POST:
         cfg["compact"] = request.POST.get("compact") == "on"
+    if "show_photos" in request.POST or "people_layout_present" in request.POST:
+        cfg["show_photos"] = request.POST.get("show_photos") == "on"
+    if "person_col_span" in request.POST:
+        raw_pcs = (request.POST.get("person_col_span") or "").strip()
+        cfg["person_col_span"] = int(raw_pcs) if raw_pcs.isdigit() and int(raw_pcs) in (12, 6, 4, 3) else 4
+    if "person_card_style" in request.POST:
+        pcs = (request.POST.get("person_card_style") or "card").strip()
+        cfg["person_card_style"] = pcs if pcs in ("card", "horizontal", "flat") else "card"
     if "role_filter" in request.POST:
         cfg["role_filter"] = (request.POST.get("role_filter") or "").strip()[:60]
     if "category_filter" in request.POST:

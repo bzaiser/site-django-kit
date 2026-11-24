@@ -518,6 +518,40 @@ class SiteKitTests(TestCase):
         pdf_r = self.client.get(reverse("site_kit:annual_program_pdf"))
         self.assertEqual(pdf_r.status_code, 200)
 
+    def test_people_grid_photo_width_style_and_compact_mode(self):
+        from domain_kit.models import Person
+
+        Person.objects.create(
+            first_name="Klara",
+            last_name="Vorstand",
+            job_title="1. Vorsitzende",
+            bio="Lange Vita die im Kompaktmodus nicht erscheint.",
+            is_public=True,
+        )
+        self.client.force_login(self.staff)
+        p = PublicPage.objects.create(title="Team", slug="team-grid", is_published=True)
+        r = self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "add_block",
+                "block_type": "people_grid",
+                "col_span": "12",
+                "title": "Vorstand",
+                "people_layout_present": "1",
+                "layout_fields_present": "1",
+                "person_col_span": "6",
+                "person_card_style": "horizontal",
+                "show_photos": "on",
+                "compact": "on",
+            },
+        )
+        self.assertEqual(r.status_code, 302)
+        pub = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(pub, "col-md-6")
+        self.assertContains(pub, "bi-person-fill")
+        self.assertContains(pub, "Klara Vorstand")
+        self.assertNotContains(pub, "Lange Vita die im Kompaktmodus nicht erscheint.")
+
 
 if __name__ == "__main__":
     import unittest

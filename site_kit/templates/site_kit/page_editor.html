@@ -124,6 +124,7 @@
                         </div>
                     </div>
                     <div class="row g-2 d-none" id="addPeopleFilterWrap">
+                        <input type="hidden" name="people_layout_present" value="1">
                         <div class="col-md-6">
                             <select name="role_filter" class="form-select form-select-sm">
                                 <option value="">Personen-Filter: Alle Rollen</option>
@@ -135,6 +136,27 @@
                                 <option value="">Kategorie: Alle</option>
                                 {% for cn in domain_person_categories %}<option value="{{ cn }}">Kategorie: {{ cn }}</option>{% endfor %}
                             </select>
+                        </div>
+                        <div class="col-md-4">
+                            <select name="person_col_span" class="form-select form-select-sm">
+                                <option value="4" selected>Breite: 3 pro Zeile</option>
+                                <option value="6">Breite: 2 pro Zeile</option>
+                                <option value="3">Breite: 4 pro Zeile</option>
+                                <option value="12">Breite: 1 pro Zeile</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <select name="person_card_style" class="form-select form-select-sm">
+                                <option value="card" selected>Optik: Standard-Karte</option>
+                                <option value="horizontal">Optik: Visitenkarte (Bild links)</option>
+                                <option value="flat">Optik: Dezent (ohne Rahmen)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-center">
+                            <div class="form-check mb-0">
+                                <input type="checkbox" name="show_photos" id="addShowPhotos" class="form-check-input" checked>
+                                <label class="form-check-label small" for="addShowPhotos">Fotos anzeigen</label>
+                            </div>
                         </div>
                     </div>
                     <div class="row g-2 d-none" id="addEventsFilterWrap">
@@ -244,7 +266,7 @@
                         </select>
                     </div>
                 </div>
-                {% if b.block_type == 'hero' or b.block_type == 'text_image' %}
+                {% if b.block_type == 'hero' or b.block_type == 'text_image' or b.block_type == 'people_grid' %}
                 <div class="row g-2">
                     <div class="col-md-6">
                         <label class="form-label small mb-1">Bildform</label>
@@ -266,6 +288,7 @@
                 </div>
                 {% endif %}
                 {% if b.block_type == 'people_grid' %}
+                <input type="hidden" name="people_layout_present" value="1">
                 <div class="row g-2">
                     <div class="col-md-6">
                         <label class="form-label small mb-1">Personen-Filter (Rolle)</label>
@@ -280,6 +303,29 @@
                             <option value="">Alle Kategorien</option>
                             {% for cn in domain_person_categories %}<option value="{{ cn }}" {% if b.category_filter == cn %}selected{% endif %}>{{ cn }}</option>{% endfor %}
                         </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small mb-1">Breite je Person</label>
+                        <select name="person_col_span" class="form-select form-select-sm">
+                            <option value="4" {% if b.config_json.person_col_span == 4 or not b.config_json.person_col_span %}selected{% endif %}>3 pro Zeile (Drittel)</option>
+                            <option value="6" {% if b.config_json.person_col_span == 6 %}selected{% endif %}>2 pro Zeile (Halb)</option>
+                            <option value="3" {% if b.config_json.person_col_span == 3 %}selected{% endif %}>4 pro Zeile (Viertel)</option>
+                            <option value="12" {% if b.config_json.person_col_span == 12 %}selected{% endif %}>1 pro Zeile (Voll)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small mb-1">Karten-Aussehen</label>
+                        <select name="person_card_style" class="form-select form-select-sm">
+                            <option value="card" {% if b.config_json.person_card_style == 'card' or not b.config_json.person_card_style %}selected{% endif %}>Standard-Karte</option>
+                            <option value="horizontal" {% if b.config_json.person_card_style == 'horizontal' %}selected{% endif %}>Visitenkarte (Bild links)</option>
+                            <option value="flat" {% if b.config_json.person_card_style == 'flat' %}selected{% endif %}>Dezent (ohne Rahmen)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end pb-1">
+                        <div class="form-check mb-0">
+                            <input type="checkbox" name="show_photos" id="editShowPhotos-{{ b.id }}" class="form-check-input" {% if b.config_json.show_photos is not False %}checked{% endif %}>
+                            <label class="form-check-label small" for="editShowPhotos-{{ b.id }}">Fotos anzeigen</label>
+                        </div>
                     </div>
                 </div>
                 {% endif %}
