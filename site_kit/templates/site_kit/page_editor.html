@@ -203,6 +203,34 @@
                                 <option value="2">2 Spalten</option>
                             </select>
                         </div>
+                        <div class="col-md-3">
+                            <select name="gallery_interval" class="form-select form-select-sm">
+                                <option value="5000">Autoplay: 5 Sek.</option>
+                                <option value="3000">Autoplay: 3 Sek.</option>
+                                <option value="8000">Autoplay: 8 Sek.</option>
+                                <option value="0">Autoplay: Aus</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="gallery_caption_mode" class="form-select form-select-sm">
+                                <option value="below">Bildtext: Unter Bild</option>
+                                <option value="overlay">Bildtext: Im Bild</option>
+                                <option value="none">Bildtext: Aus</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="gallery_show_thumbs" class="form-select form-select-sm">
+                                <option value="1">Thumbnails: An</option>
+                                <option value="0">Thumbnails: Aus</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="gallery_height" class="form-select form-select-sm">
+                                <option value="440">Höhe: Standard (440px)</option>
+                                <option value="300">Höhe: Kompakt (300px)</option>
+                                <option value="580">Höhe: Groß (580px)</option>
+                            </select>
+                        </div>
                         <div class="col-md-6">
                             <select name="linked_event_id" class="form-select form-select-sm">
                                 <option value="">Verknüpfter Termin (optional)</option>
@@ -453,11 +481,43 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label small mb-1">Spalten</label>
+                        <label class="form-label small mb-1">Spalten (Raster)</label>
                         <select name="gallery_cols" class="form-select form-select-sm">
                             <option value="3" {% if b.config_json.gallery_cols == 3 or not b.config_json.gallery_cols %}selected{% endif %}>3 Spalten</option>
                             <option value="4" {% if b.config_json.gallery_cols == 4 %}selected{% endif %}>4 Spalten</option>
                             <option value="2" {% if b.config_json.gallery_cols == 2 %}selected{% endif %}>2 Spalten</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Autoplay (Karussell)</label>
+                        <select name="gallery_interval" class="form-select form-select-sm">
+                            <option value="5000" {% if b.config_json.gallery_interval == 5000 or b.config_json.gallery_interval is None %}selected{% endif %}>5 Sekunden</option>
+                            <option value="3000" {% if b.config_json.gallery_interval == 3000 %}selected{% endif %}>3 Sekunden</option>
+                            <option value="8000" {% if b.config_json.gallery_interval == 8000 %}selected{% endif %}>8 Sekunden</option>
+                            <option value="0" {% if b.config_json.gallery_interval == 0 %}selected{% endif %}>Aus (manuell)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Bildtext</label>
+                        <select name="gallery_caption_mode" class="form-select form-select-sm">
+                            <option value="below" {% if b.config_json.gallery_caption_mode == 'below' or not b.config_json.gallery_caption_mode %}selected{% endif %}>Unter dem Bild</option>
+                            <option value="overlay" {% if b.config_json.gallery_caption_mode == 'overlay' %}selected{% endif %}>Als Overlay im Bild</option>
+                            <option value="none" {% if b.config_json.gallery_caption_mode == 'none' %}selected{% endif %}>Ausblenden</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Thumbnails (Karussell)</label>
+                        <select name="gallery_show_thumbs" class="form-select form-select-sm">
+                            <option value="1" {% if b.config_json.gallery_show_thumbs is not False %}selected{% endif %}>Anzeigen</option>
+                            <option value="0" {% if b.config_json.gallery_show_thumbs is False %}selected{% endif %}>Ausblenden</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Höhe (Karussell)</label>
+                        <select name="gallery_height" class="form-select form-select-sm">
+                            <option value="440" {% if b.config_json.gallery_height == 440 or not b.config_json.gallery_height %}selected{% endif %}>Standard (440px)</option>
+                            <option value="300" {% if b.config_json.gallery_height == 300 %}selected{% endif %}>Kompakt (300px)</option>
+                            <option value="580" {% if b.config_json.gallery_height == 580 %}selected{% endif %}>Groß (580px)</option>
                         </select>
                     </div>
                     <div class="col-md-6">

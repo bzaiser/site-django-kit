@@ -1,4 +1,4 @@
-{% if item.block.block_type == 'hero' %}
+{% load i18n %}{% if item.block.block_type == 'hero' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
     <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4 p-md-5{% endif %}{% endif %}">
         <div class="row align-items-center g-4 {% if item.block.image_position == 'left' %}flex-lg-row-reverse{% elif item.block.image_position == 'top' %}flex-column-reverse{% endif %}">
@@ -277,27 +277,88 @@
         </div>
         {% if item.gallery_photos %}
             {% if item.gallery_layout == 'carousel' %}
-            <div id="siteGalCar{{ item.block.id }}" class="carousel slide rounded-4 overflow-hidden shadow-sm" data-bs-ride="carousel">
+            <div id="siteGalCar{{ item.block.id }}"
+                 class="carousel slide rounded-4 overflow-hidden shadow-sm bg-body-tertiary position-relative"
+                 data-bs-ride="{% if item.gallery_interval > 0 %}carousel{% else %}false{% endif %}"
+                 {% if item.gallery_interval > 0 %}data-bs-interval="{{ item.gallery_interval }}"{% endif %}
+                 data-bs-touch="true"
+                 data-site-carousel="1"
+                 tabindex="0">
+                <div class="position-absolute top-0 end-0 m-2 d-flex align-items-center gap-1" style="z-index: 5;">
+                    <span class="badge bg-dark bg-opacity-75 text-white rounded-pill px-2 py-1" data-gal-counter>1 / {{ item.gallery_photos|length }}</span>
+                    {% if item.gallery_interval > 0 and item.gallery_photos|length > 1 %}
+                    <button type="button" class="btn btn-sm btn-dark bg-opacity-75 text-white rounded-circle p-0 d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px;" data-gal-playpause title="{% trans 'Pause / Abspielen' %}" aria-label="{% trans 'Pause / Abspielen' %}">
+                        <i class="bi bi-pause-fill"></i>
+                    </button>
+                    {% endif %}
+                    <button type="button" class="btn btn-sm btn-dark bg-opacity-75 text-white rounded-circle p-0 d-inline-flex align-items-center justify-content-center" style="width: 30px; height: 30px;" data-gal-fullscreen title="{% trans 'Vollbild' %}" aria-label="{% trans 'Vollbild' %}">
+                        <i class="bi bi-arrows-fullscreen" style="font-size: 0.75rem;"></i>
+                    </button>
+                </div>
+                {% if item.gallery_photos|length > 1 and item.gallery_caption_mode != 'overlay' %}
+                <div class="carousel-indicators mb-1">
+                    {% for ph in item.gallery_photos %}
+                    <button type="button" data-bs-target="#siteGalCar{{ item.block.id }}" data-bs-slide-to="{{ forloop.counter0 }}" {% if forloop.first %}class="active" aria-current="true"{% endif %} aria-label="{{ ph.caption|default:'Bild' }}"></button>
+                    {% endfor %}
+                </div>
+                {% endif %}
                 <div class="carousel-inner">
                     {% for ph in item.gallery_photos %}
                     <div class="carousel-item {% if forloop.first %}active{% endif %}">
-                        <img src="{{ ph.url }}" alt="{{ ph.caption }}" class="d-block w-100 object-fit-cover" style="max-height: 420px; cursor: pointer;" onclick="openSiteGalleryLightbox(this)" data-gal-group="gal-{{ item.block.id }}" data-gal-idx="{{ forloop.counter0 }}" data-gal-caption="{{ ph.caption }}">
-                        {% if ph.caption %}<div class="carousel-caption bg-dark bg-opacity-50 rounded-3 py-1 px-2 small">{{ ph.caption }}</div>{% endif %}
+                        <img src="{{ ph.url }}" alt="{{ ph.caption }}" class="d-block w-100 object-fit-cover" style="height: {{ item.gallery_height|default:440 }}px; cursor: pointer;" onclick="openSiteGalleryLightbox(this)" data-gal-group="gal-{{ item.block.id }}" data-gal-idx="{{ forloop.counter0 }}" data-gal-caption="{{ ph.caption }}" data-gal-notes="{{ ph.notes|default:'' }}">
+                        {% if item.gallery_caption_mode == 'overlay' %}
+                            {% if ph.caption or ph.notes %}
+                            <div class="position-absolute bottom-0 start-0 end-0 bg-dark bg-opacity-75 text-white px-3 py-2" style="z-index: 4;">
+                                {% if ph.caption %}<div class="fw-semibold small">{{ ph.caption }}</div>{% endif %}
+                                {% if ph.notes %}<div class="small text-white-50 text-truncate">{{ ph.notes }}</div>{% endif %}
+                            </div>
+                            {% endif %}
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>
                 {% if item.gallery_photos|length > 1 %}
-                <button class="carousel-control-prev" type="button" data-bs-target="#siteGalCar{{ item.block.id }}" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button>
-                <button class="carousel-control-next" type="button" data-bs-target="#siteGalCar{{ item.block.id }}" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
+                <button class="carousel-control-prev" type="button" data-bs-target="#siteGalCar{{ item.block.id }}" data-bs-slide="prev" aria-label="{% trans 'Vorheriges Bild' %}">
+                    <span class="d-inline-flex align-items-center justify-content-center bg-dark bg-opacity-75 text-white rounded-circle shadow-sm" style="width: 2.35rem; height: 2.35rem;"><i class="bi bi-chevron-left"></i></span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#siteGalCar{{ item.block.id }}" data-bs-slide="next" aria-label="{% trans 'Nächstes Bild' %}">
+                    <span class="d-inline-flex align-items-center justify-content-center bg-dark bg-opacity-75 text-white rounded-circle shadow-sm" style="width: 2.35rem; height: 2.35rem;"><i class="bi bi-chevron-right"></i></span>
+                </button>
                 {% endif %}
             </div>
+            {% if item.gallery_caption_mode == 'below' %}
+            <div class="mt-2 px-1" data-gal-caption-bar="siteGalCar{{ item.block.id }}">
+                {% with first_ph=item.gallery_photos.0 %}
+                <div class="fw-semibold small" data-gal-cap-title>{{ first_ph.caption }}</div>
+                <div class="small text-muted {% if not first_ph.notes %}d-none{% endif %}" data-gal-cap-notes>{{ first_ph.notes }}</div>
+                {% endwith %}
+            </div>
+            {% endif %}
+            {% if item.gallery_show_thumbs and item.gallery_photos|length > 1 %}
+            <div class="d-flex gap-2 overflow-auto mt-2 pb-1" data-gal-thumbs="siteGalCar{{ item.block.id }}">
+                {% for ph in item.gallery_photos %}
+                <button type="button"
+                        class="btn p-0 border rounded-3 overflow-hidden flex-shrink-0 {% if forloop.first %}border-primary border-2{% else %}opacity-75{% endif %}"
+                        style="width: 72px; height: 52px;"
+                        data-bs-target="#siteGalCar{{ item.block.id }}"
+                        data-bs-slide-to="{{ forloop.counter0 }}"
+                        data-gal-thumb-idx="{{ forloop.counter0 }}"
+                        aria-label="{{ ph.caption|default:'Bild' }}">
+                    <img src="{{ ph.url }}" alt="" class="w-100 h-100 object-fit-cover">
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
             {% else %}
             <div class="row g-2">
                 {% for ph in item.gallery_photos %}
                 <div class="{% if item.gallery_cols == 2 %}col-12 col-md-6{% elif item.gallery_cols == 4 %}col-6 col-md-3{% else %}col-6 col-md-4{% endif %}">
-                    <div class="ratio ratio-4x3 rounded-3 overflow-hidden shadow-sm" style="cursor: pointer;" onclick="openSiteGalleryLightbox(this)" data-gal-group="gal-{{ item.block.id }}" data-gal-idx="{{ forloop.counter0 }}" data-gal-src="{{ ph.url }}" data-gal-caption="{{ ph.caption }}">
+                    <div class="ratio ratio-4x3 rounded-3 overflow-hidden shadow-sm" style="cursor: pointer;" onclick="openSiteGalleryLightbox(this)" data-gal-group="gal-{{ item.block.id }}" data-gal-idx="{{ forloop.counter0 }}" data-gal-src="{{ ph.url }}" data-gal-caption="{{ ph.caption }}" data-gal-notes="{{ ph.notes|default:'' }}">
                         <img src="{{ ph.url }}" alt="{{ ph.caption }}" class="w-100 h-100 object-fit-cover">
                     </div>
+                    {% if item.gallery_caption_mode != 'none' and ph.caption %}
+                    <div class="small text-truncate px-1 pt-1 text-muted">{{ ph.caption }}</div>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>

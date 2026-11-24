@@ -102,14 +102,18 @@
     <div class="modal-dialog modal-dialog-centered modal-xl">
         <div class="modal-content bg-dark text-white border-0 rounded-4 overflow-hidden">
             <div class="modal-header border-secondary border-opacity-25 py-2 px-3">
-                <span id="siteGalCaption" class="small text-truncate">Foto</span>
+                <div class="text-truncate me-2">
+                    <span id="siteGalCaption" class="small fw-semibold">Foto</span>
+                    <span id="siteGalCounter" class="badge bg-secondary ms-2"></span>
+                </div>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-2 text-center bg-black position-relative">
+            <div class="modal-body p-2 text-center bg-black position-relative" id="siteGalSwipeBody">
                 <button type="button" id="siteGalPrev" class="btn btn-dark bg-opacity-75 rounded-circle position-absolute start-0 ms-2 top-50 translate-middle-y"><i class="bi bi-chevron-left"></i></button>
-                <img id="siteGalImg" src="" alt="" class="img-fluid rounded-2 object-fit-contain" style="max-height: 80vh;">
+                <img id="siteGalImg" src="" alt="" class="img-fluid rounded-2 object-fit-contain" style="max-height: 76vh;">
                 <button type="button" id="siteGalNext" class="btn btn-dark bg-opacity-75 rounded-circle position-absolute end-0 me-2 top-50 translate-middle-y"><i class="bi bi-chevron-right"></i></button>
             </div>
+            <div id="siteGalNotesBar" class="px-3 py-2 small text-white-50 bg-dark border-top border-secondary border-opacity-25 d-none"></div>
         </div>
     </div>
 </div>
@@ -122,19 +126,54 @@ window.loadPrivacyVideo = function (btn) {
 };
 (function () {
     var list = [], idx = 0;
+    function attachSwipe(el, onPrev, onNext) {
+        if (!el) return;
+        var sx = null, sy = null;
+        el.addEventListener('touchstart', function (e) {
+            if (e.touches && e.touches.length === 1) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }
+        }, { passive: true });
+        el.addEventListener('touchend', function (e) {
+            if (sx === null || !e.changedTouches || !e.changedTouches.length) return;
+            var dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+            sx = null; sy = null;
+            if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 0) onPrev(); else onNext();
+            }
+        }, { passive: true });
+        var px = null;
+        el.addEventListener('pointerdown', function (e) {
+            if (e.pointerType === 'mouse' && e.button === 0) px = e.clientX;
+        });
+        el.addEventListener('pointerup', function (e) {
+            if (px === null) return;
+            var dx = e.clientX - px; px = null;
+            if (Math.abs(dx) > 55) { if (dx > 0) onPrev(); else onNext(); }
+        });
+    }
     function showGal(i) {
         if (!list.length) return;
         idx = (i + list.length) % list.length;
         var item = list[idx];
         document.getElementById('siteGalImg').src = item.src;
-        document.getElementById('siteGalCaption').textContent = item.caption || ((idx + 1) + ' / ' + list.length);
+        document.getElementById('siteGalCaption').textContent = item.caption || 'Foto';
+        var cnt = document.getElementById('siteGalCounter');
+        if (cnt) cnt.textContent = (idx + 1) + ' / ' + list.length;
+        var nb = document.getElementById('siteGalNotesBar');
+        if (nb) {
+            if (item.notes) { nb.textContent = item.notes; nb.classList.remove('d-none'); }
+            else { nb.textContent = ''; nb.classList.add('d-none'); }
+        }
     }
     window.openSiteGalleryLightbox = function (el) {
         var grp = el.getAttribute('data-gal-group');
         var nodes = document.querySelectorAll('[data-gal-group="' + grp + '"]');
         list = Array.from(nodes).map(function (n) {
             var img = n.tagName === 'IMG' ? n : n.querySelector('img');
-            return { src: n.getAttribute('data-gal-src') || (img ? img.src : ''), caption: n.getAttribute('data-gal-caption') || '' };
+            return {
+                src: n.getAttribute('data-gal-src') || (img ? img.src : ''),
+                caption: n.getAttribute('data-gal-caption') || '',
+                notes: n.getAttribute('data-gal-notes') || ''
+            };
         });
         showGal(parseInt(el.getAttribute('data-gal-idx') || '0', 10) || 0);
         if (window.bootstrap) bootstrap.Modal.getOrCreateInstance(document.getElementById('siteGalleryLightbox')).show();
@@ -143,6 +182,71 @@ window.loadPrivacyVideo = function (btn) {
         var p = document.getElementById('siteGalPrev'), n = document.getElementById('siteGalNext');
         if (p) p.addEventListener('click', function () { showGal(idx - 1); });
         if (n) n.addEventListener('click', function () { showGal(idx + 1); });
+        var modalEl = document.getElementById('siteGalleryLightbox');
+        attachSwipe(document.getElementById('siteGalSwipeBody'), function () { showGal(idx - 1); }, function () { showGal(idx + 1); });
+        document.addEventListener('keydown', function (e) {
+            if (!modalEl || !modalEl.classList.contains('show')) return;
+            if (e.key === 'ArrowLeft') showGal(idx - 1);
+            else if (e.key === 'ArrowRight') showGal(idx + 1);
+        });
+        document.querySelectorAll('[data-site-carousel="1"]').forEach(function (car) {
+            var total = car.querySelectorAll('.carousel-item').length;
+            var counter = car.querySelector('[data-gal-counter]');
+            var capBar = document.querySelector('[data-gal-caption-bar="' + car.id + '"]');
+            var thumbs = document.querySelector('[data-gal-thumbs="' + car.id + '"]');
+            var playBtn = car.querySelector('[data-gal-playpause]');
+            var fsBtn = car.querySelector('[data-gal-fullscreen]');
+            var paused = false;
+            function getInst() {
+                return window.bootstrap ? bootstrap.Carousel.getOrCreateInstance(car) : null;
+            }
+            car.addEventListener('slid.bs.carousel', function (ev) {
+                var activeIdx = typeof ev.to === 'number' ? ev.to : 0;
+                if (counter) counter.textContent = (activeIdx + 1) + ' / ' + total;
+                var activeImg = car.querySelectorAll('.carousel-item img')[activeIdx];
+                if (capBar && activeImg) {
+                    var tEl = capBar.querySelector('[data-gal-cap-title]');
+                    var nEl = capBar.querySelector('[data-gal-cap-notes]');
+                    if (tEl) tEl.textContent = activeImg.getAttribute('data-gal-caption') || '';
+                    if (nEl) {
+                        var nt = activeImg.getAttribute('data-gal-notes') || '';
+                        nEl.textContent = nt;
+                        nEl.classList.toggle('d-none', !nt);
+                    }
+                }
+                if (thumbs) {
+                    thumbs.querySelectorAll('[data-gal-thumb-idx]').forEach(function (tb) {
+                        var isAct = parseInt(tb.getAttribute('data-gal-thumb-idx'), 10) === activeIdx;
+                        tb.classList.toggle('border-primary', isAct);
+                        tb.classList.toggle('border-2', isAct);
+                        tb.classList.toggle('opacity-75', !isAct);
+                        if (isAct && tb.scrollIntoView) tb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                    });
+                }
+            });
+            if (playBtn) {
+                playBtn.addEventListener('click', function () {
+                    var inst = getInst();
+                    if (!inst) return;
+                    paused = !paused;
+                    if (paused) { inst.pause(); playBtn.innerHTML = '<i class="bi bi-play-fill"></i>'; }
+                    else { inst.cycle(); playBtn.innerHTML = '<i class="bi bi-pause-fill"></i>'; }
+                });
+            }
+            if (fsBtn) {
+                fsBtn.addEventListener('click', function () {
+                    var actImg = car.querySelector('.carousel-item.active img');
+                    if (actImg) window.openSiteGalleryLightbox(actImg);
+                });
+            }
+            car.addEventListener('keydown', function (e) {
+                var inst = getInst();
+                if (!inst) return;
+                if (e.key === 'ArrowLeft') { e.preventDefault(); inst.prev(); }
+                else if (e.key === 'ArrowRight') { e.preventDefault(); inst.next(); }
+            });
+            attachSwipe(car.querySelector('.carousel-inner'), function () { var i = getInst(); if (i) i.prev(); }, function () { var i = getInst(); if (i) i.next(); });
+        });
     });
 })();
 </script>

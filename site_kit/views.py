@@ -275,6 +275,13 @@ def _resolve_block_data(block: PageBlock) -> dict:
         data["gallery_photos"] = photos
         data["gallery_layout"] = cfg.get("gallery_layout") if cfg.get("gallery_layout") in ("grid", "carousel") else "grid"
         data["gallery_cols"] = int(cfg.get("gallery_cols") or 3)
+        raw_iv = cfg.get("gallery_interval")
+        data["gallery_interval"] = int(raw_iv) if str(raw_iv).isdigit() and int(raw_iv) in (0, 3000, 5000, 8000) else 5000
+        cm = cfg.get("gallery_caption_mode")
+        data["gallery_caption_mode"] = cm if cm in ("below", "overlay", "none") else "below"
+        data["gallery_show_thumbs"] = cfg.get("gallery_show_thumbs", True) is not False and str(cfg.get("gallery_show_thumbs", "1")) != "0"
+        raw_gh = cfg.get("gallery_height")
+        data["gallery_height"] = int(raw_gh) if str(raw_gh).isdigit() and int(raw_gh) in (300, 440, 580) else 440
         data["linked_event"] = linked_event
         data["linked_person"] = linked_person
 
@@ -983,6 +990,17 @@ def _parse_block_layout_config(request, existing_cfg=None) -> dict:
     if "gallery_cols" in request.POST:
         gc = (request.POST.get("gallery_cols") or "").strip()
         cfg["gallery_cols"] = int(gc) if gc.isdigit() and int(gc) in (2, 3, 4) else 3
+    if "gallery_interval" in request.POST:
+        gi = (request.POST.get("gallery_interval") or "").strip()
+        cfg["gallery_interval"] = int(gi) if gi.isdigit() and int(gi) in (0, 3000, 5000, 8000) else 5000
+    if "gallery_caption_mode" in request.POST:
+        gcm = (request.POST.get("gallery_caption_mode") or "below").strip()
+        cfg["gallery_caption_mode"] = gcm if gcm in ("below", "overlay", "none") else "below"
+    if "gallery_show_thumbs" in request.POST:
+        cfg["gallery_show_thumbs"] = (request.POST.get("gallery_show_thumbs") or "1").strip() != "0"
+    if "gallery_height" in request.POST:
+        gh = (request.POST.get("gallery_height") or "").strip()
+        cfg["gallery_height"] = int(gh) if gh.isdigit() and int(gh) in (300, 440, 580) else 440
     if "linked_event_id" in request.POST:
         cfg["linked_event_id"] = (request.POST.get("linked_event_id") or "").strip()[:20]
     if "linked_person_id" in request.POST:
