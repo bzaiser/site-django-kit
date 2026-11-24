@@ -16,6 +16,29 @@
             </div>
             <h1 class="h2 fw-bold mb-3">{{ entry.title }}</h1>
             {% if entry.image_url %}<img src="{{ entry.image_url }}" alt="{{ entry.title }}" class="img-fluid rounded-3 mb-4">{% endif %}
+            {% with entry_imgs=entry.images.all %}
+            {% if entry_imgs %}
+                {% if entry_imgs|length == 1 %}
+                {% with img=entry_imgs.0 %}
+                <figure class="mb-4">
+                    <img src="{{ img.image.url }}" alt="{{ img.caption|default:entry.title }}" class="img-fluid rounded-3" style="max-height: 520px; cursor: pointer;" onclick="openSiteGalleryLightbox(this)" data-gal-group="news-{{ entry.id }}" data-gal-idx="0" data-gal-caption="{{ img.caption|default:entry.title }}">
+                    {% if img.caption %}<figcaption class="small text-muted mt-1">{{ img.caption }}</figcaption>{% endif %}
+                </figure>
+                {% endwith %}
+                {% else %}
+                <div class="row g-2 mb-4">
+                    {% for img in entry_imgs %}
+                    <div class="col-6 col-md-4">
+                        <div class="ratio ratio-4x3 rounded-3 overflow-hidden shadow-sm" style="cursor: pointer;" onclick="openSiteGalleryLightbox(this)" data-gal-group="news-{{ entry.id }}" data-gal-idx="{{ forloop.counter0 }}" data-gal-src="{{ img.image.url }}" data-gal-caption="{{ img.caption|default:entry.title }}">
+                            <img src="{{ img.image.url }}" alt="{{ img.caption|default:entry.title }}" class="w-100 h-100 object-fit-cover">
+                        </div>
+                        {% if img.caption %}<div class="small text-muted text-truncate pt-1">{{ img.caption }}</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% endif %}
+            {% endwith %}
             <div class="text-break">{{ rendered_body|safe }}</div>
         </div>
     </article>
