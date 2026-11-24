@@ -427,7 +427,11 @@ def news_detail_view(request, slug):
     ctx = _public_base_context(request)
     ctx["entry"] = entry
     ctx["is_archived"] = bool(entry.expires_at and entry.expires_at <= now)
-    ctx["rendered_body"] = render_safe_markdown(entry.notes)
+    raw_body = (entry.notes or "").strip()
+    if entry.collection.template.use_rich_notes or ("<" in raw_body and ">" in raw_body):
+        ctx["rendered_body"] = _sanitize_rich_html(raw_body)
+    else:
+        ctx["rendered_body"] = render_safe_markdown(raw_body)
     ctx["public_documents"] = list(entry.documents.filter(is_public=True))
     ctx["linked_document"] = get_linked_domain_document(entry.linked_document_id, require_public=True) if entry.linked_document_id else None
     return render(request, "site_kit/news_detail.html", ctx)
