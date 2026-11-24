@@ -573,6 +573,75 @@ def events_list_view(request):
     return render(request, "site_kit/events_list.html", ctx)
 
 
+def event_detail_view(request, pk):
+    if not apps.is_installed("cal_kit"):
+        raise Http404()
+    from datetime import timedelta
+    from cal_kit.models import CalendarEvent
+
+    qs = CalendarEvent.objects.select_related("category", "offering_template")
+    if not (request.user.is_authenticated and request.user.is_staff):
+        ev = get_object_or_404(qs, pk=pk, is_public=True)
+    else:
+        ev = get_object_or_404(qs, pk=pk)
+
+    ctx = _public_base_context(request)
+    reg_counts = _get_event_registration_counts()
+    rc = reg_counts.get(str(ev.id), 0)
+    mp = ev.max_participants
+    tpl = ev.offering_template
+
+    raw_ev_desc = (ev.description or "").strip()
+    if raw_ev_desc:
+        if "<" in raw_ev_desc and ">" in raw_ev_desc:
+            ev_desc_html = _sanitize_rich_html(raw_ev_desc)
+        else:
+            from django.utils.html import escape, linebreaks
+            ev_desc_html = linebreaks(escape(raw_ev_desc))
+    else:
+        ev_desc_html = ""
+
+    tpl_desc_html = ""
+    if tpl and (tpl.description or "").strip():
+        raw_tpl_desc = tpl.description.strip()
+        if raw_tpl_desc != raw_ev_desc:
+            if "<" in raw_tpl_desc and ">" in raw_tpl_desc:
+                tpl_desc_html = _sanitize_rich_html(raw_tpl_desc)
+            else:
+                from django.utils.html import escape, linebreaks
+                tpl_desc_html = linebreaks(escape(raw_tpl_desc))
+
+    instructor_person_id = None
+    if (ev.instructor_ref or "").startswith("person:"):
+        raw_pid = ev.instructor_ref.split(":", 1)[1].strip()
+        if raw_pid.isdigit():
+            instructor_person_id = int(raw_pid)
+
+    upcoming_occurrences = []
+    if ev.recurrence_rule != "none":
+        now = timezone.now()
+        for occ_s, occ_e, _t in ev.get_occurrences(now, now + timedelta(days=180)):
+            upcoming_occurrences.append({"start_at": occ_s, "end_at": occ_e})
+            if len(upcoming_occurrences) >= 8:
+                break
+
+    ctx.update({
+        "ev": ev,
+        "offering": tpl,
+        "image_url": getattr(ev, "resolved_image_url", ""),
+        "event_desc_html": ev_desc_html,
+        "offering_desc_html": tpl_desc_html,
+        "fee_amount": ev.fee_amount if ev.fee_amount is not None else (tpl.default_fee if tpl else None),
+        "instructor_person_id": instructor_person_id,
+        "reg_count": rc,
+        "max_participants": mp,
+        "is_full": bool(mp and rc >= mp),
+        "seats_left": max(0, mp - rc) if mp else None,
+        "upcoming_occurrences": upcoming_occurrences,
+    })
+    return render(request, "site_kit/event_detail.html", ctx)
+
+
 def lecturers_list_view(request):
     ctx = _public_base_context(request)
     lecturers = []

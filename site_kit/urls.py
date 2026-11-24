@@ -12,6 +12,7 @@ urlpatterns = [
     path("news/feed.xml", views.news_rss_view, name="news_rss"),
     path("news/<slug:slug>/", views.news_detail_view, name="news_detail"),
     path("termine/", views.events_list_view, name="events_list"),
+    path("termine/<int:pk>/", views.event_detail_view, name="event_detail"),
     path("dozenten/", views.lecturers_list_view, name="lecturers_list"),
     path("personen/<int:pk>/", views.person_detail_view, name="person_detail"),
     path("programm/", views.annual_program_view, name="annual_program"),

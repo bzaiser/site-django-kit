@@ -1,0 +1,89 @@
+{% extends "site_kit/layouts/public.html" %}
+{% load i18n %}
+
+{% block title %}{{ ev.title }} – {{ site_cfg.site_name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <a href="{% url 'site_kit:events_list' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">&larr; {% trans "Alle Termine" %}</a>
+        {% if ev.category %}
+        <a href="{% url 'site_kit:events_list' %}?kalender={{ ev.category.id }}" class="btn btn-outline-primary btn-sm rounded-pill px-3">{{ ev.category.name }}</a>
+        {% endif %}
+    </div>
+
+    <article class="card shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-4 p-md-5">
+            <div class="d-flex flex-column {% if image_url %}flex-md-row{% endif %} gap-4 align-items-start">
+                {% if image_url %}
+                <img src="{{ image_url }}" alt="{{ ev.title }}" class="rounded-4 object-fit-cover shadow-sm flex-shrink-0" style="width: 100%; max-width: 320px; max-height: 280px;">
+                {% endif %}
+                <div class="flex-grow-1 min-w-0">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                        <span class="badge text-bg-primary">
+                            {% if ev.all_day %}{{ ev.start_at|date:"d.m.Y" }} · Ganztägig{% else %}{{ ev.start_at|date:"d.m.Y H:i" }} – {{ ev.end_at|date:"H:i" }}{% endif %}
+                        </span>
+                        {% if ev.category %}
+                        <span class="badge bg-body-secondary text-body border">{{ ev.category.name }}</span>
+                        {% endif %}
+                        {% if fee_amount %}
+                        <span class="badge bg-body-secondary text-body border">{{ fee_amount }} €</span>
+                        {% endif %}
+                    </div>
+                    <h1 class="h2 fw-bold mb-2">{{ ev.title }}</h1>
+                    <div class="d-flex flex-wrap gap-3 small text-muted mb-3">
+                        {% if ev.location %}
+                        <span><i class="bi bi-geo-alt me-1"></i>{{ ev.location }}</span>
+                        {% endif %}
+                        {% if ev.instructor_name %}
+                        <span>
+                            <i class="bi bi-mortarboard me-1"></i>
+                            {% if instructor_person_id %}
+                            <a href="{% url 'site_kit:person_detail' instructor_person_id %}" class="text-decoration-none">{{ ev.instructor_name }}</a>
+                            {% else %}
+                            {{ ev.instructor_name }}
+                            {% endif %}
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    {% if ev.allow_registration %}
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                        {% if is_full %}
+                        <span class="badge text-bg-danger">Ausgebucht ({{ reg_count }}/{{ max_participants }})</span>
+                        {% elif max_participants %}
+                        <span class="badge text-bg-success">Noch {{ seats_left }} Plätze frei</span>
+                        {% endif %}
+                        <a href="{% url 'site_kit:event_registration' %}?event={{ ev.id }}" class="btn btn-sm {% if is_full %}btn-outline-secondary{% else %}btn-primary{% endif %} rounded-pill px-4">
+                            {% if is_full %}Warteliste / Anfrage{% else %}Jetzt anmelden{% endif %}
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if event_desc_html %}
+            <div class="mt-4 pt-3 border-top text-break">{{ event_desc_html|safe }}</div>
+            {% endif %}
+
+            {% if offering_desc_html %}
+            <div class="{% if event_desc_html %}mt-3 pt-3 border-top{% else %}mt-4 pt-3 border-top{% endif %} text-break">
+                {% if offering %}<h2 class="h6 fw-bold text-muted mb-2">{{ offering.title }}</h2>{% endif %}
+                {{ offering_desc_html|safe }}
+            </div>
+            {% endif %}
+
+            {% if upcoming_occurrences %}
+            <div class="mt-4 pt-3 border-top">
+                <h2 class="h6 fw-bold mb-2"><i class="bi bi-arrow-repeat me-1 text-primary"></i>Nächste Termine dieser Reihe</h2>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for occ in upcoming_occurrences %}
+                    <span class="badge bg-body-secondary text-body border py-1 px-2">{{ occ.start_at|date:"d.m.Y H:i" }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </article>
+</div>
+{% endblock %}
