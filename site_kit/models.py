@@ -91,6 +91,8 @@ class PageBlock(models.Model):
         ("faq_list", "FAQ-Akkordeon (list_kit)"),
         ("public_form", "Öffentliches Formular (list_kit)"),
         ("annual_program", "Jahresprogramm / Angebotskatalog (cal_kit)"),
+        ("photo_gallery", "Bildergalerie / Impressionen (list_kit)"),
+        ("video", "Video (Upload / YouTube / Vimeo)"),
         ("stats_bar", "Kennzahlen-Leiste"),
         ("rich_html", "HTML / WYSIWYG (Admin-Layout)"),
     ]
@@ -110,6 +112,7 @@ class PageBlock(models.Model):
     body = models.TextField(blank=True, default="")
     image = models.FileField(upload_to="site_kit/blocks/%Y/%m/", blank=True, null=True)
     image_url = models.URLField(blank=True, default="")
+    video_file = models.FileField(upload_to="site_kit/videos/%Y/%m/", blank=True, null=True)
     cta_label = models.CharField(max_length=80, blank=True, default="")
     cta_url = models.CharField(max_length=255, blank=True, default="")
     config_json = models.JSONField(default=dict, blank=True)
@@ -130,6 +133,16 @@ class PageBlock(models.Model):
             except Exception:
                 pass
         return (self.image_url or "").strip()
+
+    @property
+    def resolved_video_url(self) -> str:
+        if self.video_file:
+            try:
+                return self.video_file.url
+            except Exception:
+                pass
+        cfg = self.config_json if isinstance(self.config_json, dict) else {}
+        return (cfg.get("video_url") or "").strip()
 
     @property
     def grid_col_class(self) -> str:

@@ -258,6 +258,82 @@
     {% include "site_kit/partials/_program_cards.html" with program_items=item.program_items %}
 </section>
 
+{% elif item.block.block_type == 'photo_gallery' %}
+<section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
+    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div>
+                <h2 class="h4 fw-bold mb-0"><i class="bi bi-images text-primary me-2"></i>{{ item.block.title|default:"Impressionen & Galerie" }}</h2>
+                {% if item.block.subtitle %}<div class="text-muted small">{{ item.block.subtitle }}</div>{% endif %}
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                {% if item.linked_event %}
+                <a href="{% url 'site_kit:events_list' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3"><i class="bi bi-calendar-event me-1"></i>{{ item.linked_event.title }}</a>
+                {% endif %}
+                {% if item.linked_person %}
+                <a href="{% url 'site_kit:person_detail' item.linked_person.id %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="bi bi-person me-1"></i>{{ item.linked_person.full_name }}</a>
+                {% endif %}
+            </div>
+        </div>
+        {% if item.gallery_photos %}
+            {% if item.gallery_layout == 'carousel' %}
+            <div id="siteGalCar{{ item.block.id }}" class="carousel slide rounded-4 overflow-hidden shadow-sm" data-bs-ride="carousel">
+                <div class="carousel-inner">
+                    {% for ph in item.gallery_photos %}
+                    <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                        <img src="{{ ph.url }}" alt="{{ ph.caption }}" class="d-block w-100 object-fit-cover" style="max-height: 420px; cursor: pointer;" onclick="openSiteGalleryLightbox(this)" data-gal-group="gal-{{ item.block.id }}" data-gal-idx="{{ forloop.counter0 }}" data-gal-caption="{{ ph.caption }}">
+                        {% if ph.caption %}<div class="carousel-caption bg-dark bg-opacity-50 rounded-3 py-1 px-2 small">{{ ph.caption }}</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if item.gallery_photos|length > 1 %}
+                <button class="carousel-control-prev" type="button" data-bs-target="#siteGalCar{{ item.block.id }}" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button>
+                <button class="carousel-control-next" type="button" data-bs-target="#siteGalCar{{ item.block.id }}" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="row g-2">
+                {% for ph in item.gallery_photos %}
+                <div class="{% if item.gallery_cols == 2 %}col-12 col-md-6{% elif item.gallery_cols == 4 %}col-6 col-md-3{% else %}col-6 col-md-4{% endif %}">
+                    <div class="ratio ratio-4x3 rounded-3 overflow-hidden shadow-sm" style="cursor: pointer;" onclick="openSiteGalleryLightbox(this)" data-gal-group="gal-{{ item.block.id }}" data-gal-idx="{{ forloop.counter0 }}" data-gal-src="{{ ph.url }}" data-gal-caption="{{ ph.caption }}">
+                        <img src="{{ ph.url }}" alt="{{ ph.caption }}" class="w-100 h-100 object-fit-cover">
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="text-muted small py-2">Noch keine öffentlichen Bilder in diesem Album hinterlegt.</div>
+        {% endif %}
+    </div>
+</section>
+
+{% elif item.block.block_type == 'video' %}
+<section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
+    <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
+        {% if item.block.title %}<h2 class="h4 fw-bold mb-1">{{ item.block.title }}</h2>{% endif %}
+        {% if item.block.subtitle %}<div class="text-muted small mb-3">{{ item.block.subtitle }}</div>{% endif %}
+        {% if item.video_is_file and item.video_src %}
+        <video controls preload="metadata" class="w-100 rounded-4 shadow-sm" style="max-height: 520px;">
+            <source src="{{ item.video_src }}">
+            Ihr Browser unterstützt keine Video-Wiedergabe.
+        </video>
+        {% elif item.video_embed_url %}
+        <div class="ratio ratio-16x9 rounded-4 overflow-hidden bg-body-tertiary border d-flex align-items-center justify-content-center" data-video-embed="{{ item.video_embed_url }}">
+            <div class="text-center p-4 d-flex flex-column align-items-center justify-content-center gap-2">
+                <i class="bi bi-play-circle fs-1 text-primary"></i>
+                <div class="fw-semibold">{{ item.video_provider }}-Video laden</div>
+                <div class="small text-muted">Erst nach Klick wird eine Verbindung zu {{ item.video_provider }} hergestellt (Datenschutz).</div>
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 mt-1" onclick="loadPrivacyVideo(this)"><i class="bi bi-play-fill me-1"></i>Video abspielen</button>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-muted small py-2">Noch kein Video hinterlegt.</div>
+        {% endif %}
+        {% if item.block.body %}<div class="small text-muted mt-2">{{ item.block.body|linebreaksbr }}</div>{% endif %}
+    </div>
+</section>
+
 {% elif item.block.block_type == 'rich_html' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
     <div class="{% if item.block.style_variant == 'flat' or item.block.style_variant == 'subtle' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">

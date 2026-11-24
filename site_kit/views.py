@@ -152,6 +152,23 @@ def _get_event_registration_counts() -> dict[str, int]:
     return counts
 
 
+def _parse_video_embed(raw_url: str) -> tuple[str, str]:
+    """Return (provider_label, embed_url) for YouTube/Vimeo links, or ('', '') for direct video files."""
+    import re
+    u = (raw_url or "").strip()
+    if not u:
+        return ("", "")
+    yt = re.search(r"(?:youtube\.com/(?:watch\?v=|embed/|shorts/)|youtu\.be/)([A-Za-z0-9_-]{6,20})", u)
+    if yt:
+        vid = yt.group(1)
+        return ("YouTube", f"https://www.youtube-nocookie.com/embed/{vid}?autoplay=1")
+    vm = re.search(r"vimeo\.com/(?:video/)?(\d+)", u)
+    if vm:
+        vid = vm.group(1)
+        return ("Vimeo", f"https://player.vimeo.com/video/{vid}?autoplay=1")
+    return ("", "")
+
+
 def _resolve_block_data(block: PageBlock) -> dict:
     cfg = block.config_json if isinstance(block.config_json, dict) else {}
     limit = int(cfg.get("limit") or 6)
@@ -229,6 +246,45 @@ def _resolve_block_data(block: PageBlock) -> dict:
         data["program_items"] = prog["items"]
         data["program_year"] = prog["year"]
         data["program_title"] = prog["program_title"]
+
+    elif block.block_type == "photo_gallery":
+        col_slug = (cfg.get("collection_slug") or "").strip() or None
+        photos = []
+        if apps.is_installed("list_kit"):
+            try:
+                from list_kit.services import get_gallery_photos
+                photos = get_gallery_photos(collection_slug=col_slug, limit=int(cfg.get("limit") or 60))
+            except Exception:
+                photos = []
+        linked_event = None
+        ev_id = str(cfg.get("linked_event_id") or "").strip()
+        if ev_id.isdigit() and apps.is_installed("cal_kit"):
+            try:
+                from cal_kit.models import CalendarEvent
+                linked_event = CalendarEvent.objects.filter(pk=int(ev_id), is_public=True).first()
+            except Exception:
+                linked_event = None
+        linked_person = None
+        pid = str(cfg.get("linked_person_id") or "").strip()
+        if pid.isdigit() and apps.is_installed("domain_kit"):
+            try:
+                from domain_kit.models import Person
+                linked_person = Person.objects.filter(pk=int(pid), is_public=True).first()
+            except Exception:
+                linked_person = None
+        data["gallery_photos"] = photos
+        data["gallery_layout"] = cfg.get("gallery_layout") if cfg.get("gallery_layout") in ("grid", "carousel") else "grid"
+        data["gallery_cols"] = int(cfg.get("gallery_cols") or 3)
+        data["linked_event"] = linked_event
+        data["linked_person"] = linked_person
+
+    elif block.block_type == "video":
+        v_url = block.resolved_video_url
+        provider, embed_url = _parse_video_embed(v_url)
+        data["video_src"] = v_url
+        data["video_provider"] = provider
+        data["video_embed_url"] = embed_url
+        data["video_is_file"] = bool(block.video_file) or (bool(v_url) and not embed_url)
 
     elif block.block_type == "stats_bar":
         raw_stats = []
@@ -919,6 +975,18 @@ def _parse_block_layout_config(request, existing_cfg=None) -> dict:
     if "person_card_style" in request.POST:
         pcs = (request.POST.get("person_card_style") or "card").strip()
         cfg["person_card_style"] = pcs if pcs in ("card", "horizontal", "flat") else "card"
+    if "video_url" in request.POST:
+        cfg["video_url"] = (request.POST.get("video_url") or "").strip()[:300]
+    if "gallery_layout" in request.POST:
+        gl = (request.POST.get("gallery_layout") or "grid").strip()
+        cfg["gallery_layout"] = gl if gl in ("grid", "carousel") else "grid"
+    if "gallery_cols" in request.POST:
+        gc = (request.POST.get("gallery_cols") or "").strip()
+        cfg["gallery_cols"] = int(gc) if gc.isdigit() and int(gc) in (2, 3, 4) else 3
+    if "linked_event_id" in request.POST:
+        cfg["linked_event_id"] = (request.POST.get("linked_event_id") or "").strip()[:20]
+    if "linked_person_id" in request.POST:
+        cfg["linked_person_id"] = (request.POST.get("linked_person_id") or "").strip()[:20]
     if "role_filter" in request.POST:
         cfg["role_filter"] = (request.POST.get("role_filter") or "").strip()[:60]
     if "category_filter" in request.POST:
@@ -1153,6 +1221,7 @@ def page_edit_view(request, pk):
                     body=raw_body,
                     image=request.FILES.get("image"),
                     image_url=(request.POST.get("image_url") or "").strip()[:200],
+                    video_file=request.FILES.get("video_file"),
                     cta_label=(request.POST.get("cta_label") or "").strip()[:80],
                     cta_url=(request.POST.get("cta_url") or "").strip()[:255],
                     config_json=_parse_block_layout_config(request),
@@ -1188,6 +1257,10 @@ def page_edit_view(request, pk):
                     block.image = request.FILES["image"]
                 elif request.POST.get("remove_image") == "1":
                     block.image = None
+                if request.FILES.get("video_file"):
+                    block.video_file = request.FILES["video_file"]
+                elif request.POST.get("remove_video") == "1":
+                    block.video_file = None
                 if "cta_label" in request.POST:
                     block.cta_label = (request.POST.get("cta_label") or "").strip()[:80]
                 if "cta_url" in request.POST:
@@ -1258,6 +1331,7 @@ def page_edit_view(request, pk):
         except Exception:
             pass
     form_collections = []
+    gallery_collections = []
     if apps.is_installed("list_kit"):
         try:
             from list_kit.models import Collection
@@ -1270,6 +1344,28 @@ def page_edit_view(request, pk):
                 .order_by("title")
                 .values("slug", "title")
             )
+            gallery_collections = list(
+                Collection.objects.filter(
+                    template__use_image=True,
+                    is_public=True,
+                )
+                .order_by("title")
+                .values("slug", "title")
+            )
+        except Exception:
+            pass
+    public_events = []
+    if apps.is_installed("cal_kit"):
+        try:
+            from cal_kit.models import CalendarEvent
+            public_events = list(CalendarEvent.objects.filter(is_public=True).order_by("-start_at").values("id", "title", "start_at")[:80])
+        except Exception:
+            pass
+    public_persons = []
+    if apps.is_installed("domain_kit"):
+        try:
+            from domain_kit.models import Person
+            public_persons = list(Person.objects.filter(is_public=True).order_by("last_name", "first_name")[:100])
         except Exception:
             pass
     return render(request, "site_kit/page_editor.html", {
@@ -1282,4 +1378,7 @@ def page_edit_view(request, pk):
         "domain_person_categories": domain_person_categories,
         "cal_categories": cal_categories,
         "form_collections": form_collections,
+        "gallery_collections": gallery_collections,
+        "public_events": public_events,
+        "public_persons": public_persons,
     })

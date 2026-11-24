@@ -183,6 +183,49 @@
                             </select>
                         </div>
                     </div>
+                    <div class="row g-2 d-none" id="addGalleryWrap">
+                        <div class="col-md-6">
+                            <select name="collection_slug" class="form-select form-select-sm">
+                                <option value="">Fotoalbum: Alle öffentlichen Bilder</option>
+                                {% for gc in gallery_collections %}<option value="{{ gc.slug }}">Album: {{ gc.title }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="gallery_layout" class="form-select form-select-sm">
+                                <option value="grid">Raster (Grid)</option>
+                                <option value="carousel">Karussell / Slider</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="gallery_cols" class="form-select form-select-sm">
+                                <option value="3">3 Spalten</option>
+                                <option value="4">4 Spalten</option>
+                                <option value="2">2 Spalten</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <select name="linked_event_id" class="form-select form-select-sm">
+                                <option value="">Verknüpfter Termin (optional)</option>
+                                {% for ev in public_events %}<option value="{{ ev.id }}">{{ ev.title }} ({{ ev.start_at|date:"d.m.Y" }})</option>{% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <select name="linked_person_id" class="form-select form-select-sm">
+                                <option value="">Verknüpfte Person (optional)</option>
+                                {% for pp in public_persons %}<option value="{{ pp.id }}">{{ pp.full_name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-2 d-none" id="addVideoWrap">
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted mb-1">Video hochladen (MP4/WebM)</label>
+                            <input type="file" name="video_file" accept="video/mp4,video/webm,video/ogg" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted mb-1">oder YouTube / Vimeo / Video-URL</label>
+                            <input type="url" name="video_url" class="form-control form-control-sm" placeholder="https://youtu.be/... oder https://vimeo.com/...">
+                        </div>
+                    </div>
                     <input type="text" name="title" class="form-control form-control-sm" placeholder="Überschrift">
                     <input type="text" name="subtitle" class="form-control form-control-sm" placeholder="Untertitel (optional)">
 
@@ -393,6 +436,66 @@
                 {% if b.block_type == 'stats_bar' %}
                 <div class="alert alert-info py-2 small mb-0">Pro Zeile eine Kennzahl im Format <code>Wert | Bezeichnung</code> (z. B. <code>42 | Mitglieder</code>).</div>
                 {% endif %}
+                {% if b.block_type == 'photo_gallery' %}
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1">Fotoalbum (list_kit)</label>
+                        <select name="collection_slug" class="form-select form-select-sm">
+                            <option value="">Alle öffentlichen Bilder</option>
+                            {% for gc in gallery_collections %}<option value="{{ gc.slug }}" {% if b.config_json.collection_slug == gc.slug %}selected{% endif %}>{{ gc.title }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Darstellung</label>
+                        <select name="gallery_layout" class="form-select form-select-sm">
+                            <option value="grid" {% if b.config_json.gallery_layout == 'grid' or not b.config_json.gallery_layout %}selected{% endif %}>Raster</option>
+                            <option value="carousel" {% if b.config_json.gallery_layout == 'carousel' %}selected{% endif %}>Karussell</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Spalten</label>
+                        <select name="gallery_cols" class="form-select form-select-sm">
+                            <option value="3" {% if b.config_json.gallery_cols == 3 or not b.config_json.gallery_cols %}selected{% endif %}>3 Spalten</option>
+                            <option value="4" {% if b.config_json.gallery_cols == 4 %}selected{% endif %}>4 Spalten</option>
+                            <option value="2" {% if b.config_json.gallery_cols == 2 %}selected{% endif %}>2 Spalten</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1">Verknüpfter Termin (optional)</label>
+                        <select name="linked_event_id" class="form-select form-select-sm">
+                            <option value="">— Keiner —</option>
+                            {% for ev in public_events %}<option value="{{ ev.id }}" {% if b.config_json.linked_event_id == ev.id|stringformat:'s' %}selected{% endif %}>{{ ev.title }} ({{ ev.start_at|date:"d.m.Y" }})</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1">Verknüpfte Person (optional)</label>
+                        <select name="linked_person_id" class="form-select form-select-sm">
+                            <option value="">— Keine —</option>
+                            {% for pp in public_persons %}<option value="{{ pp.id }}" {% if b.config_json.linked_person_id == pp.id|stringformat:'s' %}selected{% endif %}>{{ pp.full_name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                </div>
+                {% endif %}
+                {% if b.block_type == 'video' %}
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1">Video hochladen (MP4/WebM)</label>
+                        <input type="file" name="video_file" accept="video/mp4,video/webm,video/ogg" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1">oder YouTube / Vimeo / Video-URL</label>
+                        <input type="url" name="video_url" value="{{ b.config_json.video_url|default:'' }}" class="form-control form-control-sm">
+                    </div>
+                    {% if b.video_file %}
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input type="checkbox" name="remove_video" value="1" id="editRemVid-{{ b.id }}" class="form-check-input">
+                            <label class="form-check-label small" for="editRemVid-{{ b.id }}">Hochgeladenes Video entfernen</label>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
                 <textarea name="body" rows="3" class="form-control form-control-sm" placeholder="{% if b.block_type == 'stats_bar' %}42 | Aktive Mitglieder&#10;12 | Kurse pro Jahr{% else %}Text{% endif %}">{{ b.body }}</textarea>
                 <div class="row g-2">
                     <div class="col-md-6"><input type="file" name="image" accept="image/*" class="form-control form-control-sm"></div>
@@ -423,16 +526,28 @@ document.addEventListener("DOMContentLoaded", function () {
         const isEvents = typeSel.value === "upcoming_events";
         const isForm = typeSel.value === "public_form";
         const isStats = typeSel.value === "stats_bar";
+        const isGallery = typeSel.value === "photo_gallery";
+        const isVideo = typeSel.value === "video";
         const peopleWrap = document.getElementById("addPeopleFilterWrap");
         const eventsWrap = document.getElementById("addEventsFilterWrap");
         const formWrap = document.getElementById("addPublicFormWrap");
+        const galleryWrap = document.getElementById("addGalleryWrap");
+        const videoWrap = document.getElementById("addVideoWrap");
         const statsHint = document.getElementById("addStatsHint");
         if (wysiWrap) wysiWrap.classList.toggle("d-none", !isRich);
         if (addBody) addBody.classList.toggle("d-none", isRich);
         if (addImg) addImg.classList.toggle("d-none", !(isRich || typeSel.value === "hero" || typeSel.value === "text_image"));
         if (peopleWrap) peopleWrap.classList.toggle("d-none", !isPeople);
         if (eventsWrap) eventsWrap.classList.toggle("d-none", !isEvents);
-        if (formWrap) formWrap.classList.toggle("d-none", !isForm);
+        if (formWrap) {
+            formWrap.classList.toggle("d-none", !isForm);
+            formWrap.querySelectorAll("select, input").forEach(function (el) { el.disabled = !isForm; });
+        }
+        if (galleryWrap) {
+            galleryWrap.classList.toggle("d-none", !isGallery);
+            galleryWrap.querySelectorAll("select, input").forEach(function (el) { el.disabled = !isGallery; });
+        }
+        if (videoWrap) videoWrap.classList.toggle("d-none", !isVideo);
         if (statsHint) statsHint.classList.toggle("d-none", !isStats);
     }
     if (typeSel) {

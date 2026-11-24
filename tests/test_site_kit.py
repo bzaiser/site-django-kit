@@ -581,6 +581,61 @@ class SiteKitTests(TestCase):
         self.assertEqual(r_det.status_code, 200)
         self.assertContains(r_det, "Archivierte Meldung")
 
+    def test_video_and_photo_gallery_blocks(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from domain_kit.models import Person
+        from list_kit.models import Collection, Entry, EntryImage, ListTemplate
+        from list_kit.services import seed_default_templates
+
+        seed_default_templates()
+        tpl = ListTemplate.objects.get(slug="fotoalbum")
+        col = Collection.objects.create(title="Vernissage", template=tpl, owner=self.staff, is_public=True)
+        entry = Entry.objects.create(collection=col, title="Eröffnung", visibility="public")
+        tiny_png = (
+            b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01"
+            b"\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01"
+            b"\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82"
+        )
+        img = EntryImage.objects.create(
+            entry=entry,
+            image=SimpleUploadedFile("vernissage.png", tiny_png, content_type="image/png"),
+            caption="Saalansicht",
+        )
+        pers = Person.objects.create(first_name="Max", last_name="Maler", is_public=True)
+
+        self.client.force_login(self.staff)
+        p = PublicPage.objects.create(title="Medien", slug="medien", is_published=True)
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "add_block",
+                "block_type": "video",
+                "col_span": "12",
+                "title": "Atelier-Video",
+                "video_url": "https://youtu.be/dQw4w9WgXcQ",
+            },
+        )
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "add_block",
+                "block_type": "photo_gallery",
+                "col_span": "12",
+                "title": "Impressionen",
+                "collection_slug": col.slug,
+                "gallery_layout": "grid",
+                "gallery_cols": "3",
+                "linked_person_id": str(pers.id),
+            },
+        )
+
+        pub = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(pub, "youtube-nocookie.com/embed/dQw4w9WgXcQ")
+        self.assertContains(pub, "loadPrivacyVideo")
+        self.assertContains(pub, "Saalansicht")
+        self.assertContains(pub, "Max Maler")
+        img.image.delete(save=False)
+
 
 if __name__ == "__main__":
     import unittest

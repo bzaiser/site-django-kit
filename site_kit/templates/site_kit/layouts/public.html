@@ -98,4 +98,52 @@
         </div>
     </div>
 </footer>
+<div class="modal fade" id="siteGalleryLightbox" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content bg-dark text-white border-0 rounded-4 overflow-hidden">
+            <div class="modal-header border-secondary border-opacity-25 py-2 px-3">
+                <span id="siteGalCaption" class="small text-truncate">Foto</span>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-2 text-center bg-black position-relative">
+                <button type="button" id="siteGalPrev" class="btn btn-dark bg-opacity-75 rounded-circle position-absolute start-0 ms-2 top-50 translate-middle-y"><i class="bi bi-chevron-left"></i></button>
+                <img id="siteGalImg" src="" alt="" class="img-fluid rounded-2 object-fit-contain" style="max-height: 80vh;">
+                <button type="button" id="siteGalNext" class="btn btn-dark bg-opacity-75 rounded-circle position-absolute end-0 me-2 top-50 translate-middle-y"><i class="bi bi-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+window.loadPrivacyVideo = function (btn) {
+    var box = btn.closest('[data-video-embed]');
+    if (!box) return;
+    var src = box.getAttribute('data-video-embed');
+    box.innerHTML = '<iframe src="' + src + '" class="w-100 h-100 border-0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
+};
+(function () {
+    var list = [], idx = 0;
+    function showGal(i) {
+        if (!list.length) return;
+        idx = (i + list.length) % list.length;
+        var item = list[idx];
+        document.getElementById('siteGalImg').src = item.src;
+        document.getElementById('siteGalCaption').textContent = item.caption || ((idx + 1) + ' / ' + list.length);
+    }
+    window.openSiteGalleryLightbox = function (el) {
+        var grp = el.getAttribute('data-gal-group');
+        var nodes = document.querySelectorAll('[data-gal-group="' + grp + '"]');
+        list = Array.from(nodes).map(function (n) {
+            var img = n.tagName === 'IMG' ? n : n.querySelector('img');
+            return { src: n.getAttribute('data-gal-src') || (img ? img.src : ''), caption: n.getAttribute('data-gal-caption') || '' };
+        });
+        showGal(parseInt(el.getAttribute('data-gal-idx') || '0', 10) || 0);
+        if (window.bootstrap) bootstrap.Modal.getOrCreateInstance(document.getElementById('siteGalleryLightbox')).show();
+    };
+    document.addEventListener('DOMContentLoaded', function () {
+        var p = document.getElementById('siteGalPrev'), n = document.getElementById('siteGalNext');
+        if (p) p.addEventListener('click', function () { showGal(idx - 1); });
+        if (n) n.addEventListener('click', function () { showGal(idx + 1); });
+    });
+})();
+</script>
 {% endblock %}
