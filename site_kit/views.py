@@ -772,8 +772,18 @@ def _build_program_data(year=None, cat_id=None, instructor_ref=None) -> dict:
 
             inst_person = people_map.get(tpl.instructor_ref)
             resp_person = people_map.get(tpl.responsible_ref)
+            raw_d = (tpl.description or "").strip()
+            if raw_d:
+                if "<" in raw_d and ">" in raw_d:
+                    d_html = _sanitize_rich_html(raw_d)
+                else:
+                    from django.utils.html import escape, linebreaks
+                    d_html = linebreaks(escape(raw_d))
+            else:
+                d_html = ""
             items.append({
                 "offering": tpl,
+                "description_html": d_html,
                 "events": ev_rows,
                 "instructor_person": inst_person if (inst_person and inst_person.is_public) else None,
                 "responsible_person": resp_person,

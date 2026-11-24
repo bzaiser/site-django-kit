@@ -25,7 +25,9 @@
                         {% endif %}
                     </div>
 
-                    {% if o.description %}
+                    {% if item.description_html %}
+                    <div class="small mt-2 text-break">{{ item.description_html|safe }}</div>
+                    {% elif o.description %}
                     <div class="small mt-2 text-break">{{ o.description|linebreaksbr }}</div>
                     {% endif %}
 
