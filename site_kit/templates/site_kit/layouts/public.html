@@ -156,7 +156,7 @@
             </ul>
             <div class="d-flex flex-wrap align-items-center gap-2">
                 {% if request.user.is_authenticated %}
-                    <span class="small text-muted d-none d-md-inline"><i class="bi bi-person-circle me-1"></i>{{ request.user.get_full_name|default:request.user.username }}</span>
+                    <span class="badge rounded-pill bg-body-tertiary text-body border fw-normal px-2 py-1 d-none d-md-inline-flex align-items-center gap-1"><i class="bi bi-person-circle text-primary"></i>{{ request.user.get_full_name|default:request.user.username }}</span>
                     {% if can_access_internal %}
                     <a href="{{ site_cfg.member_app_url|default:'/app/' }}" class="btn btn-sm btn-primary rounded-pill px-3">
                         <i class="bi bi-speedometer2 me-1"></i>{% trans "Intern" %}
@@ -168,7 +168,7 @@
                     {% endif %}
                     <form method="post" action="/accounts/logout/" class="d-inline">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-sm btn-outline-secondary rounded-pill px-2" title="{% trans 'Abmelden' %}"><i class="bi bi-box-arrow-right"></i></button>
+                        <button type="submit" class="btn btn-sm bg-body-tertiary text-body border rounded-pill px-2" title="{% trans 'Abmelden' %}"><i class="bi bi-box-arrow-right"></i></button>
                     </form>
                 {% else %}
                     <a href="{{ site_cfg.member_login_url|default:'/accounts/login/' }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
