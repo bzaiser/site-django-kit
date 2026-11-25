@@ -36,7 +36,7 @@
                     <div class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <div>
                             <div class="fw-semibold">{{ p.title }} {% if p.is_home %}<span class="badge text-bg-primary">Start</span>{% endif %}</div>
-                            <div class="small text-muted">/seite/{{ p.slug }}/</div>
+                            <div class="small text-muted">{% if p.slug == 'news' %}/news/ (System-Seite){% elif p.slug == 'termine' %}/termine/ (System-Seite){% else %}/seite/{{ p.slug }}/{% endif %}</div>
                         </div>
                         <div class="d-flex align-items-center gap-1 flex-shrink-0">
                             <a href="{% url 'site_kit:page_edit' p.id %}" class="btn btn-sm btn-outline-primary">Blöcke bearbeiten</a>

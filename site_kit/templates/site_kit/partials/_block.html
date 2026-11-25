@@ -81,7 +81,11 @@
                     <button type="button" class="btn btn-outline-secondary rounded-end-pill" data-site-carousel-nav="siteNewsCar-{{ item.block.id }}" data-dir="next" aria-label="Weiter"><i class="bi bi-chevron-right"></i></button>
                 </div>
                 {% endif %}
+                {% if page and page.slug == 'news' %}
+                <a href="{% url 'site_kit:news_archive' %}" class="btn btn-outline-secondary btn-sm rounded-pill"><i class="bi bi-archive me-1"></i>News-Archiv &rarr;</a>
+                {% else %}
                 <a href="{% url 'site_kit:news_list' %}" class="btn btn-outline-primary btn-sm rounded-pill">Alle News &rarr;</a>
+                {% endif %}
             </div>
         </div>
         {% if item.news_layout == 'carousel' %}

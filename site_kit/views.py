@@ -374,9 +374,9 @@ def home_view(request):
 
 def page_detail_view(request, slug):
     if slug == "termine":
-        return events_list_view(request)
+        return redirect("site_kit:events_list")
     if slug == "news":
-        return news_list_view(request)
+        return redirect("site_kit:news_list")
     qs = PublicPage.objects.all() if (request.user.is_authenticated and request.user.is_staff) else PublicPage.objects.filter(is_published=True)
     page = get_object_or_404(qs, slug=slug)
     ctx = _public_base_context(request, page=page)
@@ -390,6 +390,7 @@ def news_list_view(request):
     sys_page = PublicPage.objects.filter(slug="news").first()
     ctx = _public_base_context(request, page=sys_page)
     ctx["extra_blocks"] = [_resolve_block_data(b) for b in sys_page.blocks.filter(is_visible=True)] if sys_page else []
+    ctx["has_news_feed_block"] = any(item["block"].block_type == "news_feed" for item in ctx["extra_blocks"])
     items = []
     archive_count = 0
     if apps.is_installed("list_kit"):
@@ -465,6 +466,7 @@ def events_list_view(request):
     sys_page = PublicPage.objects.filter(slug="termine").first()
     ctx = _public_base_context(request, page=sys_page)
     ctx["extra_blocks"] = [_resolve_block_data(b) for b in sys_page.blocks.filter(is_visible=True)] if sys_page else []
+    ctx["has_news_feed_block"] = any(item["block"].block_type == "news_feed" for item in ctx["extra_blocks"])
     events = []
     categories = []
     grouped_events = []
@@ -1308,15 +1310,7 @@ def manage_view(request):
 
 
 def _warn_if_reserved_nav_page(request, page: PublicPage):
-    if page.is_published and page.show_in_nav and not page.is_home:
-        slug_l = page.slug.lower()
-        title_l = page.title.strip().lower()
-        if slug_l in ("news", "termine") or title_l in ("news", "termine"):
-            target = "/news/" if ("news" in (slug_l, title_l)) else "/termine/"
-            messages.warning(
-                request,
-                f"Hinweis: Es existiert bereits ein Standard-Link für „{page.title}“ ({target}). Der Standard-Link wird in der Navigation ausgeblendet, solange diese Seite im Menü aktiv ist.",
-            )
+    return
 
 
 @_editor_required
@@ -1332,6 +1326,25 @@ def system_page_edit_view(request, slug):
             "show_in_nav": False,
         },
     )
+    if not page.blocks.exists():
+        if slug == "news":
+            PageBlock.objects.create(
+                page=page,
+                block_type="news_feed",
+                col_span=12,
+                title="Aktuelles & News",
+                config_json={"limit": 18, "style_variant": "card"},
+                position=10,
+            )
+        elif slug == "termine":
+            PageBlock.objects.create(
+                page=page,
+                block_type="upcoming_events",
+                col_span=12,
+                title="Nächste Termine",
+                config_json={"limit": 25, "style_variant": "card"},
+                position=10,
+            )
     return redirect("site_kit:page_edit", pk=page.id)
 
 
@@ -1527,7 +1540,7 @@ def page_edit_view(request, pk):
             page.title = (request.POST.get("title") or page.title).strip()[:160]
             page.is_home = request.POST.get("is_home") == "on"
             page.is_published = request.POST.get("is_published") == "on"
-            page.show_in_nav = request.POST.get("show_in_nav") == "on"
+            page.show_in_nav = False if page.slug in ("news", "termine") else (request.POST.get("show_in_nav") == "on")
             page.genre = (request.POST.get("genre") or "").strip()[:40]
             page.meta_description = (request.POST.get("meta_description") or "").strip()[:255]
             page.save()

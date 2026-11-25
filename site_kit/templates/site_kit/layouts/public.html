@@ -111,7 +111,7 @@
                 {% for p in public_nav_pages %}
                     {% if not p.is_home %}
                     <li class="nav-item">
-                        <a href="{% url 'site_kit:page_detail' p.slug %}" class="nav-link {% if page and page.id == p.id %}active{% endif %}">{{ p.title }}</a>
+                        <a href="{% if p.slug == 'news' %}{% url 'site_kit:news_list' %}{% elif p.slug == 'termine' %}{% url 'site_kit:events_list' %}{% else %}{% url 'site_kit:page_detail' p.slug %}{% endif %}" class="nav-link {% if page and page.id == p.id %}active{% endif %}">{{ p.title }}</a>
                     </li>
                     {% endif %}
                 {% endfor %}
