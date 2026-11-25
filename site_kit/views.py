@@ -16,7 +16,7 @@ from django.views.decorators.http import require_POST
 from .models import PageBlock, PublicPage, SiteConfig
 
 
-SITE_EDITOR_GROUPS = ("Redakteur", "Leitung / Vorstand", "Vorstand")
+SITE_EDITOR_GROUPS = ("Redakteur", "Pressewart", "Leitung / Vorstand", "Vorstand")
 SITE_CONFIG_GROUPS = ("Leitung / Vorstand", "Vorstand")
 
 
