@@ -1,6 +1,7 @@
 from functools import wraps
 from html.parser import HTMLParser
 import json
+import re
 from xml.sax.saxutils import escape
 
 from django.apps import apps
