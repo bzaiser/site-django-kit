@@ -116,6 +116,23 @@
     background-color: color-mix(in srgb, var(--bs-body-bg, #ffffff) 75%, transparent);
     opacity: 0.65;
 }
+.site-nav-user,
+.site-nav-logout {
+    color: var(--app-card-color, #1e293b);
+    background: color-mix(in srgb, var(--app-primary, #0d6efd) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--app-primary, #0d6efd) 22%, transparent);
+    transition: background-color 0.16s ease, border-color 0.16s ease;
+}
+body[data-menu-style="gradient"] .app-navbar .site-nav-user,
+body[data-menu-style="gradient"] .app-navbar .site-nav-logout {
+    color: rgba(255, 255, 255, 0.94);
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.28);
+}
+.site-nav-logout:hover {
+    background: color-mix(in srgb, var(--bs-danger, #dc3545) 18%, transparent);
+    border-color: color-mix(in srgb, var(--bs-danger, #dc3545) 45%, transparent);
+}
 </style>
 {% endblock %}
 
@@ -156,7 +173,7 @@
             </ul>
             <div class="d-flex flex-wrap align-items-center gap-2">
                 {% if request.user.is_authenticated %}
-                    <span class="badge rounded-pill bg-body-tertiary text-body border fw-normal px-2 py-1 d-none d-md-inline-flex align-items-center gap-1"><i class="bi bi-person-circle text-primary"></i>{{ request.user.get_full_name|default:request.user.username }}</span>
+                    <span class="site-nav-user badge rounded-pill fw-normal px-2 py-1 d-none d-md-inline-flex align-items-center gap-1"><i class="bi bi-person-circle"></i>{{ request.user.get_full_name|default:request.user.username }}</span>
                     {% if can_access_internal %}
                     <a href="{{ site_cfg.member_app_url|default:'/app/' }}" class="btn btn-sm btn-primary rounded-pill px-3">
                         <i class="bi bi-speedometer2 me-1"></i>{% trans "Intern" %}
@@ -168,7 +185,7 @@
                     {% endif %}
                     <form method="post" action="/accounts/logout/" class="d-inline">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-sm bg-body-tertiary text-body border rounded-pill px-2" title="{% trans 'Abmelden' %}"><i class="bi bi-box-arrow-right"></i></button>
+                        <button type="submit" class="btn btn-sm site-nav-logout rounded-pill px-2" title="{% trans 'Abmelden' %}"><i class="bi bi-box-arrow-right"></i></button>
                     </form>
                 {% else %}
                     <a href="{{ site_cfg.member_login_url|default:'/accounts/login/' }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
