@@ -4,7 +4,7 @@
 {% block title %}{{ ev.title }} – {{ site_cfg.site_name }}{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="{{ site_cfg.container_class|default:'container' }}">
     <div class="d-flex flex-wrap gap-2 mb-3">
         <a href="{% url 'site_kit:events_list' %}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">&larr; {% trans "Alle Termine" %}</a>
         {% if ev.category %}

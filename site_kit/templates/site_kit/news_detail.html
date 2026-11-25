@@ -3,7 +3,7 @@
 {% block title %}{{ entry.title }} – {{ site_cfg.site_name }}{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="{{ site_cfg.container_class|default:'container' }}">
     <div class="d-flex gap-2 mb-3">
         <a href="{% url 'site_kit:news_list' %}" class="btn btn-outline-secondary btn-sm">&larr; Alle News</a>
         {% if is_archived %}<a href="{% url 'site_kit:news_archive' %}" class="btn btn-outline-secondary btn-sm">Zum Archiv</a>{% endif %}

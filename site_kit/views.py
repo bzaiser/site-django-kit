@@ -177,7 +177,10 @@ def _attach_news_preview_html(entries):
         if not raw:
             e.preview_html = ""
         elif "<" in raw and ">" in raw:
-            e.preview_html = _sanitize_rich_html(raw)
+            sanitized = _sanitize_rich_html(raw)
+            sanitized = re.sub(r"</?a\b[^>]*>", "", sanitized, flags=re.IGNORECASE)
+            sanitized = re.sub(r"<img\b[^>]*>", "", sanitized, flags=re.IGNORECASE)
+            e.preview_html = sanitized
         else:
             e.preview_html = linebreaks(escape(raw))
     return entries
@@ -197,6 +200,7 @@ def _resolve_block_data(block: PageBlock) -> dict:
             )
         except Exception:
             data["news_items"] = []
+        data["news_layout"] = cfg.get("news_layout") or "grid"
 
     elif block.block_type == "faq_list" and apps.is_installed("list_kit"):
         try:
@@ -246,6 +250,7 @@ def _resolve_block_data(block: PageBlock) -> dict:
         data["show_photos"] = cfg.get("show_photos", True)
         data["person_col_span"] = int(cfg.get("person_col_span") or 4)
         data["person_card_style"] = cfg.get("person_card_style") or "card"
+        data["people_layout"] = cfg.get("people_layout") or "grid"
 
     elif block.block_type == "downloads" and apps.is_installed("domain_kit"):
         try:
@@ -1113,6 +1118,12 @@ def _parse_block_layout_config(request, existing_cfg=None) -> dict:
     if "person_card_style" in request.POST:
         pcs = (request.POST.get("person_card_style") or "card").strip()
         cfg["person_card_style"] = pcs if pcs in ("card", "horizontal", "flat") else "card"
+    if "people_layout" in request.POST:
+        pl = (request.POST.get("people_layout") or "grid").strip()
+        cfg["people_layout"] = pl if pl in ("grid", "carousel") else "grid"
+    if "news_layout" in request.POST:
+        nl = (request.POST.get("news_layout") or "grid").strip()
+        cfg["news_layout"] = nl if nl in ("grid", "carousel") else "grid"
     if "video_url" in request.POST:
         cfg["video_url"] = (request.POST.get("video_url") or "").strip()[:300]
     if "gallery_layout" in request.POST:
@@ -1272,8 +1283,11 @@ def manage_view(request):
         elif request.POST.get("remove_logo") == "1":
             cfg.logo = None
         cw = (request.POST.get("container_width") or cfg.container_width or "standard").strip()
-        if cw in ("standard", "wide", "full"):
+        if cw in ("narrow", "standard", "wide", "full"):
             cfg.container_width = cw
+        pm = (request.POST.get("page_margin") or cfg.page_margin or "normal").strip()
+        if pm in ("minimal", "compact", "normal", "wide"):
+            cfg.page_margin = pm
         cfg.save()
         messages.success(request, "Webseiten-Einstellungen gespeichert.")
         return redirect("site_kit:manage")
@@ -1287,6 +1301,7 @@ def manage_view(request):
             "pages": pages,
             "can_edit_site_config": can_edit_config,
             "container_width_choices": SiteConfig.CONTAINER_WIDTH_CHOICES,
+            "page_margin_choices": SiteConfig.PAGE_MARGIN_CHOICES,
         },
     )
 

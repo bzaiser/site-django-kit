@@ -4,9 +4,16 @@ from django.utils.text import slugify
 
 class SiteConfig(models.Model):
     CONTAINER_WIDTH_CHOICES = [
-        ("standard", "Standard"),
-        ("wide", "Breit"),
-        ("full", "Vollbreite"),
+        ("narrow", "Schmal (max. 960 px)"),
+        ("standard", "Mittel (max. 1140 px)"),
+        ("wide", "Breit (max. 1380 px)"),
+        ("full", "Fensterbreite (100 %)"),
+    ]
+    PAGE_MARGIN_CHOICES = [
+        ("minimal", "Minimal (Smartphone-nah)"),
+        ("compact", "Schmal"),
+        ("normal", "Mittel"),
+        ("wide", "Großzügig"),
     ]
 
     site_name = models.CharField(max_length=140, default="Mein Verein")
@@ -14,6 +21,7 @@ class SiteConfig(models.Model):
     logo = models.FileField(upload_to="site_kit/logo/", blank=True, null=True)
     logo_url = models.URLField(blank=True, default="")
     container_width = models.CharField(max_length=16, choices=CONTAINER_WIDTH_CHOICES, default="standard")
+    page_margin = models.CharField(max_length=16, choices=PAGE_MARGIN_CHOICES, default="normal")
     footer_text = models.CharField(max_length=220, blank=True, default="")
     imprint_text = models.TextField(blank=True, default="")
     privacy_text = models.TextField(blank=True, default="")
@@ -43,11 +51,15 @@ class SiteConfig(models.Model):
 
     @property
     def container_class(self) -> str:
-        if self.container_width == "full":
-            return "container-fluid px-3 px-md-4"
-        if self.container_width == "wide":
-            return "container-xxl"
-        return "container"
+        cw = self.container_width or "standard"
+        pm = self.page_margin or "normal"
+        if cw == "full":
+            base = "container-fluid"
+        elif cw == "wide":
+            base = "container-xxl"
+        else:
+            base = "container"
+        return f"{base} site-container site-w-{cw} site-m-{pm}"
 
 
 class PublicPage(models.Model):

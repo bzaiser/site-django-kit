@@ -190,6 +190,12 @@
                             </select>
                         </div>
                         <div class="col-md-4">
+                            <select name="people_layout" class="form-select form-select-sm">
+                                <option value="grid" selected>Layout: Raster</option>
+                                <option value="carousel">Layout: Karussell (Slider)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
                             <select name="person_col_span" class="form-select form-select-sm">
                                 <option value="4" selected>Breite: 3 pro Zeile</option>
                                 <option value="6">Breite: 2 pro Zeile</option>
@@ -204,11 +210,19 @@
                                 <option value="flat">Optik: Dezent (ohne Rahmen)</option>
                             </select>
                         </div>
-                        <div class="col-md-4 d-flex align-items-center">
+                        <div class="col-12 d-flex align-items-center">
                             <div class="form-check mb-0">
                                 <input type="checkbox" name="show_photos" id="addShowPhotos" class="form-check-input" checked>
                                 <label class="form-check-label small" for="addShowPhotos">Fotos anzeigen</label>
                             </div>
+                        </div>
+                    </div>
+                    <div class="row g-2 d-none" id="addNewsLayoutWrap">
+                        <div class="col-md-6">
+                            <select name="news_layout" class="form-select form-select-sm">
+                                <option value="grid" selected>News-Layout: Raster</option>
+                                <option value="carousel">News-Layout: Karussell (Slider)</option>
+                            </select>
                         </div>
                     </div>
                     <div class="row g-2 d-none" id="addEventsFilterWrap">
@@ -457,7 +471,14 @@
                             {% for cn in domain_person_categories %}<option value="{{ cn }}" {% if b.category_filter == cn %}selected{% endif %}>{{ cn }}</option>{% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Layout</label>
+                        <select name="people_layout" class="form-select form-select-sm">
+                            <option value="grid" {% if b.config_json.people_layout == 'grid' or not b.config_json.people_layout %}selected{% endif %}>Raster</option>
+                            <option value="carousel" {% if b.config_json.people_layout == 'carousel' %}selected{% endif %}>Karussell</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label small mb-1">Breite je Person</label>
                         <select name="person_col_span" class="form-select form-select-sm">
                             <option value="4" {% if b.config_json.person_col_span == 4 or not b.config_json.person_col_span %}selected{% endif %}>3 pro Zeile (Drittel)</option>
@@ -466,7 +487,7 @@
                             <option value="12" {% if b.config_json.person_col_span == 12 %}selected{% endif %}>1 pro Zeile (Voll)</option>
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label small mb-1">Karten-Aussehen</label>
                         <select name="person_card_style" class="form-select form-select-sm">
                             <option value="card" {% if b.config_json.person_card_style == 'card' or not b.config_json.person_card_style %}selected{% endif %}>Standard-Karte</option>
@@ -474,11 +495,22 @@
                             <option value="flat" {% if b.config_json.person_card_style == 'flat' %}selected{% endif %}>Dezent (ohne Rahmen)</option>
                         </select>
                     </div>
-                    <div class="col-md-4 d-flex align-items-end pb-1">
+                    <div class="col-md-3 d-flex align-items-end pb-1">
                         <div class="form-check mb-0">
                             <input type="checkbox" name="show_photos" id="editShowPhotos-{{ b.id }}" class="form-check-input" {% if b.config_json.show_photos is not False %}checked{% endif %}>
                             <label class="form-check-label small" for="editShowPhotos-{{ b.id }}">Fotos anzeigen</label>
                         </div>
+                    </div>
+                </div>
+                {% endif %}
+                {% if b.block_type == 'news_feed' %}
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1">News-Layout</label>
+                        <select name="news_layout" class="form-select form-select-sm">
+                            <option value="grid" {% if b.config_json.news_layout == 'grid' or not b.config_json.news_layout %}selected{% endif %}>Raster</option>
+                            <option value="carousel" {% if b.config_json.news_layout == 'carousel' %}selected{% endif %}>Karussell (Slider)</option>
+                        </select>
                     </div>
                 </div>
                 {% endif %}
@@ -678,12 +710,14 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!typeSel) return;
         const isRich = typeSel.value === "rich_html";
         const isPeople = typeSel.value === "people_grid";
+        const isNews = typeSel.value === "news_feed";
         const isEvents = typeSel.value === "upcoming_events";
         const isForm = typeSel.value === "public_form";
         const isStats = typeSel.value === "stats_bar";
         const isGallery = typeSel.value === "photo_gallery";
         const isVideo = typeSel.value === "video";
         const peopleWrap = document.getElementById("addPeopleFilterWrap");
+        const newsWrap = document.getElementById("addNewsLayoutWrap");
         const eventsWrap = document.getElementById("addEventsFilterWrap");
         const formWrap = document.getElementById("addPublicFormWrap");
         const galleryWrap = document.getElementById("addGalleryWrap");
@@ -693,6 +727,10 @@ document.addEventListener("DOMContentLoaded", function () {
         if (addBody) addBody.classList.toggle("d-none", isRich);
         if (addImg) addImg.classList.toggle("d-none", !(isRich || typeSel.value === "hero" || typeSel.value === "text_image"));
         if (peopleWrap) peopleWrap.classList.toggle("d-none", !isPeople);
+        if (newsWrap) {
+            newsWrap.classList.toggle("d-none", !isNews);
+            newsWrap.querySelectorAll("select, input").forEach(function (el) { el.disabled = !isNews; });
+        }
         if (eventsWrap) eventsWrap.classList.toggle("d-none", !isEvents);
         if (formWrap) {
             formWrap.classList.toggle("d-none", !isForm);

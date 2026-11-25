@@ -4,7 +4,7 @@
 {% block title %}{% trans "Dozenten & Referenten" %} – {{ site_cfg.site_name }}{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="{{ site_cfg.container_class|default:'container' }}">
     <h1 class="h2 fw-bold mb-4"><i class="bi bi-mortarboard text-primary me-2"></i>{% trans "Dozenten & Referenten" %}</h1>
     <div class="row g-4">
         {% for p in lecturers %}
