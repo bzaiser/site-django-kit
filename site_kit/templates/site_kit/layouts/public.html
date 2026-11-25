@@ -133,11 +133,68 @@ body[data-menu-style="gradient"] .app-navbar .site-nav-logout {
     background: color-mix(in srgb, var(--bs-danger, #dc3545) 18%, transparent);
     border-color: color-mix(in srgb, var(--bs-danger, #dc3545) 45%, transparent);
 }
+/* Webmenü Style & Active overrides */
+.site-webnav-style-glass {
+    background: color-mix(in srgb, var(--app-card-bg, #ffffff) 78%, transparent) !important;
+    backdrop-filter: blur(18px) saturate(145%);
+    -webkit-backdrop-filter: blur(18px) saturate(145%);
+    border-bottom: 1px solid var(--app-table-border-color, rgba(128, 128, 128, 0.18));
+}
+.site-webnav-style-gradient {
+    background: var(--app-gradient) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.14);
+}
+.site-webnav-style-gradient .navbar-brand,
+.site-webnav-style-gradient .nav-link,
+.site-webnav-style-gradient .site-nav-user,
+.site-webnav-style-gradient .site-nav-logout {
+    color: rgba(255, 255, 255, 0.94) !important;
+}
+.site-webnav-style-gradient .site-nav-user,
+.site-webnav-style-gradient .site-nav-logout {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.28);
+}
+.site-webnav-style-gradient .navbar-toggler {
+    border-color: rgba(255, 255, 255, 0.45);
+}
+.site-webnav-style-gradient .navbar-toggler-icon {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+.site-webnav-style-flat {
+    background: transparent !important;
+    box-shadow: none !important;
+    border-bottom: 1px solid color-mix(in srgb, var(--bs-body-color, #212529) 12%, transparent);
+}
+.site-webnav-style-solid {
+    background: var(--app-card-bg, #ffffff) !important;
+    border-bottom: 1px solid var(--app-table-border-color, rgba(128, 128, 128, 0.18));
+}
+.site-webnav-active-underline .nav-link.active {
+    background: transparent !important;
+    color: var(--app-primary, #0d6efd) !important;
+    box-shadow: none !important;
+    border-bottom: 2px solid var(--app-primary, #0d6efd);
+    border-radius: 0 !important;
+}
+.site-webnav-style-gradient.site-webnav-active-underline .nav-link.active {
+    color: #ffffff !important;
+    border-bottom-color: #ffffff;
+}
+.site-webnav-active-bold .nav-link.active {
+    background: transparent !important;
+    color: var(--app-primary, #0d6efd) !important;
+    box-shadow: none !important;
+    font-weight: 700;
+}
+.site-webnav-style-gradient.site-webnav-active-bold .nav-link.active {
+    color: #ffffff !important;
+}
 </style>
 {% endblock %}
 
 {% block navbar %}
-<nav class="navbar navbar-expand-lg app-navbar mb-4">
+<nav class="navbar navbar-expand-lg app-navbar mb-4 {% if public_web_menu_style.style and public_web_menu_style.style != 'inherit' %}site-webnav-style-{{ public_web_menu_style.style }}{% endif %} {% if public_web_menu_style.active_style %}site-webnav-active-{{ public_web_menu_style.active_style }}{% endif %}">
     <div class="container-fluid px-3 px-md-4">
         <a href="{% url 'site_kit:home' %}" class="navbar-brand d-flex align-items-center gap-2">
             {% if site_cfg.resolved_logo_url %}<img src="{{ site_cfg.resolved_logo_url }}" alt="{{ site_cfg.site_name }}" height="32" class="rounded-2 object-fit-contain">{% else %}<i class="bi bi-shield-check text-primary"></i>{% endif %}
@@ -147,36 +204,18 @@ body[data-menu-style="gradient"] .app-navbar .site-nav-logout {
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="publicNavbarContent">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                {% if site_cfg.home_nav_mode != 'off' %}
-                <li class="nav-item">
-                    <a href="{% url 'site_kit:home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" title="{{ site_cfg.home_nav_label|default:'Start' }}">
-                        <i class="bi bi-house-door{% if site_cfg.home_nav_mode != 'icon' %} me-1{% endif %}"></i>{% if site_cfg.home_nav_mode != 'icon' %}{{ site_cfg.home_nav_label|default:"Start" }}{% endif %}
-                    </a>
-                </li>
-                {% endif %}
-                {% for p in public_nav_pages %}
-                    {% if not p.is_home %}
+            <ul class="navbar-nav {% if public_web_menu_style.align == 'center' %}mx-auto{% elif public_web_menu_style.align == 'right' %}ms-auto me-3{% else %}me-auto{% endif %} mb-2 mb-lg-0">
+                {% for witem in public_web_menu_items %}
+                    {% if witem.visible %}
                     <li class="nav-item">
-                        <a href="{% if p.slug == 'news' %}{% url 'site_kit:news_list' %}{% elif p.slug == 'termine' %}{% url 'site_kit:events_list' %}{% else %}{% url 'site_kit:page_detail' p.slug %}{% endif %}" class="nav-link {% if page and page.id == p.id %}active{% endif %}">{{ p.title }}</a>
+                        <a href="{{ witem.url }}"
+                           class="nav-link {% if witem.key == 'home' and request.resolver_match.url_name == 'home' %}active{% elif witem.page_id and page and page.id == witem.page_id %}active{% elif request.resolver_match.url_name in witem.match_url_names %}active{% endif %}"
+                           title="{{ witem.label }}">
+                            {% if witem.display != 'text_only' and witem.icon and witem.icon != 'none' %}<i class="bi {{ witem.icon }}{% if witem.display != 'icon_only' %} me-1{% endif %}"></i>{% endif %}{% if witem.display != 'icon_only' %}{{ witem.label }}{% endif %}
+                        </a>
                     </li>
                     {% endif %}
                 {% endfor %}
-                {% if show_default_news_nav is not False %}
-                <li class="nav-item">
-                    <a href="{% url 'site_kit:news_list' %}" class="nav-link {% if request.resolver_match.url_name == 'news_list' or request.resolver_match.url_name == 'news_detail' %}active{% endif %}">{% trans "News" %}</a>
-                </li>
-                {% endif %}
-                {% if show_default_events_nav is not False %}
-                <li class="nav-item">
-                    <a href="{% url 'site_kit:events_list' %}" class="nav-link {% if request.resolver_match.url_name == 'events_list' %}active{% endif %}">{% trans "Termine" %}</a>
-                </li>
-                {% endif %}
-                {% if show_default_program_nav %}
-                <li class="nav-item">
-                    <a href="{% url 'site_kit:annual_program' %}" class="nav-link {% if request.resolver_match.url_name == 'annual_program' %}active{% endif %}">{{ program_nav_label|default:"Programm" }}</a>
-                </li>
-                {% endif %}
             </ul>
             <div class="d-flex flex-wrap align-items-center gap-2">
                 {% if request.user.is_authenticated %}

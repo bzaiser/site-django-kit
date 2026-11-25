@@ -29,6 +29,7 @@ class SiteConfig(models.Model):
     page_margin = models.CharField(max_length=16, choices=PAGE_MARGIN_CHOICES, default="normal")
     home_nav_mode = models.CharField(max_length=16, choices=HOME_NAV_MODE_CHOICES, default="icon_text")
     home_nav_label = models.CharField(max_length=40, default="Start")
+    nav_config_json = models.JSONField(default=dict, blank=True)
     footer_text = models.CharField(max_length=220, blank=True, default="")
     imprint_text = models.TextField(blank=True, default="")
     privacy_text = models.TextField(blank=True, default="")

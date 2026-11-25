@@ -47,6 +47,180 @@ def _editor_required(view_func):
     return _wrapped
 
 
+def _get_program_nav_state(nav_keys: set[str]) -> tuple[bool, str]:
+    show_default_program_nav = False
+    program_nav_label = "Programm"
+    if apps.is_installed("cal_kit"):
+        try:
+            from cal_kit.models import OfferingTemplate
+            from cal_kit.services import get_cal_profile_labels
+            if "programm" not in nav_keys and "jahresprogramm" not in nav_keys and OfferingTemplate.objects.filter(show_in_program=True).exists():
+                show_default_program_nav = True
+            program_nav_label = get_cal_profile_labels().get("program_title") or "Programm"
+        except Exception:
+            pass
+    return show_default_program_nav, program_nav_label
+
+
+def _build_web_menu_items(cfg: SiteConfig, nav_pages, show_news: bool, show_events: bool, show_program: bool, program_label: str) -> tuple[list[dict], dict]:
+    nav_cfg = cfg.nav_config_json if isinstance(cfg.nav_config_json, dict) else {}
+    saved_items = nav_cfg.get("items") if isinstance(nav_cfg.get("items"), dict) else {}
+
+    base = [
+        {
+            "key": "home",
+            "url": reverse("site_kit:home"),
+            "default_label": cfg.home_nav_label or "Start",
+            "default_icon": "bi-house-door",
+            "default_display": "icon_only" if cfg.home_nav_mode == "icon" else "icon_text",
+            "default_visible": cfg.home_nav_mode != "off",
+            "match_url_names": ("home",),
+            "page_id": None,
+        }
+    ]
+    for p in nav_pages:
+        if p.is_home or p.slug in ("news", "termine"):
+            continue
+        base.append({
+            "key": f"page:{p.slug}",
+            "url": reverse("site_kit:page_detail", args=[p.slug]),
+            "default_label": p.title,
+            "default_icon": "bi-file-earmark-text",
+            "default_display": "text_only",
+            "default_visible": True,
+            "match_url_names": (),
+            "page_id": p.id,
+        })
+    if show_news:
+        base.append({
+            "key": "news",
+            "url": reverse("site_kit:news_list"),
+            "default_label": "News",
+            "default_icon": "bi-newspaper",
+            "default_display": "text_only",
+            "default_visible": True,
+            "match_url_names": ("news_list", "news_detail", "news_archive"),
+            "page_id": None,
+        })
+    if show_events:
+        base.append({
+            "key": "termine",
+            "url": reverse("site_kit:events_list"),
+            "default_label": "Termine",
+            "default_icon": "bi-calendar-event",
+            "default_display": "text_only",
+            "default_visible": True,
+            "match_url_names": ("events_list", "event_detail"),
+            "page_id": None,
+        })
+    if show_program:
+        base.append({
+            "key": "programm",
+            "url": reverse("site_kit:annual_program"),
+            "default_label": program_label,
+            "default_icon": "bi-journal-richtext",
+            "default_display": "text_only",
+            "default_visible": True,
+            "match_url_names": ("annual_program",),
+            "page_id": None,
+        })
+
+    resolved = []
+    for idx, item in enumerate(base):
+        ov = saved_items.get(item["key"]) if isinstance(saved_items.get(item["key"]), dict) else {}
+        disp = (ov.get("display") or item["default_display"]).strip()
+        if disp not in ("text_only", "icon_text", "icon_only"):
+            disp = item["default_display"]
+        icon = (ov.get("icon") if "icon" in ov else item["default_icon"]) or ""
+        label = (ov.get("label") or "").strip()[:40] or item["default_label"]
+        visible = bool(ov.get("visible", item["default_visible"]))
+        try:
+            order = int(ov.get("order", (idx + 1) * 10))
+        except (TypeError, ValueError):
+            order = (idx + 1) * 10
+        resolved.append({
+            **item,
+            "label": label,
+            "icon": icon,
+            "display": disp,
+            "visible": visible,
+            "order": order,
+        })
+    resolved.sort(key=lambda x: x["order"])
+
+    style = (nav_cfg.get("style") or "inherit").strip()
+    align = (nav_cfg.get("align") or "left").strip()
+    active_style = (nav_cfg.get("active_style") or "pill").strip()
+    style_cfg = {
+        "style": style if style in ("inherit", "glass", "gradient", "flat", "solid") else "inherit",
+        "align": align if align in ("left", "center", "right") else "left",
+        "active_style": active_style if active_style in ("pill", "underline", "bold") else "pill",
+    }
+    return resolved, style_cfg
+
+
+def get_web_menu_studio_context() -> dict:
+    cfg = SiteConfig.get_solo()
+    nav_pages = list(PublicPage.objects.filter(is_published=True, show_in_nav=True))
+    nav_keys = {p.slug.lower() for p in nav_pages if not p.is_home} | {
+        p.title.strip().lower() for p in nav_pages if not p.is_home
+    }
+    show_program, program_label = _get_program_nav_state(nav_keys)
+    items, style_cfg = _build_web_menu_items(
+        cfg,
+        nav_pages,
+        show_news="news" not in nav_keys,
+        show_events="termine" not in nav_keys,
+        show_program=show_program,
+        program_label=program_label,
+    )
+    return {
+        "web_menu_studio_items": items,
+        "web_menu_studio_cfg": style_cfg,
+    }
+
+
+def save_web_menu_config(payload: dict) -> None:
+    if not isinstance(payload, dict):
+        return
+    cfg = SiteConfig.get_solo()
+    style = (payload.get("style") or "inherit").strip()
+    align = (payload.get("align") or "left").strip()
+    active_style = (payload.get("active_style") or "pill").strip()
+    raw_items = payload.get("items") if isinstance(payload.get("items"), dict) else {}
+    clean_items = {}
+    for key, val in raw_items.items():
+        if not isinstance(val, dict) or not isinstance(key, str):
+            continue
+        disp = (val.get("display") or "text_only").strip()
+        if disp not in ("text_only", "icon_text", "icon_only"):
+            disp = "text_only"
+        clean_items[key[:80]] = {
+            "label": str(val.get("label") or "").strip()[:40],
+            "icon": str(val.get("icon") or "").strip()[:40],
+            "display": disp,
+            "visible": bool(val.get("visible", True)),
+            "order": int(val.get("order") or 0),
+        }
+    cfg.nav_config_json = {
+        "style": style if style in ("inherit", "glass", "gradient", "flat", "solid") else "inherit",
+        "align": align if align in ("left", "center", "right") else "left",
+        "active_style": active_style if active_style in ("pill", "underline", "bold") else "pill",
+        "items": clean_items,
+    }
+    home_ov = clean_items.get("home")
+    if isinstance(home_ov, dict):
+        if not home_ov.get("visible", True):
+            cfg.home_nav_mode = "off"
+        elif home_ov.get("display") == "icon_only":
+            cfg.home_nav_mode = "icon"
+        else:
+            cfg.home_nav_mode = "icon_text"
+        if home_ov.get("label"):
+            cfg.home_nav_label = home_ov["label"]
+    cfg.save()
+
+
 def _public_base_context(request, page: PublicPage | None = None) -> dict:
     cfg = SiteConfig.get_solo()
     nav_pages = list(PublicPage.objects.filter(is_published=True, show_in_nav=True))
@@ -64,17 +238,15 @@ def _public_base_context(request, page: PublicPage | None = None) -> dict:
             except Exception:
                 can_access_internal = False
 
-    show_default_program_nav = False
-    program_nav_label = "Programm"
-    if apps.is_installed("cal_kit"):
-        try:
-            from cal_kit.models import OfferingTemplate
-            from cal_kit.services import get_cal_profile_labels
-            if "programm" not in nav_keys and "jahresprogramm" not in nav_keys and OfferingTemplate.objects.filter(show_in_program=True).exists():
-                show_default_program_nav = True
-            program_nav_label = get_cal_profile_labels().get("program_title") or "Programm"
-        except Exception:
-            pass
+    show_default_program_nav, program_nav_label = _get_program_nav_state(nav_keys)
+    web_items, web_style = _build_web_menu_items(
+        cfg,
+        nav_pages,
+        show_news="news" not in nav_keys,
+        show_events="termine" not in nav_keys,
+        show_program=show_default_program_nav,
+        program_label=program_nav_label,
+    )
 
     ctx = {
         "site_cfg": cfg,
@@ -83,6 +255,8 @@ def _public_base_context(request, page: PublicPage | None = None) -> dict:
         "show_default_events_nav": "termine" not in nav_keys,
         "show_default_program_nav": show_default_program_nav,
         "program_nav_label": program_nav_label,
+        "public_web_menu_items": web_items,
+        "public_web_menu_style": web_style,
         "page": page,
         "can_access_internal": can_access_internal,
     }
