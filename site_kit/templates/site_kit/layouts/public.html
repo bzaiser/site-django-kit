@@ -148,6 +148,13 @@ body[data-menu-style="gradient"] .app-navbar .site-nav-logout {
         </button>
         <div class="collapse navbar-collapse" id="publicNavbarContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                {% if site_cfg.home_nav_mode != 'off' %}
+                <li class="nav-item">
+                    <a href="{% url 'site_kit:home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" title="{{ site_cfg.home_nav_label|default:'Start' }}">
+                        <i class="bi bi-house-door{% if site_cfg.home_nav_mode != 'icon' %} me-1{% endif %}"></i>{% if site_cfg.home_nav_mode != 'icon' %}{{ site_cfg.home_nav_label|default:"Start" }}{% endif %}
+                    </a>
+                </li>
+                {% endif %}
                 {% for p in public_nav_pages %}
                     {% if not p.is_home %}
                     <li class="nav-item">

@@ -1291,6 +1291,11 @@ def manage_view(request):
         pm = (request.POST.get("page_margin") or cfg.page_margin or "normal").strip()
         if pm in ("minimal", "compact", "normal", "wide"):
             cfg.page_margin = pm
+        hnm = (request.POST.get("home_nav_mode") or cfg.home_nav_mode or "icon_text").strip()
+        if hnm in ("icon_text", "icon", "off"):
+            cfg.home_nav_mode = hnm
+        if "home_nav_label" in request.POST:
+            cfg.home_nav_label = (request.POST.get("home_nav_label") or "Start").strip()[:40] or "Start"
         cfg.save()
         messages.success(request, "Webseiten-Einstellungen gespeichert.")
         return redirect("site_kit:manage")
@@ -1305,6 +1310,7 @@ def manage_view(request):
             "can_edit_site_config": can_edit_config,
             "container_width_choices": SiteConfig.CONTAINER_WIDTH_CHOICES,
             "page_margin_choices": SiteConfig.PAGE_MARGIN_CHOICES,
+            "home_nav_mode_choices": SiteConfig.HOME_NAV_MODE_CHOICES,
         },
     )
 

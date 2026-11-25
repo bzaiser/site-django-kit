@@ -15,6 +15,11 @@ class SiteConfig(models.Model):
         ("normal", "Mittel"),
         ("wide", "Großzügig"),
     ]
+    HOME_NAV_MODE_CHOICES = [
+        ("icon_text", "Icon + Text"),
+        ("icon", "Nur Home-Icon"),
+        ("off", "Ausblenden"),
+    ]
 
     site_name = models.CharField(max_length=140, default="Mein Verein")
     tagline = models.CharField(max_length=220, blank=True, default="")
@@ -22,6 +27,8 @@ class SiteConfig(models.Model):
     logo_url = models.URLField(blank=True, default="")
     container_width = models.CharField(max_length=16, choices=CONTAINER_WIDTH_CHOICES, default="standard")
     page_margin = models.CharField(max_length=16, choices=PAGE_MARGIN_CHOICES, default="normal")
+    home_nav_mode = models.CharField(max_length=16, choices=HOME_NAV_MODE_CHOICES, default="icon_text")
+    home_nav_label = models.CharField(max_length=40, default="Start")
     footer_text = models.CharField(max_length=220, blank=True, default="")
     imprint_text = models.TextField(blank=True, default="")
     privacy_text = models.TextField(blank=True, default="")

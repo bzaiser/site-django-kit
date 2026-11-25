@@ -97,6 +97,20 @@
                             <div class="form-text" style="font-size:0.7rem;">Smartphone immer minimal</div>
                         </div>
                     </div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold mb-1">Home-Button im Menü</label>
+                            <select name="home_nav_mode" class="form-select form-select-sm">
+                                {% for hn_k, hn_l in home_nav_mode_choices %}
+                                <option value="{{ hn_k }}" {% if site_cfg.home_nav_mode == hn_k %}selected{% endif %}>{{ hn_l }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold mb-1">Home-Button Text</label>
+                            <input type="text" name="home_nav_label" class="form-control form-control-sm" value="{{ site_cfg.home_nav_label|default:'Start' }}" maxlength="40" placeholder="Start">
+                        </div>
+                    </div>
                     <div><label class="form-label small fw-semibold mb-1">Kontakt-E-Mail</label><input type="email" name="contact_email" class="form-control form-control-sm" value="{{ site_cfg.contact_email }}"></div>
                     <div><label class="form-label small fw-semibold mb-1">Footer-Text</label><input type="text" name="footer_text" class="form-control form-control-sm" value="{{ site_cfg.footer_text }}"></div>
                     <div><label class="form-label small fw-semibold mb-1">Impressum</label><textarea name="imprint_text" rows="2" class="form-control form-control-sm">{{ site_cfg.imprint_text }}</textarea></div>
