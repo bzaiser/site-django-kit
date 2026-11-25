@@ -93,6 +93,29 @@
     max-width: 100%;
     height: auto;
 }
+/* Readable frosted surface for inactive outline & disabled buttons over backgrounds */
+.btn-outline-secondary,
+.btn-outline-primary,
+.btn-outline-dark {
+    background-color: color-mix(in srgb, var(--bs-body-bg, #ffffff) 88%, transparent);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+.btn-outline-secondary {
+    color: var(--bs-body-color, #212529);
+    border-color: color-mix(in srgb, var(--bs-body-color, #212529) 28%, transparent);
+}
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+    background-color: color-mix(in srgb, var(--bs-body-color, #212529) 12%, var(--bs-body-bg, #ffffff));
+    color: var(--bs-body-color, #212529);
+    border-color: color-mix(in srgb, var(--bs-body-color, #212529) 42%, transparent);
+}
+.btn:disabled,
+.btn.disabled {
+    background-color: color-mix(in srgb, var(--bs-body-bg, #ffffff) 75%, transparent);
+    opacity: 0.65;
+}
 </style>
 {% endblock %}
 
