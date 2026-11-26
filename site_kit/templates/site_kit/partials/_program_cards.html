@@ -1,8 +1,8 @@
-<div class="row g-4">
+<div class="row g-4 site-program-grid" data-card-mode="{{ site_cfg.program_card_mode|default:'equal_max' }}">
     {% for item in program_items %}
     {% with o=item.offering %}
     <div class="col-12 col-lg-6">
-        <article class="card shadow-sm h-100">
+        <article class="card shadow-sm h-100 site-program-card">
             <div class="card-body p-4 d-flex flex-column justify-content-between gap-3">
                 <div>
                     <div class="d-flex justify-content-between align-items-start gap-3">
@@ -26,9 +26,12 @@
                     </div>
 
                     {% if item.description_html %}
-                    <div class="small mt-2 text-break">{{ item.description_html|safe }}</div>
+                    <div class="small mt-2 text-break site-program-desc {% if site_cfg.program_card_mode == 'compact_uniform' %}site-program-desc-clamped{% endif %}">{{ item.description_html|safe }}</div>
                     {% elif o.description %}
-                    <div class="small mt-2 text-break">{{ o.description|linebreaksbr }}</div>
+                    <div class="small mt-2 text-break site-program-desc {% if site_cfg.program_card_mode == 'compact_uniform' %}site-program-desc-clamped{% endif %}">{{ o.description|linebreaksbr }}</div>
+                    {% endif %}
+                    {% if site_cfg.program_card_mode == 'compact_uniform' and o.description %}
+                    <button type="button" class="btn btn-link btn-sm p-0 mt-1 text-decoration-none site-program-more-btn">Mehr lesen &rarr;</button>
                     {% endif %}
 
                     {% if o.bring_along_note %}
@@ -96,3 +99,39 @@
     </div>
     {% endfor %}
 </div>
+<style>
+.site-program-desc-clamped {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.site-program-grid').forEach(function (grid) {
+        var mode = grid.getAttribute('data-card-mode') || 'equal_max';
+        if (mode === 'equal_max' || mode === 'compact_uniform') {
+            function equalize() {
+                var cards = grid.querySelectorAll('.site-program-card');
+                cards.forEach(function (c) { c.style.minHeight = ''; });
+                if (window.innerWidth < 992) return;
+                var maxH = 0;
+                cards.forEach(function (c) { maxH = Math.max(maxH, c.getBoundingClientRect().height); });
+                if (maxH > 0) cards.forEach(function (c) { c.style.minHeight = Math.ceil(maxH) + 'px'; });
+            }
+            equalize();
+            window.addEventListener('resize', equalize, { passive: true });
+        }
+        grid.querySelectorAll('.site-program-more-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var desc = btn.previousElementSibling;
+                if (!desc) return;
+                var expanded = !desc.classList.contains('site-program-desc-clamped');
+                desc.classList.toggle('site-program-desc-clamped', expanded);
+                btn.innerHTML = expanded ? 'Mehr lesen &rarr;' : 'Weniger anzeigen';
+            });
+        });
+    });
+});
+</script>

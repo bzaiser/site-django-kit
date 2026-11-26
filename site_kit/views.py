@@ -1068,11 +1068,17 @@ def annual_program_pdf_view(request):
         "active_year": prog["year"],
         "program_title": prog["program_title"],
     })
+    try:
+        from design_studio.branding import get_branding_context, pdf_link_callback
+        ctx["branding"] = get_branding_context("pdf")
+    except Exception:
+        pdf_link_callback = None
+        ctx["branding"] = {"org_name": ctx["site_cfg"].site_name, "primary_color": "#2563eb", "channel": {"show_logo": True, "show_letterhead": True, "use_brand_color": True, "show_footer": True}}
     html = get_template("site_kit/annual_program_pdf.html").render(ctx)
     try:
         from xhtml2pdf import pisa
         result = BytesIO()
-        pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+        pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result, link_callback=pdf_link_callback)
         if not pdf.err:
             resp = HttpResponse(result.getvalue(), content_type="application/pdf")
             resp["Content-Disposition"] = f'inline; filename="programm-{prog["year"]}.pdf"'
@@ -1606,6 +1612,13 @@ def page_edit_view(request, pk):
             sc.events_image_position = ep if ep in ("left", "right", "top") else "left"
             sc.save(update_fields=["events_layout", "events_image_position"])
             messages.success(request, "Darstellung der öffentlichen Termine gespeichert.")
+            return redirect("site_kit:page_edit", pk=page.id)
+        if action == "save_program_layout" and page.slug == "programm":
+            sc = SiteConfig.get_solo()
+            pm = (request.POST.get("program_card_mode") or "equal_max").strip()
+            sc.program_card_mode = pm if pm in ("equal_max", "compact_uniform", "auto") else "equal_max"
+            sc.save(update_fields=["program_card_mode"])
+            messages.success(request, "Darstellung des Programms gespeichert.")
             return redirect("site_kit:page_edit", pk=page.id)
         if action == "add_block":
             btype = request.POST.get("block_type") or "text_image"

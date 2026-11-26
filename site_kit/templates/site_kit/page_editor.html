@@ -37,6 +37,22 @@
         </div>
     </div>
 </form>
+{% elif page.slug == 'programm' %}
+<form method="post" class="card shadow-sm mb-3">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="save_program_layout">
+    <div class="card-body py-2 px-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <span class="fw-semibold small"><i class="bi bi-journal-richtext me-1 text-primary"></i>Jahresprogramm: Kartenhöhe der Angebote</span>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <select name="program_card_mode" class="form-select form-select-sm w-auto">
+                <option value="equal_max" {% if site_cfg.program_card_mode == 'equal_max' or not site_cfg.program_card_mode %}selected{% endif %}>Alle gleich hoch (am größten orientiert)</option>
+                <option value="compact_uniform" {% if site_cfg.program_card_mode == 'compact_uniform' %}selected{% endif %}>Einheitlich kompakt (+ „Mehr lesen“)</option>
+                <option value="auto" {% if site_cfg.program_card_mode == 'auto' %}selected{% endif %}>Nach Inhalt (pro Zeile gleich)</option>
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3">Übernehmen</button>
+        </div>
+    </div>
+</form>
 {% endif %}
 
 <div class="row g-4">

@@ -4,34 +4,128 @@
 <meta charset="UTF-8">
 <title>{{ program_title|default:"Jahresprogramm" }} {{ active_year }}</title>
 <style>
-@page { size: A4 landscape; margin: 14mm; }
-body { font-family: Helvetica, Arial, sans-serif; font-size: 9.5pt; color: #1e293b; line-height: 1.4; }
-.header { text-align: center; border-bottom: 1.5px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 14px; }
-.header h1 { font-size: 18pt; margin: 0 0 4px 0; }
-.header p { margin: 0; color: #64748b; font-size: 9pt; }
-table.grid { width: 100%; border-collapse: separate; border-spacing: 12px 10px; }
-td.col { width: 50%; vertical-align: top; border: 1px solid #cbd5e1; padding: 10px 12px; background: #ffffff; }
-h2.title { font-size: 13pt; margin: 0 0 2px 0; color: #0f172a; }
-.sub { font-size: 9pt; color: #475569; margin-bottom: 8px; }
-.desc { margin-bottom: 8px; }
-.meta { font-size: 8.5pt; color: #334155; margin-bottom: 6px; }
-.box { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 6px 8px; font-size: 8.5pt; margin-top: 6px; }
+@page {
+    size: A4 landscape;
+    margin: 14mm 14mm 18mm 14mm;
+    @frame footer_frame {
+        -pdf-frame-content: footerContent;
+        left: 14mm;
+        right: 14mm;
+        bottom: 6mm;
+        height: 10mm;
+    }
+}
+body {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 9pt;
+    color: #1e293b;
+    line-height: 1.42;
+}
+.hero-band {
+    background-color: {% if branding.channel.use_brand_color %}{{ branding.primary_color|default:'#2563eb' }}{% else %}#1e293b{% endif %};
+    color: #ffffff;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+}
+table.hero-tbl { width: 100%; border-collapse: collapse; }
+table.hero-tbl td { vertical-align: middle; color: #ffffff; }
+.hero-title { font-size: 17pt; font-weight: bold; margin: 0 0 2px 0; color: #ffffff; }
+.hero-sub { font-size: 9pt; margin: 0; color: #e2e8f0; }
+.hero-contact { text-align: right; font-size: 8pt; color: #e2e8f0; }
+
+.card-wrap {
+    border: 1px solid #cbd5e1;
+    border-top: 3px solid {% if branding.channel.use_brand_color %}{{ branding.primary_color|default:'#2563eb' }}{% else %}#334155{% endif %};
+    background: #ffffff;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    page-break-inside: avoid;
+}
+table.grid { width: 100%; border-collapse: separate; border-spacing: 10px 8px; }
+td.col { width: 50%; vertical-align: top; padding: 0; }
+table.card-head { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
+table.card-head td { vertical-align: top; }
+.cat-pill {
+    display: inline-block;
+    background-color: #f1f5f9;
+    color: {% if branding.channel.use_brand_color %}{{ branding.primary_color|default:'#2563eb' }}{% else %}#334155{% endif %};
+    border: 1px solid #cbd5e1;
+    padding: 1px 6px;
+    font-size: 7.5pt;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+h2.title { font-size: 12.5pt; margin: 0 0 2px 0; color: #0f172a; }
+.sub { font-size: 8.5pt; color: {% if branding.channel.use_brand_color %}{{ branding.primary_color|default:'#2563eb' }}{% else %}#475569{% endif %}; font-weight: bold; margin-bottom: 4px; }
+.desc { margin-bottom: 6px; color: #334155; }
+.meta { font-size: 8pt; color: #475569; margin-bottom: 4px; }
+.box {
+    background: #f8fafc;
+    border-left: 3px solid {% if branding.channel.use_brand_color %}{{ branding.primary_color|default:'#2563eb' }}{% else %}#94a3b8{% endif %};
+    padding: 5px 8px;
+    font-size: 8pt;
+    margin-top: 5px;
+}
+.about-box {
+    border-top: 1px solid #cbd5e1;
+    margin-top: 10px;
+    padding-top: 8px;
+    font-size: 8pt;
+    color: #475569;
+}
+#footerContent {
+    font-size: 7.5pt;
+    color: #64748b;
+    border-top: 1px solid #cbd5e1;
+    padding-top: 4px;
+}
 </style>
 </head>
 <body>
-<div class="header">
-    <h1>{{ site_cfg.site_name }} – {{ program_title|default:"Jahresprogramm" }} {{ active_year }}</h1>
-    {% if site_cfg.tagline %}<p>{{ site_cfg.tagline }}</p>{% endif %}
+<div class="hero-band">
+    <table class="hero-tbl">
+        <tr>
+            {% if branding.channel.show_logo and branding.logo_url %}
+            <td style="width: 68px; padding-right: 12px;">
+                <img src="{{ branding.logo_url }}" style="max-height: 46px; max-width: 64px; background: #ffffff; padding: 3px;" alt="">
+            </td>
+            {% endif %}
+            <td>
+                <div class="hero-title">{{ branding.org_name|default:site_cfg.site_name }} – {{ program_title|default:"Jahresprogramm" }} {{ active_year }}</div>
+                {% if branding.tagline or site_cfg.tagline %}<div class="hero-sub">{{ branding.tagline|default:site_cfg.tagline }}</div>{% endif %}
+            </td>
+            {% if branding.channel.show_letterhead %}
+            <td class="hero-contact" style="width: 200px;">
+                {% if branding.website %}<div>{{ branding.website }}</div>{% endif %}
+                {% if branding.email %}<div>{{ branding.email }}</div>{% endif %}
+                {% if branding.phone %}<div>{{ branding.phone }}</div>{% endif %}
+            </td>
+            {% endif %}
+        </tr>
+    </table>
 </div>
 
 <table class="grid">
     {% for item in program_items %}
     {% if forloop.counter0|divisibleby:2 %}<tr>{% endif %}
     <td class="col">
+        <div class="card-wrap">
         {% with o=item.offering %}
-        <h2 class="title">{{ o.title }}</h2>
-        {% if o.instructor_name %}<div class="sub">mit {{ o.instructor_name }}</div>{% endif %}
-        {% if o.description %}<div class="desc">{{ o.description|linebreaksbr }}</div>{% endif %}
+        <table class="card-head">
+            <tr>
+                <td>
+                    {% if o.category %}<div class="cat-pill">{{ o.category.name }}</div>{% endif %}
+                    <h2 class="title">{{ o.title }}</h2>
+                    {% if o.instructor_name %}<div class="sub">Leitung: {{ o.instructor_name }}</div>{% endif %}
+                </td>
+                {% if o.resolved_image_url %}
+                <td style="width: 78px; text-align: right; padding-left: 8px;">
+                    <img src="{{ o.resolved_image_url }}" style="width: 72px; height: 72px; border: 1px solid #e2e8f0;" alt="">
+                </td>
+                {% endif %}
+            </tr>
+        </table>
+        {% if o.description %}<div class="desc">{{ o.description|striptags|truncatechars:420|linebreaksbr }}</div>{% endif %}
         {% if o.bring_along_note %}<div class="meta"><strong>Bitte mitbringen:</strong> {{ o.bring_along_note }}</div>{% endif %}
         {% if o.material_note %}<div class="meta">{{ o.material_note }}</div>{% endif %}
         {% if item.events %}
@@ -50,16 +144,35 @@ h2.title { font-size: 13pt; margin: 0 0 2px 0; color: #0f172a; }
         </div>
         {% endif %}
         {% if o.responsible_name or item.responsible_person %}
-        <div class="meta" style="margin-top:6px;">
-            <strong>Anmeldung &amp; Ansprechpartner:</strong> {{ o.responsible_name|default:item.responsible_person.full_name }}
+        <div class="meta" style="margin-top:5px;">
+            <strong>Anmeldung &amp; Kontakt:</strong> {{ o.responsible_name|default:item.responsible_person.full_name }}
             {% if item.responsible_person and item.responsible_person.phone %} · {{ item.responsible_person.phone }}{% endif %}
             {% if item.responsible_person and item.responsible_person.email %} · {{ item.responsible_person.email }}{% endif %}
         </div>
         {% endif %}
         {% endwith %}
+        </div>
     </td>
-    {% if forloop.last and not forloop.counter0|divisibleby:2 %}</tr>{% elif forloop.last and forloop.counter0|divisibleby:2 %}<td class="col" style="border:none;"></td></tr>{% elif not forloop.counter0|divisibleby:2 %}</tr>{% endif %}
+    {% if forloop.last and not forloop.counter0|divisibleby:2 %}</tr>{% elif forloop.last and forloop.counter0|divisibleby:2 %}<td class="col"></td></tr>{% elif not forloop.counter0|divisibleby:2 %}</tr>{% endif %}
     {% endfor %}
 </table>
+
+{% if branding.about_short or branding.press_contact %}
+<div class="about-box">
+    {% if branding.about_short %}<div><strong>Über {{ branding.org_name }}:</strong> {{ branding.about_short }}</div>{% endif %}
+    {% if branding.press_contact %}<div style="margin-top:3px;"><strong>Kontakt / Presse:</strong> {{ branding.press_contact }}</div>{% endif %}
+</div>
+{% endif %}
+
+{% if branding.channel.show_footer %}
+<div id="footerContent">
+    <table style="width:100%;">
+        <tr>
+            <td>{{ branding.footer_text|default:branding.org_name }} {% if branding.address %}· {{ branding.address|linebreaksbr }}{% endif %}</td>
+            <td style="text-align:right;">Seite <pdf:pagenumber> von <pdf:pagecount></td>
+        </tr>
+    </table>
+</div>
+{% endif %}
 </body>
 </html>

@@ -39,6 +39,7 @@ class SiteConfig(models.Model):
     member_app_url = models.CharField(max_length=160, default="/app/")
     events_layout = models.CharField(max_length=16, default="row")
     events_image_position = models.CharField(max_length=16, default="left")
+    program_card_mode = models.CharField(max_length=24, default="equal_max")
 
     @classmethod
     def get_solo(cls):
