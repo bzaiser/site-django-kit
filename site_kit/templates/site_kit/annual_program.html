@@ -20,6 +20,14 @@
         </div>
     </div>
 
+    {% if extra_blocks %}
+    <div class="row g-4 mb-4">
+        {% for item in extra_blocks %}
+        {% include "site_kit/partials/_block.html" with item=item %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="d-flex flex-wrap align-items-center gap-2 mb-4 d-print-none">
         {% for y in program_years %}
         <a href="?jahr={{ y }}{% if active_category %}&kategorie={{ active_category }}{% endif %}{% if active_instructor %}&dozent={{ active_instructor }}{% endif %}"

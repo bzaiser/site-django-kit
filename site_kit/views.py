@@ -79,7 +79,7 @@ def _build_web_menu_items(cfg: SiteConfig, nav_pages, show_news: bool, show_even
         }
     ]
     for p in nav_pages:
-        if p.is_home or p.slug in ("news", "termine"):
+        if p.is_home or p.slug in ("news", "termine", "programm"):
             continue
         base.append({
             "key": f"page:{p.slug}",
@@ -551,6 +551,8 @@ def page_detail_view(request, slug):
         return redirect("site_kit:events_list")
     if slug == "news":
         return redirect("site_kit:news_list")
+    if slug == "programm":
+        return redirect("site_kit:annual_program")
     qs = PublicPage.objects.all() if (request.user.is_authenticated and request.user.is_staff) else PublicPage.objects.filter(is_published=True)
     page = get_object_or_404(qs, slug=slug)
     ctx = _public_base_context(request, page=page)
@@ -945,7 +947,7 @@ def _build_program_data(year=None, cat_id=None, instructor_ref=None) -> dict:
         if not sel_year:
             sel_year = now.year
 
-        qs = OfferingTemplate.objects.filter(show_in_program=True).select_related("category").order_by("title")
+        qs = OfferingTemplate.objects.filter(show_in_program=True).select_related("category").order_by("position", "title", "id")
         if cat_id and str(cat_id).isdigit():
             qs = qs.filter(category_id=int(cat_id))
         if instructor_ref:
@@ -1006,7 +1008,9 @@ def _build_program_data(year=None, cat_id=None, instructor_ref=None) -> dict:
 
 
 def annual_program_view(request):
-    ctx = _public_base_context(request)
+    sys_page = PublicPage.objects.filter(slug="programm").first()
+    ctx = _public_base_context(request, page=sys_page)
+    ctx["extra_blocks"] = [_resolve_block_data(b) for b in sys_page.blocks.filter(is_visible=True)] if sys_page else []
     year = (request.GET.get("jahr") or "").strip()
     cat_id = (request.GET.get("kategorie") or "").strip()
     inst_ref = (request.GET.get("dozent") or "").strip()
@@ -1495,9 +1499,9 @@ def _warn_if_reserved_nav_page(request, page: PublicPage):
 
 @_editor_required
 def system_page_edit_view(request, slug):
-    if slug not in ("news", "termine"):
+    if slug not in ("news", "termine", "programm"):
         raise Http404()
-    title = "News" if slug == "news" else "Termine"
+    title = {"news": "News", "termine": "Termine", "programm": "Programm"}[slug]
     page, _ = PublicPage.objects.get_or_create(
         slug=slug,
         defaults={
@@ -1720,7 +1724,7 @@ def page_edit_view(request, pk):
             page.title = (request.POST.get("title") or page.title).strip()[:160]
             page.is_home = request.POST.get("is_home") == "on"
             page.is_published = request.POST.get("is_published") == "on"
-            page.show_in_nav = False if page.slug in ("news", "termine") else (request.POST.get("show_in_nav") == "on")
+            page.show_in_nav = False if page.slug in ("news", "termine", "programm") else (request.POST.get("show_in_nav") == "on")
             page.genre = (request.POST.get("genre") or "").strip()[:40]
             page.meta_description = (request.POST.get("meta_description") or "").strip()[:255]
             page.save()
