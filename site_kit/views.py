@@ -1,8 +1,10 @@
 from functools import wraps
+import html
 from html.parser import HTMLParser
 import json
 import re
-from xml.sax.saxutils import escape
+
+escape = html.escape
 
 from django.apps import apps
 from django.contrib import messages
@@ -863,7 +865,7 @@ def event_detail_view(request, pk):
         "image_url": getattr(ev, "resolved_image_url", ""),
         "event_desc_html": ev_desc_html,
         "offering_desc_html": tpl_desc_html,
-        "fee_amount": ev.fee_amount if ev.fee_amount is not None else (tpl.default_fee if tpl else None),
+        "fee_amount": ev.fee_amount if ev.fee_amount is not None else (tpl.fee_amount if tpl else None),
         "instructor_person_id": instructor_person_id,
         "reg_count": rc,
         "max_participants": mp,
@@ -1195,11 +1197,24 @@ _ALLOWED_HTML_TAGS = {
     "tbody", "tr", "th", "td",
 }
 _VOID_HTML_TAGS = {"br", "hr", "img"}
-_STRIP_WITH_CONTENT_TAGS = {"script", "style", "iframe", "object", "embed", "svg", "form"}
+_STRIP_VOID_TAGS = {"embed"}
+_STRIP_WITH_CONTENT_TAGS = {"script", "style", "iframe", "object", "svg", "form"}
 _ALLOWED_STYLE_PROPS = {
     "color", "background-color", "text-align", "font-weight", "font-style",
     "text-decoration", "max-width", "width", "height", "border-radius",
 }
+
+
+def _sanitize_safe_url(raw: str) -> str:
+    val = (raw or "").strip()
+    if not val:
+        return ""
+    low = val.lower()
+    if low.startswith(("http://", "https://", "mailto:", "tel:", "#")):
+        return val
+    if val.startswith("/") and not val.startswith("//"):
+        return val
+    return ""
 
 
 def _sanitize_inline_style(raw_style: str) -> str:
@@ -1210,7 +1225,7 @@ def _sanitize_inline_style(raw_style: str) -> str:
         prop, val = decl.split(":", 1)
         prop_l = prop.strip().lower()
         val_s = val.strip()
-        if prop_l not in _ALLOWED_STYLE_PROPS or not val_s:
+        if prop_l not in _ALLOWED_STYLE_PROPS or not val_s or "\\" in val_s:
             continue
         val_l = val_s.lower()
         if any(bad in val_l for bad in ("url(", "expression(", "javascript:", "@import")):
@@ -1227,6 +1242,8 @@ class _SafeHtmlSanitizer(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         t = tag.lower()
+        if t in _STRIP_VOID_TAGS:
+            return
         if t in _STRIP_WITH_CONTENT_TAGS:
             self._skip_depth += 1
             return
@@ -1236,27 +1253,29 @@ class _SafeHtmlSanitizer(HTMLParser):
         for k, v in attrs:
             kl = (k or "").lower()
             if kl == "class" and v:
-                clean_attrs.append(f'class="{escape(v)}"')
+                safe_cls = re.sub(r"[^A-Za-z0-9 _-]", "", v).strip()
+                if safe_cls:
+                    clean_attrs.append(f'class="{html.escape(safe_cls, quote=True)}"')
             elif kl == "style" and v:
                 safe_style = _sanitize_inline_style(v)
                 if safe_style:
-                    clean_attrs.append(f'style="{escape(safe_style)}"')
+                    clean_attrs.append(f'style="{html.escape(safe_style, quote=True)}"')
             elif t == "font" and kl == "color" and v:
                 safe_col = _sanitize_inline_style(f"color: {v}")
                 if safe_col:
-                    clean_attrs.append(f'style="{escape(safe_col)}"')
+                    clean_attrs.append(f'style="{html.escape(safe_col, quote=True)}"')
             elif t == "a" and kl == "href" and v:
-                vl = v.strip()
-                if vl.startswith(("http://", "https://", "/", "#")):
-                    clean_attrs.append(f'href="{escape(vl)}"')
+                vl = _sanitize_safe_url(v)
+                if vl:
+                    clean_attrs.append(f'href="{html.escape(vl, quote=True)}"')
             elif t == "a" and kl == "target" and v in ("_blank", "_self"):
                 clean_attrs.append(f'target="{v}"')
             elif t == "img" and kl == "src" and v:
                 vl = v.strip()
-                if vl.startswith(("http://", "https://", "/", "data:image/")):
-                    clean_attrs.append(f'src="{escape(vl)}"')
+                if vl.startswith(("http://", "https://", "data:image/")) or (vl.startswith("/") and not vl.startswith("//")):
+                    clean_attrs.append(f'src="{html.escape(vl, quote=True)}"')
             elif t == "img" and kl == "alt" and v is not None:
-                clean_attrs.append(f'alt="{escape(v)}"')
+                clean_attrs.append(f'alt="{html.escape(v, quote=True)}"')
         attr_str = (" " + " ".join(clean_attrs)) if clean_attrs else ""
         self.out.append(f"<{t}{attr_str}>")
 
@@ -1591,7 +1610,6 @@ def page_delete_view(request, pk):
     return redirect("site_kit:manage")
 
 
-@_editor_required
 def _apply_block_bg_image(request, block: PageBlock) -> None:
     if request.FILES.get("bg_image"):
         block.bg_image = request.FILES["bg_image"]
@@ -1599,6 +1617,7 @@ def _apply_block_bg_image(request, block: PageBlock) -> None:
         block.bg_image = None
 
 
+@_editor_required
 def page_edit_view(request, pk):
     page = get_object_or_404(PublicPage, pk=pk)
     is_admin = bool(getattr(request.user, "is_staff", False) or getattr(request.user, "is_superuser", False))
@@ -1641,7 +1660,7 @@ def page_edit_view(request, pk):
                     bg_image=request.FILES.get("bg_image"),
                     video_file=request.FILES.get("video_file"),
                     cta_label=(request.POST.get("cta_label") or "").strip()[:80],
-                    cta_url=(request.POST.get("cta_url") or "").strip()[:255],
+                    cta_url=_sanitize_safe_url(request.POST.get("cta_url") or "")[:255],
                     config_json=_parse_block_layout_config(request),
                     position=pos,
                 )
@@ -1684,7 +1703,7 @@ def page_edit_view(request, pk):
                 if "cta_label" in request.POST:
                     block.cta_label = (request.POST.get("cta_label") or "").strip()[:80]
                 if "cta_url" in request.POST:
-                    block.cta_url = (request.POST.get("cta_url") or "").strip()[:255]
+                    block.cta_url = _sanitize_safe_url(request.POST.get("cta_url") or "")[:255]
             block.save()
             messages.success(request, "Inhaltsblock aktualisiert.")
         elif action == "move_block":
