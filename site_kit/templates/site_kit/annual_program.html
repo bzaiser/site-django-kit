@@ -35,10 +35,10 @@
         {% endfor %}
         {% if program_categories %}
         <span class="text-muted mx-1">|</span>
-        <a href="?jahr={{ active_year }}{% if active_instructor %}&dozent={{ active_instructor }}{% endif %}" class="btn btn-sm rounded-pill {% if not active_category %}btn-dark{% else %}btn-outline-secondary{% endif %}">Alle Kategorien</a>
+        <a href="?jahr={{ active_year }}{% if active_instructor %}&dozent={{ active_instructor }}{% endif %}" class="btn btn-sm rounded-pill {% if not active_category %}btn-primary{% else %}btn-outline-secondary{% endif %}">Alle Kategorien</a>
         {% for c in program_categories %}
         <a href="?jahr={{ active_year }}&kategorie={{ c.id }}{% if active_instructor %}&dozent={{ active_instructor }}{% endif %}"
-           class="btn btn-sm rounded-pill {% if active_category == c.id|stringformat:'s' %}btn-dark{% else %}btn-outline-secondary{% endif %}">{{ c.name }}</a>
+           class="btn btn-sm rounded-pill {% if active_category == c.id|stringformat:'s' %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ c.name }}</a>
         {% endfor %}
         {% endif %}
     </div>
