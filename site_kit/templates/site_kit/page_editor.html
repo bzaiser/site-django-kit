@@ -354,7 +354,7 @@
                     <div><label class="form-label small fw-semibold mb-1">Titel</label><input type="text" name="title" class="form-control form-control-sm" value="{{ page.title }}"></div>
                     <div><label class="form-label small fw-semibold mb-1">Meta-Beschreibung</label><input type="text" name="meta_description" class="form-control form-control-sm" value="{{ page.meta_description }}"></div>
                     <div class="form-check"><input class="form-check-input" type="checkbox" name="is_home" id="id_is_home" {% if page.is_home %}checked{% endif %}><label class="form-check-label small" for="id_is_home">Startseite</label></div>
-                    <div class="form-check"><input class="form-check-input" type="checkbox" name="is_published" id="id_is_pub" {% if page.is_published %}checked{% endif %}><label class="form-check-label small" for="id_is_pub">Veröffentlicht</label></div>
+                    <div class="ds-risk-public"><div class="form-check m-0"><input class="form-check-input" type="checkbox" name="is_published" id="id_is_pub" {% if page.is_published %}checked{% endif %}><label class="form-check-label small fw-semibold" for="id_is_pub"><i class="bi bi-globe2 me-1 text-warning-emphasis"></i>Veröffentlicht <span class="badge text-bg-warning ms-1">Öffentlich im Internet</span></label></div></div>
                     {% if page.slug == 'news' or page.slug == 'termine' %}
                     <div class="alert alert-info py-2 px-3 small mb-0">
                         <i class="bi bi-info-circle me-1"></i>System-Seite (<strong>{% if page.slug == 'news' %}/news/{% else %}/termine/{% endif %}</strong>): Steht automatisch im Menü. Alle Bausteine links erscheinen direkt auf dieser Seite.
