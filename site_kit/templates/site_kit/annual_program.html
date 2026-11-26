@@ -8,10 +8,14 @@
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
             <h1 class="h2 fw-bold mb-1"><i class="bi bi-journal-richtext text-primary me-2"></i>{{ program_title|default:"Jahresprogramm" }} {{ active_year }}</h1>
-            <p class="text-muted mb-0">{{ site_cfg.tagline|default:"Alle Angebote, Termine, Referenten und Kosten im Überblick." }}</p>
+            <p class="text-muted mb-0">{{ program_description|default:site_cfg.tagline|default:"Alle Angebote, Termine, Referenten und Kosten im Überblick." }}</p>
         </div>
         <div class="d-flex flex-wrap gap-2 d-print-none">
+            {% if program_slug %}
+            <a href="{% url 'site_kit:program_detail_pdf' program_slug %}?jahr={{ active_year }}{% if active_category %}&kategorie={{ active_category }}{% endif %}{% if active_instructor %}&dozent={{ active_instructor }}{% endif %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+            {% else %}
             <a href="{% url 'site_kit:annual_program_pdf' %}?jahr={{ active_year }}{% if active_category %}&kategorie={{ active_category }}{% endif %}{% if active_instructor %}&dozent={{ active_instructor }}{% endif %}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+            {% endif %}
                 <i class="bi bi-file-earmark-pdf me-1"></i>Als PDF / Broschüre
             </a>
             <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="window.print()">

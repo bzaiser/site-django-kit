@@ -81,7 +81,7 @@ def _build_web_menu_items(cfg: SiteConfig, nav_pages, show_news: bool, show_even
         }
     ]
     for p in nav_pages:
-        if p.is_home or p.slug in ("news", "termine", "programm"):
+        if p.is_home or p.slug in ("news", "termine", "programm") or p.slug.startswith("programm-"):
             continue
         base.append({
             "key": f"page:{p.slug}",
@@ -126,6 +126,22 @@ def _build_web_menu_items(cfg: SiteConfig, nav_pages, show_news: bool, show_even
             "match_url_names": ("annual_program",),
             "page_id": None,
         })
+        if apps.is_installed("cal_kit"):
+            try:
+                from cal_kit.models import Program
+                for prog in Program.objects.filter(is_public=True, show_in_nav=True):
+                    base.append({
+                        "key": f"program:{prog.slug}",
+                        "url": reverse("site_kit:program_detail", args=[prog.slug]),
+                        "default_label": prog.title,
+                        "default_icon": "bi-journal-richtext",
+                        "default_display": "text_only",
+                        "default_visible": True,
+                        "match_url_names": (),
+                        "page_id": None,
+                    })
+            except Exception:
+                pass
 
     resolved = []
     for idx, item in enumerate(base):
@@ -470,6 +486,7 @@ def _resolve_block_data(block: PageBlock) -> dict:
         prog = _build_program_data(
             year=cfg.get("program_year"),
             cat_id=cfg.get("calendar_category"),
+            program_slug=(cfg.get("program_slug") or "").strip() or None,
         )
         data["program_items"] = prog["items"]
         data["program_year"] = prog["year"]
@@ -928,12 +945,13 @@ def person_detail_view(request, pk):
     return render(request, "site_kit/person_detail.html", ctx)
 
 
-def _build_program_data(year=None, cat_id=None, instructor_ref=None) -> dict:
+def _build_program_data(year=None, cat_id=None, instructor_ref=None, program_slug=None) -> dict:
     items = []
     categories = []
     instructors = []
     years = []
     program_title = "Jahresprogramm"
+    program_obj = None
     now = timezone.now()
     sel_year = int(year) if year and str(year).isdigit() else None
 
@@ -945,13 +963,31 @@ def _build_program_data(year=None, cat_id=None, instructor_ref=None) -> dict:
             "years": years,
             "year": sel_year or now.year,
             "program_title": program_title,
+            "program_obj": None,
+            "program_description": "",
         }
 
     try:
-        from cal_kit.models import CalendarCategory, CalendarEvent, OfferingTemplate
+        from cal_kit.models import CalendarCategory, CalendarEvent, OfferingTemplate, Program
         from cal_kit.services import get_cal_profile_labels
 
         program_title = get_cal_profile_labels().get("program_title") or "Jahresprogramm"
+        if program_slug:
+            program_obj = Program.objects.filter(slug=program_slug, is_public=True).first()
+            if not program_obj:
+                return {
+                    "items": [],
+                    "categories": [],
+                    "instructors": [],
+                    "years": [now.year],
+                    "year": sel_year or now.year,
+                    "program_title": program_title,
+                    "program_obj": None,
+                    "program_description": "",
+                    "not_found": True,
+                }
+            program_title = program_obj.title
+
         categories = list(CalendarCategory.objects.filter(is_public_default=True).order_by("name").values("id", "name"))
         if not categories:
             categories = list(CalendarCategory.objects.filter(is_shared=True).order_by("name").values("id", "name"))
@@ -979,14 +1015,20 @@ def _build_program_data(year=None, cat_id=None, instructor_ref=None) -> dict:
         if not sel_year:
             sel_year = now.year
 
-        qs = OfferingTemplate.objects.filter(show_in_program=True).select_related("category").order_by("position", "title", "id")
+        base_qs = OfferingTemplate.objects.filter(show_in_program=True, is_active=True)
+        if program_obj:
+            base_qs = base_qs.filter(program=program_obj)
+        else:
+            base_qs = base_qs.filter(program__isnull=True)
+
+        qs = base_qs.select_related("category").order_by("position", "title", "id")
         if cat_id and str(cat_id).isdigit():
             qs = qs.filter(category_id=int(cat_id))
         if instructor_ref:
             qs = qs.filter(instructor_ref=instructor_ref)
 
         seen_instructors = {}
-        for tpl in OfferingTemplate.objects.filter(show_in_program=True).order_by("instructor_name"):
+        for tpl in base_qs.order_by("instructor_name"):
             if tpl.instructor_ref and tpl.instructor_name and tpl.instructor_ref not in seen_instructors:
                 seen_instructors[tpl.instructor_ref] = tpl.instructor_name
         instructors = [{"ref": k, "name": v} for k, v in seen_instructors.items()]
@@ -1036,6 +1078,8 @@ def _build_program_data(year=None, cat_id=None, instructor_ref=None) -> dict:
         "years": years,
         "year": sel_year or now.year,
         "program_title": program_title,
+        "program_obj": program_obj,
+        "program_description": program_obj.description if program_obj else "",
     }
 
 
@@ -1107,14 +1151,22 @@ def offering_preview_view(request, pk):
     return render(request, "site_kit/offering_preview.html", ctx)
 
 
-def annual_program_view(request):
-    sys_page = PublicPage.objects.filter(slug="programm").first()
-    ctx = _public_base_context(request, page=sys_page)
-    ctx["extra_blocks"] = [_resolve_block_data(b) for b in sys_page.blocks.filter(is_visible=True)] if sys_page else []
+def annual_program_view(request, program_slug=None):
     year = (request.GET.get("jahr") or "").strip()
     cat_id = (request.GET.get("kategorie") or "").strip()
     inst_ref = (request.GET.get("dozent") or "").strip()
-    prog = _build_program_data(year=year or None, cat_id=cat_id or None, instructor_ref=inst_ref or None)
+    prog = _build_program_data(
+        year=year or None,
+        cat_id=cat_id or None,
+        instructor_ref=inst_ref or None,
+        program_slug=program_slug,
+    )
+    if prog.get("not_found"):
+        raise Http404()
+    page_slug = f"programm-{program_slug}" if program_slug else "programm"
+    sys_page = PublicPage.objects.filter(slug=page_slug).first()
+    ctx = _public_base_context(request, page=sys_page)
+    ctx["extra_blocks"] = [_resolve_block_data(b) for b in sys_page.blocks.filter(is_visible=True)] if sys_page else []
     ctx.update({
         "program_items": prog["items"],
         "program_categories": prog["categories"],
@@ -1124,11 +1176,14 @@ def annual_program_view(request):
         "active_category": cat_id,
         "active_instructor": inst_ref,
         "program_title": prog["program_title"],
+        "program_obj": prog.get("program_obj"),
+        "program_description": prog.get("program_description", ""),
+        "program_slug": program_slug or "",
     })
     return render(request, "site_kit/annual_program.html", ctx)
 
 
-def annual_program_pdf_view(request):
+def annual_program_pdf_view(request, program_slug=None):
     from io import BytesIO
     from django.template.loader import get_template
 
@@ -1136,7 +1191,14 @@ def annual_program_pdf_view(request):
     year = (request.GET.get("jahr") or "").strip()
     cat_id = (request.GET.get("kategorie") or "").strip()
     inst_ref = (request.GET.get("dozent") or "").strip()
-    prog = _build_program_data(year=year or None, cat_id=cat_id or None, instructor_ref=inst_ref or None)
+    prog = _build_program_data(
+        year=year or None,
+        cat_id=cat_id or None,
+        instructor_ref=inst_ref or None,
+        program_slug=program_slug,
+    )
+    if prog.get("not_found"):
+        raise Http404()
     ctx.update({
         "program_items": prog["items"],
         "active_year": prog["year"],
@@ -1615,18 +1677,83 @@ def manage_view(request):
         return redirect("site_kit:manage")
 
     pages = PublicPage.objects.all()
+    programs = []
+    program_card_mode_choices = []
+    if apps.is_installed("cal_kit"):
+        try:
+            from cal_kit.models import Program
+            programs = list(Program.objects.all())
+            program_card_mode_choices = Program.CARD_MODE_CHOICES
+        except Exception:
+            pass
     return render(
         request,
         "site_kit/manage.html",
         {
             "site_cfg": cfg,
             "pages": pages,
+            "programs": programs,
+            "program_card_mode_choices": program_card_mode_choices,
             "can_edit_site_config": can_edit_config,
             "container_width_choices": SiteConfig.CONTAINER_WIDTH_CHOICES,
             "page_margin_choices": SiteConfig.PAGE_MARGIN_CHOICES,
             "home_nav_mode_choices": SiteConfig.HOME_NAV_MODE_CHOICES,
         },
     )
+
+
+@_editor_required
+def program_manage_view(request):
+    if request.method == "POST" and apps.is_installed("cal_kit"):
+        from cal_kit.models import Program
+        action = (request.POST.get("action") or "create").strip()
+        if action == "create":
+            title = (request.POST.get("title") or "").strip()[:120]
+            if title:
+                p = Program.objects.create(
+                    title=title,
+                    description=(request.POST.get("description") or "").strip(),
+                    card_mode=(request.POST.get("card_mode") or "equal_max").strip(),
+                    show_in_nav=request.POST.get("show_in_nav") == "on",
+                    is_public=request.POST.get("is_public") == "on",
+                )
+                messages.success(request, f"Programm „{p.title}“ erstellt.")
+        elif action == "update":
+            prog = get_object_or_404(Program, pk=request.POST.get("program_id"))
+            title = (request.POST.get("title") or "").strip()[:120]
+            if title:
+                prog.title = title
+            prog.description = (request.POST.get("description") or "").strip()
+            cm = (request.POST.get("card_mode") or "equal_max").strip()
+            if cm in dict(Program.CARD_MODE_CHOICES):
+                prog.card_mode = cm
+            prog.show_in_nav = request.POST.get("show_in_nav") == "on"
+            prog.is_public = request.POST.get("is_public") == "on"
+            prog.save()
+            messages.success(request, f"Programm „{prog.title}“ aktualisiert.")
+        elif action == "delete":
+            prog = get_object_or_404(Program, pk=request.POST.get("program_id"))
+            title = prog.title
+            prog.delete()
+            messages.success(request, f"Programm „{title}“ gelöscht.")
+    return redirect("site_kit:manage")
+
+
+@_editor_required
+def program_blocks_edit_view(request, pk):
+    if not apps.is_installed("cal_kit"):
+        raise Http404()
+    from cal_kit.models import Program
+    prog = get_object_or_404(Program, pk=pk)
+    page, _ = PublicPage.objects.get_or_create(
+        slug=f"programm-{prog.slug}",
+        defaults={
+            "title": prog.title,
+            "is_published": True,
+            "show_in_nav": False,
+        },
+    )
+    return redirect("site_kit:page_edit", pk=page.id)
 
 
 def _warn_if_reserved_nav_page(request, page: PublicPage):

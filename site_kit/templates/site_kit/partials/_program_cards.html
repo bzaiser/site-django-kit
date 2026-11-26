@@ -1,4 +1,4 @@
-<div class="row g-4 site-program-grid" data-card-mode="{{ site_cfg.program_card_mode|default:'equal_max' }}">
+<div class="row g-4 site-program-grid" data-card-mode="{{ program_obj.card_mode|default:site_cfg.program_card_mode|default:'equal_max' }}">
     {% for item in program_items %}
     {% with o=item.offering %}
     <div class="col-12 col-lg-6">

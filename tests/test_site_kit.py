@@ -636,6 +636,70 @@ class SiteKitTests(TestCase):
         self.assertContains(pub, "Max Maler")
         img.image.delete(save=False)
 
+    def test_multi_programs_crud_blocks_nav_and_public_views(self):
+        from cal_kit.models import OfferingTemplate, Program
+
+        self.client.force_login(self.staff)
+        r_create = self.client.post(
+            reverse("site_kit:program_manage"),
+            {
+                "action": "create",
+                "title": "Kinderferienprogramm",
+                "description": "Kreative Ferientage für Kinder",
+                "card_mode": "compact_uniform",
+                "show_in_nav": "on",
+                "is_public": "on",
+            },
+        )
+        self.assertEqual(r_create.status_code, 302)
+        prog = Program.objects.get(title="Kinderferienprogramm")
+        self.assertEqual(prog.slug, "kinderferienprogramm")
+
+        OfferingTemplate.objects.create(
+            user=self.staff,
+            title="Regulärer Malkurs",
+            show_in_program=True,
+            is_active=True,
+        )
+        OfferingTemplate.objects.create(
+            user=self.staff,
+            title="Ferien-Töpfern",
+            program=prog,
+            show_in_program=True,
+            is_active=True,
+        )
+        OfferingTemplate.objects.create(
+            user=self.staff,
+            title="Archiv-Ferienkurs",
+            program=prog,
+            show_in_program=True,
+            is_active=False,
+        )
+
+        # Default program shows only default offerings
+        r_def = self.client.get(reverse("site_kit:annual_program"))
+        self.assertContains(r_def, "Regulärer Malkurs")
+        self.assertNotContains(r_def, "Ferien-Töpfern")
+        self.assertContains(r_def, "Kinderferienprogramm")  # in public nav
+
+        # Custom program shows only its active offerings + compact_uniform + description
+        r_prog = self.client.get(reverse("site_kit:program_detail", args=[prog.slug]))
+        self.assertEqual(r_prog.status_code, 200)
+        self.assertContains(r_prog, "Ferien-Töpfern")
+        self.assertContains(r_prog, "Kreative Ferientage für Kinder")
+        self.assertContains(r_prog, 'data-card-mode="compact_uniform"')
+        self.assertNotContains(r_prog, "Regulärer Malkurs")
+        self.assertNotContains(r_prog, "Archiv-Ferienkurs")
+
+        # PDF view for custom program
+        r_pdf = self.client.get(reverse("site_kit:program_detail_pdf", args=[prog.slug]))
+        self.assertEqual(r_pdf.status_code, 200)
+
+        # Blocks page creation for custom program
+        r_blk = self.client.get(reverse("site_kit:program_blocks_edit", args=[prog.id]))
+        self.assertEqual(r_blk.status_code, 302)
+        self.assertTrue(PublicPage.objects.filter(slug="programm-kinderferienprogramm").exists())
+
 
 if __name__ == "__main__":
     import unittest
