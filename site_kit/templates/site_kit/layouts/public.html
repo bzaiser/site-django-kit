@@ -204,9 +204,34 @@ body[data-menu-style="gradient"] .app-navbar .site-nav-logout {
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="publicNavbarContent">
-            <ul class="navbar-nav {% if public_web_menu_style.align == 'center' %}mx-auto{% elif public_web_menu_style.align == 'right' %}ms-auto me-3{% else %}me-auto{% endif %} mb-2 mb-lg-0">
+            <ul class="navbar-nav {% if public_web_menu_style.align == 'center' %}mx-auto{% elif public_web_menu_style.align == 'right' %}ms-auto me-3{% else %}me-auto{% endif %} {% if public_web_menu_style.overflow_mode != 'single' and public_web_menu_style.overflow_mode != 'auto_more' %}ds-nav-wrap{% endif %} mb-2 mb-lg-0" id="publicNavbarNav"{% if public_web_menu_style.overflow_mode == 'auto_more' %} data-ds-overflow="auto_more"{% endif %}>
                 {% for witem in public_web_menu_items %}
                     {% if witem.visible %}
+                    {% if witem.children %}
+                    <li class="nav-item dropdown">
+                        <a href="{{ witem.url }}"
+                           role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                           class="nav-link dropdown-toggle {% if witem.key == 'home' and request.resolver_match.url_name == 'home' %}active{% elif witem.page_id and page and page.id == witem.page_id %}active{% elif page and page.id in witem.child_page_ids %}active{% elif request.resolver_match.url_name in witem.match_url_names or request.resolver_match.url_name in witem.child_match_url_names %}active{% endif %}"
+                           title="{{ witem.label }}">
+                            {% if witem.display != 'text_only' and witem.icon and witem.icon != 'none' %}<i class="bi {{ witem.icon }}{% if witem.display != 'icon_only' %} me-1{% endif %}"></i>{% endif %}{% if witem.display != 'icon_only' %}{{ witem.label }}{% endif %}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item {% if witem.key == 'home' and request.resolver_match.url_name == 'home' %}active{% elif witem.page_id and page and page.id == witem.page_id %}active{% elif request.resolver_match.url_name in witem.match_url_names %}active{% endif %}" href="{{ witem.url }}">
+                                    {% if witem.icon and witem.icon != 'none' %}<i class="bi {{ witem.icon }} me-2"></i>{% endif %}{{ witem.label }}
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            {% for child in witem.children %}
+                            <li>
+                                <a class="dropdown-item {% if child.page_id and page and page.id == child.page_id %}active{% elif request.resolver_match.url_name in child.match_url_names %}active{% endif %}" href="{{ child.url }}">
+                                    {% if child.icon and child.icon != 'none' %}<i class="bi {{ child.icon }} me-2"></i>{% endif %}{{ child.label }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    {% else %}
                     <li class="nav-item">
                         <a href="{{ witem.url }}"
                            class="nav-link {% if witem.key == 'home' and request.resolver_match.url_name == 'home' %}active{% elif witem.page_id and page and page.id == witem.page_id %}active{% elif request.resolver_match.url_name in witem.match_url_names %}active{% endif %}"
@@ -214,6 +239,7 @@ body[data-menu-style="gradient"] .app-navbar .site-nav-logout {
                             {% if witem.display != 'text_only' and witem.icon and witem.icon != 'none' %}<i class="bi {{ witem.icon }}{% if witem.display != 'icon_only' %} me-1{% endif %}"></i>{% endif %}{% if witem.display != 'icon_only' %}{{ witem.label }}{% endif %}
                         </a>
                     </li>
+                    {% endif %}
                     {% endif %}
                 {% endfor %}
             </ul>

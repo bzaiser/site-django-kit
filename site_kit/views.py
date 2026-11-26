@@ -145,16 +145,19 @@ def _build_web_menu_items(cfg: SiteConfig, nav_pages, show_news: bool, show_even
             "display": disp,
             "visible": visible,
             "order": order,
+            "parent_key": (ov.get("parent_key") or "").strip()[:80] if (ov.get("parent_key") or "").strip() != item["key"] else "",
         })
     resolved.sort(key=lambda x: x["order"])
 
     style = (nav_cfg.get("style") or "inherit").strip()
     align = (nav_cfg.get("align") or "left").strip()
     active_style = (nav_cfg.get("active_style") or "pill").strip()
+    overflow_mode = (nav_cfg.get("overflow_mode") or "wrap").strip()
     style_cfg = {
         "style": style if style in ("inherit", "glass", "gradient", "flat", "solid") else "inherit",
         "align": align if align in ("left", "center", "right") else "left",
         "active_style": active_style if active_style in ("pill", "underline", "bold") else "pill",
+        "overflow_mode": overflow_mode if overflow_mode in ("wrap", "auto_more", "single") else "wrap",
     }
     return resolved, style_cfg
 
@@ -187,6 +190,7 @@ def save_web_menu_config(payload: dict) -> None:
     style = (payload.get("style") or "inherit").strip()
     align = (payload.get("align") or "left").strip()
     active_style = (payload.get("active_style") or "pill").strip()
+    overflow_mode = (payload.get("overflow_mode") or "wrap").strip()
     raw_items = payload.get("items") if isinstance(payload.get("items"), dict) else {}
     clean_items = {}
     for key, val in raw_items.items():
@@ -195,10 +199,14 @@ def save_web_menu_config(payload: dict) -> None:
         disp = (val.get("display") or "text_only").strip()
         if disp not in ("text_only", "icon_text", "icon_only"):
             disp = "text_only"
+        pkey = str(val.get("parent_key") or "").strip()[:80]
+        if pkey == key:
+            pkey = ""
         clean_items[key[:80]] = {
             "label": str(val.get("label") or "").strip()[:40],
             "icon": str(val.get("icon") or "").strip()[:40],
             "display": disp,
+            "parent_key": pkey,
             "visible": bool(val.get("visible", True)),
             "order": int(val.get("order") or 0),
         }
@@ -206,6 +214,7 @@ def save_web_menu_config(payload: dict) -> None:
         "style": style if style in ("inherit", "glass", "gradient", "flat", "solid") else "inherit",
         "align": align if align in ("left", "center", "right") else "left",
         "active_style": active_style if active_style in ("pill", "underline", "bold") else "pill",
+        "overflow_mode": overflow_mode if overflow_mode in ("wrap", "auto_more", "single") else "wrap",
         "items": clean_items,
     }
     home_ov = clean_items.get("home")
@@ -239,7 +248,7 @@ def _public_base_context(request, page: PublicPage | None = None) -> dict:
                 can_access_internal = False
 
     show_default_program_nav, program_nav_label = _get_program_nav_state(nav_keys)
-    web_items, web_style = _build_web_menu_items(
+    web_items_flat, web_style = _build_web_menu_items(
         cfg,
         nav_pages,
         show_news="news" not in nav_keys,
@@ -247,6 +256,23 @@ def _public_base_context(request, page: PublicPage | None = None) -> dict:
         show_program=show_default_program_nav,
         program_label=program_nav_label,
     )
+    visible_web = [w for w in web_items_flat if w.get("visible")]
+    web_by_key = {w["key"]: w for w in visible_web}
+    for w in visible_web:
+        w["children"] = []
+        w["child_page_ids"] = []
+        w["child_match_url_names"] = []
+    web_items = []
+    for w in visible_web:
+        pk = w.get("parent_key") or ""
+        parent = web_by_key.get(pk) if pk and pk != w["key"] else None
+        if parent and not parent.get("parent_key"):
+            parent["children"].append(w)
+            if w.get("page_id"):
+                parent["child_page_ids"].append(w["page_id"])
+            parent["child_match_url_names"].extend(w.get("match_url_names") or ())
+        else:
+            web_items.append(w)
 
     ctx = {
         "site_cfg": cfg,
