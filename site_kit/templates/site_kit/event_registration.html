@@ -39,14 +39,14 @@
                     <input type="text" name="title" class="form-control" value="{% if event_obj %}Anmeldung: {{ event_obj.title }}{% endif %}" required>
                 </div>
                 {% for cf in form_collection.template.custom_fields_json %}
+                {% if cf.key == 'kurs_termin' and event_obj %}
                 <div>
                     <label class="form-label small fw-semibold">{{ cf.label }}</label>
-                    {% if cf.key == 'kurs_termin' and event_obj %}
                     <input type="text" name="custom_{{ cf.key }}" class="form-control" value="{{ event_obj.title }} ({{ event_obj.start_at|date:'d.m.Y' }})">
-                    {% else %}
-                    <input type="{% if cf.type == 'email' %}email{% elif cf.type == 'date' %}date{% else %}text{% endif %}" name="custom_{{ cf.key }}" class="form-control">
-                    {% endif %}
                 </div>
+                {% else %}
+                {% include "site_kit/partials/_public_custom_field.html" with cf=cf %}
+                {% endif %}
                 {% endfor %}
                 <div>
                     <label class="form-label small fw-semibold">Bemerkung</label>

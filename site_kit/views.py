@@ -345,6 +345,10 @@ def _get_event_registration_counts() -> dict[str, int]:
         for e in (
             Entry.objects.filter(collection__template__slug="kurs-anmeldung")
             .exclude(status__iexact="Abgelehnt")
+            .exclude(status__iexact="Abgesagt")
+            .exclude(status__iexact="cancelled")
+            .exclude(status__iexact="warteliste")
+            .exclude(status__iexact="waitlist")
             .only("custom_data_json")
         ):
             data = e.custom_data_json if isinstance(e.custom_data_json, dict) else {}

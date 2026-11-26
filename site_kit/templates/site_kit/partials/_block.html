@@ -271,10 +271,7 @@
                 <input type="text" name="title" class="form-control" required>
             </div>
             {% for cf in item.form_collection.template.custom_fields_json %}
-            <div>
-                <label class="form-label small fw-semibold">{{ cf.label }}</label>
-                <input type="text" name="custom_{{ cf.key }}" class="form-control">
-            </div>
+            {% include "site_kit/partials/_public_custom_field.html" with cf=cf %}
             {% endfor %}
             <div>
                 <label class="form-label small fw-semibold">Nachricht</label>
