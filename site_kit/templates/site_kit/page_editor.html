@@ -65,9 +65,9 @@
                     <div>
                         <span class="badge text-bg-primary me-1">{{ b.get_block_type_display }}</span>
                         <span class="badge text-bg-secondary me-1">{{ b.col_span }}/12</span>
-                        <span class="badge bg-light text-dark border me-1">{{ b.style_variant }}</span>
-                        {% if b.role_filter %}<span class="badge text-bg-info me-1">Rolle: {{ b.role_filter }}</span>{% endif %}
-                        {% if b.category_filter %}<span class="badge text-bg-info me-1">Kategorie: {{ b.category_filter }}</span>{% endif %}
+                        <span class="badge bg-body-secondary text-body border me-1">{{ b.style_variant }}</span>
+                        {% if b.role_filter %}<span class="badge text-bg-info me-1">Ämter / Tätigkeiten: {{ b.role_filter }}</span>{% endif %}
+                        {% if b.category_filter %}<span class="badge text-bg-info me-1">Personengruppe: {{ b.category_filter }}</span>{% endif %}
                         <strong>{{ b.title|default:"(ohne Titel)" }}</strong>
                     </div>
                     <div class="d-flex align-items-center gap-1">
