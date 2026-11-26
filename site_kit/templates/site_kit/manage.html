@@ -116,9 +116,16 @@
                     </div>
                     <div><label class="form-label small fw-semibold mb-1">Kontakt-E-Mail</label><input type="email" name="contact_email" class="form-control form-control-sm" value="{{ site_cfg.contact_email }}"></div>
                     <div><label class="form-label small fw-semibold mb-1">Footer-Text</label><input type="text" name="footer_text" class="form-control form-control-sm" value="{{ site_cfg.footer_text }}"></div>
-                    <div><label class="form-label small fw-semibold mb-1">Impressum</label><textarea name="imprint_text" rows="2" class="form-control form-control-sm">{{ site_cfg.imprint_text }}</textarea></div>
-                    <div><label class="form-label small fw-semibold mb-1">Datenschutz</label><textarea name="privacy_text" rows="2" class="form-control form-control-sm">{{ site_cfg.privacy_text }}</textarea></div>
-                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 align-self-end mt-1">Speichern</button>
+                    <div><label class="form-label small fw-semibold mb-1">Impressum</label><textarea name="imprint_text" rows="4" class="form-control form-control-sm">{{ site_cfg.imprint_text }}</textarea></div>
+                    <div>
+                        <label class="form-label small fw-semibold mb-1">Datenschutz</label>
+                        <textarea name="privacy_text" rows="4" class="form-control form-control-sm">{{ site_cfg.privacy_text }}</textarea>
+                        <div class="form-text" style="font-size:0.72rem;">Dynamische Platzhalter (aktualisieren sich automatisch bei Vorstands-/Adressänderung): <code>{% templatetag openvariable %} vereinsname {% templatetag closevariable %}</code>, <code>{% templatetag openvariable %} vorsitz_name {% templatetag closevariable %}</code>, <code>{% templatetag openvariable %} vorsitz_liste {% templatetag closevariable %}</code>, <code>{% templatetag openvariable %} adresse {% templatetag closevariable %}</code>, <code>{% templatetag openvariable %} telefon {% templatetag closevariable %}</code>, <code>{% templatetag openvariable %} email {% templatetag closevariable %}</code></div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-1 gap-2">
+                        <button type="submit" name="action" value="reset_legal_defaults" formnovalidate onclick="return confirm('Vorhandene Texte für Impressum & Datenschutz wirklich mit den dynamischen Standard-Vorlagen überschreiben?');" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Standard-Vorlagen laden</button>
+                        <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">Speichern</button>
+                    </div>
                 </form>
                 {% else %}
                 <div class="alert alert-light border small mb-0">

@@ -1133,16 +1133,22 @@ def event_registration_view(request):
 
 
 def imprint_view(request):
+    from .legal import DEFAULT_IMPRINT_TEMPLATE, render_legal_text
+
     ctx = _public_base_context(request)
     ctx["legal_title"] = "Impressum"
-    ctx["legal_body"] = ctx["site_cfg"].imprint_text or "Angaben gemäß § 5 DDG folgen."
+    raw = (ctx["site_cfg"].imprint_text or "").strip() or DEFAULT_IMPRINT_TEMPLATE
+    ctx["legal_body"] = render_legal_text(raw, ctx["site_cfg"], request=request)
     return render(request, "site_kit/legal.html", ctx)
 
 
 def privacy_view(request):
+    from .legal import DEFAULT_PRIVACY_TEMPLATE, render_legal_text
+
     ctx = _public_base_context(request)
     ctx["legal_title"] = "Datenschutzerklärung"
-    ctx["legal_body"] = ctx["site_cfg"].privacy_text or "Hinweise zum Datenschutz folgen."
+    raw = (ctx["site_cfg"].privacy_text or "").strip() or DEFAULT_PRIVACY_TEMPLATE
+    ctx["legal_body"] = render_legal_text(raw, ctx["site_cfg"], request=request)
     return render(request, "site_kit/legal.html", ctx)
 
 
@@ -1505,6 +1511,13 @@ def manage_view(request):
     if request.method == "POST":
         if not can_edit_config:
             return HttpResponseForbidden("Nur Leitung oder Administrator darf globale Webseiten-Einstellungen ändern.")
+        if request.POST.get("action") == "reset_legal_defaults":
+            from .legal import DEFAULT_IMPRINT_TEMPLATE, DEFAULT_PRIVACY_TEMPLATE
+            cfg.imprint_text = DEFAULT_IMPRINT_TEMPLATE
+            cfg.privacy_text = DEFAULT_PRIVACY_TEMPLATE
+            cfg.save(update_fields=["imprint_text", "privacy_text"])
+            messages.success(request, "Rechtssichere Standard-Vorlagen für Impressum & Datenschutz geladen.")
+            return redirect("site_kit:manage")
         cfg.site_name = (request.POST.get("site_name") or cfg.site_name).strip()[:140]
         cfg.tagline = (request.POST.get("tagline") or "").strip()[:220]
         cfg.contact_email = (request.POST.get("contact_email") or "").strip()
