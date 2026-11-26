@@ -649,11 +649,14 @@ class SiteKitTests(TestCase):
                 "card_mode": "compact_uniform",
                 "show_in_nav": "on",
                 "is_public": "on",
+                "is_featured": "on",
+                "position": "10",
             },
         )
         self.assertEqual(r_create.status_code, 302)
         prog = Program.objects.get(title="Kinderferienprogramm")
         self.assertEqual(prog.slug, "kinderferienprogramm")
+        self.assertTrue(prog.is_featured)
 
         OfferingTemplate.objects.create(
             user=self.staff,
@@ -676,11 +679,31 @@ class SiteKitTests(TestCase):
             is_active=False,
         )
 
-        # Default program shows only default offerings
-        r_def = self.client.get(reverse("site_kit:annual_program"))
-        self.assertContains(r_def, "Regulärer Malkurs")
-        self.assertNotContains(r_def, "Ferien-Töpfern")
-        self.assertContains(r_def, "Kinderferienprogramm")  # in public nav
+        # Hub page at /programm/ shows featured program & link to /programm/standard/
+        r_hub = self.client.get(reverse("site_kit:annual_program"))
+        self.assertEqual(r_hub.status_code, 200)
+        self.assertContains(r_hub, "Angebote &amp; Programme")
+        self.assertContains(r_hub, "Kinderferienprogramm")
+        self.assertContains(r_hub, "/programm/standard/")
+        # Sub-program sits under parent_key='programm' (dropdown) so top nav is not overloaded
+        from site_kit.views import get_web_menu_studio_context
+        nav_map = {item["key"]: item for item in get_web_menu_studio_context()["web_menu_studio_items"]}
+        self.assertEqual(nav_map["program:kinderferienprogramm"]["parent_key"], "programm")
+
+        # Hub layout switching (carousel, compact, cards_small)
+        for layout_mode in ("carousel", "compact", "cards_small"):
+            self.client.post(
+                reverse("site_kit:program_manage"),
+                {"action": "set_hub_layout", "program_hub_layout": layout_mode},
+            )
+            r_hl = self.client.get(reverse("site_kit:annual_program"))
+            self.assertContains(r_hl, f'data-hub-layout="{layout_mode}"')
+
+        # /programm/standard/ shows only ungrouped default offerings
+        r_std = self.client.get(reverse("site_kit:program_standard"))
+        self.assertEqual(r_std.status_code, 200)
+        self.assertContains(r_std, "Regulärer Malkurs")
+        self.assertNotContains(r_std, "Ferien-Töpfern")
 
         # Custom program shows only its active offerings + compact_uniform + description
         r_prog = self.client.get(reverse("site_kit:program_detail", args=[prog.slug]))

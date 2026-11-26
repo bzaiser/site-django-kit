@@ -54,11 +54,12 @@ def _get_program_nav_state(nav_keys: set[str]) -> tuple[bool, str]:
     program_nav_label = "Programm"
     if apps.is_installed("cal_kit"):
         try:
-            from cal_kit.models import OfferingTemplate
+            from cal_kit.models import OfferingTemplate, Program
             from cal_kit.services import get_cal_profile_labels
-            if "programm" not in nav_keys and "jahresprogramm" not in nav_keys and OfferingTemplate.objects.filter(show_in_program=True).exists():
+            has_programs = Program.objects.filter(is_public=True).exists()
+            if "programm" not in nav_keys and "jahresprogramm" not in nav_keys and (has_programs or OfferingTemplate.objects.filter(show_in_program=True).exists()):
                 show_default_program_nav = True
-            program_nav_label = get_cal_profile_labels().get("program_title") or "Programm"
+            program_nav_label = "Angebote & Programme" if has_programs else (get_cal_profile_labels().get("program_title") or "Programm")
         except Exception:
             pass
     return show_default_program_nav, program_nav_label
@@ -123,13 +124,14 @@ def _build_web_menu_items(cfg: SiteConfig, nav_pages, show_news: bool, show_even
             "default_icon": "bi-journal-richtext",
             "default_display": "text_only",
             "default_visible": True,
-            "match_url_names": ("annual_program",),
+            "match_url_names": ("annual_program", "program_detail", "program_standard"),
             "page_id": None,
         })
         if apps.is_installed("cal_kit"):
             try:
-                from cal_kit.models import Program
-                for prog in Program.objects.filter(is_public=True, show_in_nav=True):
+                from cal_kit.models import OfferingTemplate, Program
+                pub_progs = list(Program.objects.filter(is_public=True, show_in_nav=True))
+                for prog in pub_progs:
                     base.append({
                         "key": f"program:{prog.slug}",
                         "url": reverse("site_kit:program_detail", args=[prog.slug]),
@@ -137,6 +139,19 @@ def _build_web_menu_items(cfg: SiteConfig, nav_pages, show_news: bool, show_even
                         "default_icon": "bi-journal-richtext",
                         "default_display": "text_only",
                         "default_visible": True,
+                        "default_parent_key": "programm",
+                        "match_url_names": (),
+                        "page_id": None,
+                    })
+                if pub_progs and OfferingTemplate.objects.filter(show_in_program=True, is_active=True, program__isnull=True).exists():
+                    base.append({
+                        "key": "program:standard",
+                        "url": reverse("site_kit:program_standard"),
+                        "default_label": "Allgemeine Angebote",
+                        "default_icon": "bi-collection",
+                        "default_display": "text_only",
+                        "default_visible": True,
+                        "default_parent_key": "programm",
                         "match_url_names": (),
                         "page_id": None,
                     })
@@ -156,6 +171,8 @@ def _build_web_menu_items(cfg: SiteConfig, nav_pages, show_news: bool, show_even
             order = int(ov.get("order", (idx + 1) * 10))
         except (TypeError, ValueError):
             order = (idx + 1) * 10
+        raw_parent = ov.get("parent_key") if "parent_key" in ov else item.get("default_parent_key", "")
+        parent_key = (raw_parent or "").strip()[:80]
         resolved.append({
             **item,
             "label": label,
@@ -163,7 +180,7 @@ def _build_web_menu_items(cfg: SiteConfig, nav_pages, show_news: bool, show_even
             "display": disp,
             "visible": visible,
             "order": order,
-            "parent_key": (ov.get("parent_key") or "").strip()[:80] if (ov.get("parent_key") or "").strip() != item["key"] else "",
+            "parent_key": parent_key if parent_key != item["key"] else "",
         })
     resolved.sort(key=lambda x: x["order"])
 
@@ -1151,7 +1168,63 @@ def offering_preview_view(request, pk):
     return render(request, "site_kit/offering_preview.html", ctx)
 
 
-def annual_program_view(request, program_slug=None):
+def _render_program_hub(request):
+    from cal_kit.models import CalendarEvent, OfferingTemplate, Program
+
+    now = timezone.now()
+    sys_page = PublicPage.objects.filter(slug="programm").first()
+    ctx = _public_base_context(request, page=sys_page)
+    ctx["extra_blocks"] = [_resolve_block_data(b) for b in sys_page.blocks.filter(is_visible=True)] if sys_page else []
+
+    progs = list(Program.objects.filter(is_public=True).order_by("position", "title", "id"))
+    featured_programs = []
+    browse_programs = []
+    for p in progs:
+        off_qs = OfferingTemplate.objects.filter(program=p, is_active=True, show_in_program=True)
+        ev_list = list(
+            CalendarEvent.objects.filter(
+                offering_template__program=p,
+                offering_template__is_active=True,
+                is_public=True,
+                end_at__gte=now,
+            )
+            .order_by("start_at")[:3]
+        )
+        entry = {
+            "program": p,
+            "offering_count": off_qs.count(),
+            "upcoming_events": ev_list,
+            "url": reverse("site_kit:program_detail", args=[p.slug]),
+        }
+        if p.is_featured:
+            featured_programs.append(entry)
+        else:
+            browse_programs.append(entry)
+
+    standard_count = OfferingTemplate.objects.filter(
+        program__isnull=True, is_active=True, show_in_program=True
+    ).count()
+    upcoming_total = CalendarEvent.objects.filter(is_public=True, end_at__gte=now).count()
+    cfg = ctx["site_cfg"]
+    ctx.update({
+        "featured_programs": featured_programs,
+        "browse_programs": browse_programs,
+        "hub_layout": getattr(cfg, "program_hub_layout", "cards_large") or "cards_large",
+        "standard_count": standard_count,
+        "upcoming_total": upcoming_total,
+    })
+    return render(request, "site_kit/program_hub.html", ctx)
+
+
+def program_standard_view(request):
+    return annual_program_view(request, program_slug=None, force_standard=True)
+
+
+def annual_program_view(request, program_slug=None, force_standard=False):
+    if program_slug is None and not force_standard and apps.is_installed("cal_kit"):
+        from cal_kit.models import Program
+        if Program.objects.filter(is_public=True).exists():
+            return _render_program_hub(request)
     year = (request.GET.get("jahr") or "").strip()
     cat_id = (request.GET.get("kategorie") or "").strip()
     inst_ref = (request.GET.get("dozent") or "").strip()
@@ -1698,6 +1771,7 @@ def manage_view(request):
             "container_width_choices": SiteConfig.CONTAINER_WIDTH_CHOICES,
             "page_margin_choices": SiteConfig.PAGE_MARGIN_CHOICES,
             "home_nav_mode_choices": SiteConfig.HOME_NAV_MODE_CHOICES,
+            "program_hub_layout_choices": SiteConfig.PROGRAM_HUB_LAYOUT_CHOICES,
         },
     )
 
@@ -1707,15 +1781,28 @@ def program_manage_view(request):
     if request.method == "POST" and apps.is_installed("cal_kit"):
         from cal_kit.models import Program
         action = (request.POST.get("action") or "create").strip()
-        if action == "create":
+        if action == "set_hub_layout":
+            cfg = SiteConfig.get_solo()
+            hl = (request.POST.get("program_hub_layout") or "cards_large").strip()
+            if hl in dict(SiteConfig.PROGRAM_HUB_LAYOUT_CHOICES):
+                cfg.program_hub_layout = hl
+                cfg.save(update_fields=["program_hub_layout"])
+                messages.success(request, "Darstellung der Übersichtsseite gespeichert.")
+        elif action == "create":
             title = (request.POST.get("title") or "").strip()[:120]
             if title:
+                try:
+                    pos = int(request.POST.get("position") or 0)
+                except (TypeError, ValueError):
+                    pos = 0
                 p = Program.objects.create(
                     title=title,
                     description=(request.POST.get("description") or "").strip(),
                     card_mode=(request.POST.get("card_mode") or "equal_max").strip(),
                     show_in_nav=request.POST.get("show_in_nav") == "on",
                     is_public=request.POST.get("is_public") == "on",
+                    is_featured=request.POST.get("is_featured") == "on",
+                    position=pos,
                 )
                 messages.success(request, f"Programm „{p.title}“ erstellt.")
         elif action == "update":
@@ -1727,8 +1814,13 @@ def program_manage_view(request):
             cm = (request.POST.get("card_mode") or "equal_max").strip()
             if cm in dict(Program.CARD_MODE_CHOICES):
                 prog.card_mode = cm
+            try:
+                prog.position = int(request.POST.get("position") or 0)
+            except (TypeError, ValueError):
+                pass
             prog.show_in_nav = request.POST.get("show_in_nav") == "on"
             prog.is_public = request.POST.get("is_public") == "on"
+            prog.is_featured = request.POST.get("is_featured") == "on"
             prog.save()
             messages.success(request, f"Programm „{prog.title}“ aktualisiert.")
         elif action == "delete":

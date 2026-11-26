@@ -20,6 +20,12 @@ class SiteConfig(models.Model):
         ("icon", "Nur Home-Icon"),
         ("off", "Ausblenden"),
     ]
+    PROGRAM_HUB_LAYOUT_CHOICES = [
+        ("cards_large", "Große Karten (Standard)"),
+        ("cards_small", "Kleine Kacheln (3-spaltig)"),
+        ("compact", "Kompaktliste"),
+        ("carousel", "Karussell / Slider"),
+    ]
 
     site_name = models.CharField(max_length=140, default="Mein Verein")
     tagline = models.CharField(max_length=220, blank=True, default="")
@@ -40,6 +46,7 @@ class SiteConfig(models.Model):
     events_layout = models.CharField(max_length=16, default="row")
     events_image_position = models.CharField(max_length=16, default="left")
     program_card_mode = models.CharField(max_length=24, default="equal_max")
+    program_hub_layout = models.CharField(max_length=24, choices=PROGRAM_HUB_LAYOUT_CHOICES, default="cards_large")
 
     @classmethod
     def get_solo(cls):
