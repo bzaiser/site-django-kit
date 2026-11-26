@@ -1039,6 +1039,74 @@ def _build_program_data(year=None, cat_id=None, instructor_ref=None) -> dict:
     }
 
 
+@login_required
+def offering_preview_view(request, pk):
+    if not apps.is_installed("cal_kit"):
+        raise Http404("cal_kit ist nicht installiert.")
+    from cal_kit.models import OfferingTemplate
+
+    tpl = get_object_or_404(OfferingTemplate.objects.select_related("category"), pk=pk)
+    can_view = _has_site_editor_access(request.user) or tpl.user_id == request.user.id
+    if not can_view:
+        try:
+            from cal_kit.views import _can_write_calendar
+            can_view = _can_write_calendar(request.user)
+        except Exception:
+            can_view = False
+    if not can_view:
+        return HttpResponseForbidden("Kein Zugriff auf die Vorschau.")
+
+    sys_page = PublicPage.objects.filter(slug="programm").first()
+    ctx = _public_base_context(request, page=sys_page)
+    now = timezone.now()
+    reg_counts = _get_event_registration_counts()
+    people_map = {}
+    if apps.is_installed("domain_kit"):
+        try:
+            from domain_kit.models import Person
+            for p in Person.objects.all():
+                people_map[f"person:{p.id}"] = p
+        except Exception:
+            pass
+
+    ev_rows = []
+    for ev in tpl.events.filter(is_public=True).order_by("start_at"):
+        cnt = reg_counts.get(str(ev.id), 0)
+        is_past = ev.end_at < now
+        is_full = bool(ev.max_participants and cnt >= ev.max_participants)
+        ev_rows.append({
+            "event": ev,
+            "reg_count": cnt,
+            "is_past": is_past,
+            "is_full": is_full,
+            "can_register": bool(ev.allow_registration and not is_past and not is_full),
+        })
+
+    inst_person = people_map.get(tpl.instructor_ref)
+    resp_person = people_map.get(tpl.responsible_ref)
+    raw_d = (tpl.description or "").strip()
+    if raw_d:
+        if "<" in raw_d and ">" in raw_d:
+            d_html = _sanitize_rich_html(raw_d)
+        else:
+            from django.utils.html import escape, linebreaks
+            d_html = linebreaks(escape(raw_d))
+    else:
+        d_html = ""
+
+    ctx.update({
+        "preview_offering": tpl,
+        "program_items": [{
+            "offering": tpl,
+            "description_html": d_html,
+            "events": ev_rows,
+            "instructor_person": inst_person if (inst_person and inst_person.is_public) else None,
+            "responsible_person": resp_person,
+        }],
+    })
+    return render(request, "site_kit/offering_preview.html", ctx)
+
+
 def annual_program_view(request):
     sys_page = PublicPage.objects.filter(slug="programm").first()
     ctx = _public_base_context(request, page=sys_page)

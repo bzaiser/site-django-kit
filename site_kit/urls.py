@@ -17,6 +17,7 @@ urlpatterns = [
     path("personen/<int:pk>/", views.person_detail_view, name="person_detail"),
     path("programm/", views.annual_program_view, name="annual_program"),
     path("programm/pdf/", views.annual_program_pdf_view, name="annual_program_pdf"),
+    path("programm/vorschau/<int:pk>/", views.offering_preview_view, name="offering_preview"),
     path("anmeldung/", views.event_registration_view, name="event_registration"),
     path("impressum/", views.imprint_view, name="imprint"),
     path("datenschutz/", views.privacy_view, name="privacy"),
