@@ -302,14 +302,30 @@ class PageBlock(models.Model):
         }.get(self.image_aspect, "")
 
     @property
-    def role_filter(self) -> str:
+    def role_filters(self) -> list[str]:
         cfg = self.config_json if isinstance(self.config_json, dict) else {}
-        return (cfg.get("role_filter") or "").strip()
+        vals = cfg.get("role_filters")
+        if isinstance(vals, list):
+            return [str(v).strip() for v in vals if str(v).strip()]
+        single = (cfg.get("role_filter") or "").strip()
+        return [single] if single else []
+
+    @property
+    def category_filters(self) -> list[str]:
+        cfg = self.config_json if isinstance(self.config_json, dict) else {}
+        vals = cfg.get("category_filters")
+        if isinstance(vals, list):
+            return [str(v).strip() for v in vals if str(v).strip()]
+        single = (cfg.get("category_filter") or "").strip()
+        return [single] if single else []
+
+    @property
+    def role_filter(self) -> str:
+        return ", ".join(self.role_filters)
 
     @property
     def category_filter(self) -> str:
-        cfg = self.config_json if isinstance(self.config_json, dict) else {}
-        return (cfg.get("category_filter") or "").strip()
+        return ", ".join(self.category_filters)
 
     @property
     def is_compact(self) -> bool:

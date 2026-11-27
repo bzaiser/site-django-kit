@@ -140,11 +140,7 @@
                             </select>
                         </div>
                         <div class="col-md-4">
-                            <select name="image_position" class="form-select form-select-sm">
-                                <option value="right">Bild rechts</option>
-                                <option value="left">Bild links</option>
-                                <option value="top">Bild oben</option>
-                            </select>
+                            {% include "site_kit/partials/_image_position_matrix.html" with value="middle-right" %}
                         </div>
                         <div class="col-md-4 d-flex align-items-center">
                             <div class="form-check mb-0">
@@ -194,16 +190,24 @@
                     <div class="row g-2 d-none" id="addPeopleFilterWrap">
                         <input type="hidden" name="people_layout_present" value="1">
                         <div class="col-md-6">
-                            <select name="role_filter" class="form-select form-select-sm">
-                                <option value="">Personen-Filter: Alle Rollen</option>
-                                {% for rn in domain_roles %}<option value="{{ rn }}">Rolle: {{ rn }}</option>{% endfor %}
-                            </select>
+                            <div class="small fw-semibold mb-1">Personen-Filter (Rollen, Mehrfachauswahl)</div>
+                            <div class="d-flex flex-wrap gap-2 border rounded p-2 bg-body-tertiary" style="max-height:110px;overflow-y:auto;">
+                                {% for rn in domain_roles %}
+                                <label class="form-check-label small"><input type="checkbox" name="role_filters" value="{{ rn }}" class="form-check-input me-1">{{ rn }}</label>
+                                {% empty %}
+                                <span class="small text-muted">Alle Rollen</span>
+                                {% endfor %}
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <select name="category_filter" class="form-select form-select-sm">
-                                <option value="">Kategorie: Alle</option>
-                                {% for cn in domain_person_categories %}<option value="{{ cn }}">Kategorie: {{ cn }}</option>{% endfor %}
-                            </select>
+                            <div class="small fw-semibold mb-1">Personen-Filter (Kategorien, Mehrfachauswahl)</div>
+                            <div class="d-flex flex-wrap gap-2 border rounded p-2 bg-body-tertiary" style="max-height:110px;overflow-y:auto;">
+                                {% for cn in domain_person_categories %}
+                                <label class="form-check-label small"><input type="checkbox" name="category_filters" value="{{ cn }}" class="form-check-input me-1">{{ cn }}</label>
+                                {% empty %}
+                                <span class="small text-muted">Alle Kategorien</span>
+                                {% endfor %}
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <select name="people_layout" class="form-select form-select-sm">
@@ -222,7 +226,7 @@
                         <div class="col-md-4">
                             <select name="person_card_style" class="form-select form-select-sm">
                                 <option value="card" selected>Optik: Standard-Karte</option>
-                                <option value="horizontal">Optik: Visitenkarte (Bild links)</option>
+                                <option value="horizontal">Optik: Visitenkarte (Position per 3×3-Matrix)</option>
                                 <option value="flat">Optik: Dezent (ohne Rahmen)</option>
                             </select>
                         </div>
@@ -419,12 +423,8 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label small mb-1">Bildposition</label>
-                        <select name="image_position" class="form-select form-select-sm">
-                            <option value="right" {% if b.image_position == 'right' %}selected{% endif %}>Bild rechts</option>
-                            <option value="left" {% if b.image_position == 'left' %}selected{% endif %}>Bild links</option>
-                            <option value="top" {% if b.image_position == 'top' %}selected{% endif %}>Bild oben</option>
-                        </select>
+                        <label class="form-label small mb-1 d-block">Bildposition (3×3-Matrix)</label>
+                        {% include "site_kit/partials/_image_position_matrix.html" with value=b.image_position %}
                     </div>
                 </div>
                 <div class="row g-2">
@@ -480,18 +480,24 @@
                 <input type="hidden" name="people_layout_present" value="1">
                 <div class="row g-2">
                     <div class="col-md-6">
-                        <label class="form-label small mb-1">Personen-Filter (Rolle)</label>
-                        <select name="role_filter" class="form-select form-select-sm">
-                            <option value="">Alle Rollen</option>
-                            {% for rn in domain_roles %}<option value="{{ rn }}" {% if b.role_filter == rn %}selected{% endif %}>{{ rn }}</option>{% endfor %}
-                        </select>
+                        <label class="form-label small mb-1">Personen-Filter (Rollen, Mehrfachauswahl)</label>
+                        <div class="d-flex flex-wrap gap-2 border rounded p-2 bg-body-tertiary" style="max-height:110px;overflow-y:auto;">
+                            {% for rn in domain_roles %}
+                            <label class="form-check-label small"><input type="checkbox" name="role_filters" value="{{ rn }}" class="form-check-input me-1" {% if rn in b.role_filters %}checked{% endif %}>{{ rn }}</label>
+                            {% empty %}
+                            <span class="small text-muted">Keine Rollen vorhanden</span>
+                            {% endfor %}
+                        </div>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label small mb-1">Personen-Filter (Kategorie)</label>
-                        <select name="category_filter" class="form-select form-select-sm">
-                            <option value="">Alle Kategorien</option>
-                            {% for cn in domain_person_categories %}<option value="{{ cn }}" {% if b.category_filter == cn %}selected{% endif %}>{{ cn }}</option>{% endfor %}
-                        </select>
+                        <label class="form-label small mb-1">Personen-Filter (Kategorien, Mehrfachauswahl)</label>
+                        <div class="d-flex flex-wrap gap-2 border rounded p-2 bg-body-tertiary" style="max-height:110px;overflow-y:auto;">
+                            {% for cn in domain_person_categories %}
+                            <label class="form-check-label small"><input type="checkbox" name="category_filters" value="{{ cn }}" class="form-check-input me-1" {% if cn in b.category_filters %}checked{% endif %}>{{ cn }}</label>
+                            {% empty %}
+                            <span class="small text-muted">Keine Kategorien vorhanden</span>
+                            {% endfor %}
+                        </div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small mb-1">Layout</label>
@@ -513,7 +519,7 @@
                         <label class="form-label small mb-1">Karten-Aussehen</label>
                         <select name="person_card_style" class="form-select form-select-sm">
                             <option value="card" {% if b.config_json.person_card_style == 'card' or not b.config_json.person_card_style %}selected{% endif %}>Standard-Karte</option>
-                            <option value="horizontal" {% if b.config_json.person_card_style == 'horizontal' %}selected{% endif %}>Visitenkarte (Bild links)</option>
+                            <option value="horizontal" {% if b.config_json.person_card_style == 'horizontal' %}selected{% endif %}>Visitenkarte (Position per 3×3-Matrix)</option>
                             <option value="flat" {% if b.config_json.person_card_style == 'flat' %}selected{% endif %}>Dezent (ohne Rahmen)</option>
                         </select>
                     </div>
@@ -838,6 +844,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             });
         }
+    });
+
+    document.addEventListener("click", function (ev) {
+        const dot = ev.target.closest(".site-matrix-dot");
+        if (!dot) return;
+        const wrap = dot.closest("[data-matrix-wrap]");
+        if (!wrap) return;
+        const inp = wrap.querySelector("[data-matrix-input]");
+        const lbl = wrap.querySelector("[data-matrix-label]");
+        if (inp) inp.value = dot.getAttribute("data-pos") || "middle-right";
+        if (lbl) lbl.textContent = dot.getAttribute("data-label") || "";
+        wrap.querySelectorAll(".site-matrix-dot").forEach(function (b) {
+            const active = b === dot;
+            b.classList.toggle("btn-primary", active);
+            b.classList.toggle("btn-outline-secondary", !active);
+        });
     });
 });
 </script>

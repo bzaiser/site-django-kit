@@ -1,8 +1,9 @@
 {% load i18n %}{% if item.block.block_type == 'hero' %}
+{% with ip=item.image_pos_norm|default:'middle-right' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
     <div class="{% if item.block.style_variant == 'flat' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4 p-md-5{% endif %}{% endif %}">
-        <div class="row align-items-center g-4 {% if item.block.image_position == 'left' %}flex-lg-row-reverse{% elif item.block.image_position == 'top' %}flex-column-reverse{% endif %}">
-            <div class="{% if item.block.resolved_image_url and item.block.image_position != 'top' %}col-lg-7{% else %}col-12{% endif %}">
+        <div class="row g-4 {% if ip == 'top-left' or ip == 'top-center' or ip == 'top-right' %}flex-column-reverse{% elif ip == 'bottom-left' or ip == 'bottom-center' or ip == 'bottom-right' or ip == 'middle-center' %}flex-column{% elif ip == 'middle-left' %}flex-lg-row-reverse align-items-center{% else %}align-items-center{% endif %}">
+            <div class="{% if item.block.resolved_image_url and ip == 'middle-left' or item.block.resolved_image_url and ip == 'middle-right' %}col-lg-7{% else %}col-12{% endif %} {% if ip == 'middle-center' %}text-center{% endif %}">
                 {% if item.block.title %}<h1 class="{% if item.block.is_compact %}h3{% else %}display-6{% endif %} fw-bold mb-2">{{ item.block.title }}</h1>{% endif %}
                 {% if item.block.subtitle %}<p class="lead {% if item.block.is_dark_surface %}opacity-75{% else %}text-muted{% endif %} mb-3">{{ item.block.subtitle }}</p>{% endif %}
                 {% if item.block.body %}<p class="mb-3">{{ item.block.body }}</p>{% endif %}
@@ -11,19 +12,21 @@
                 {% endif %}
             </div>
             {% if item.block.resolved_image_url %}
-            <div class="{% if item.block.image_position == 'top' %}col-12{% else %}col-lg-5{% endif %} text-center">
+            <div class="{% if ip == 'middle-left' or ip == 'middle-right' %}col-lg-5{% else %}col-12{% endif %} {% if ip == 'top-left' or ip == 'bottom-left' %}text-start{% elif ip == 'top-right' or ip == 'bottom-right' %}text-end{% else %}text-center{% endif %}">
                 <img src="{{ item.block.resolved_image_url }}" alt="{{ item.block.title }}" class="img-fluid {{ item.block.image_shape_class }}" {% if item.block.image_aspect_style %}style="{{ item.block.image_aspect_style }}"{% endif %}>
             </div>
             {% endif %}
         </div>
     </div>
 </section>
+{% endwith %}
 
 {% elif item.block.block_type == 'text_image' %}
+{% with ip=item.image_pos_norm|default:'middle-right' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
     <div class="{% if item.block.style_variant == 'flat' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
-        <div class="row align-items-center g-4 {% if item.block.image_position == 'left' %}flex-md-row-reverse{% elif item.block.image_position == 'top' %}flex-column-reverse{% endif %}">
-            <div class="{% if item.block.resolved_image_url and item.block.image_position != 'top' %}col-md-7{% else %}col-12{% endif %}">
+        <div class="row g-4 {% if ip == 'top-left' or ip == 'top-center' or ip == 'top-right' %}flex-column-reverse{% elif ip == 'bottom-left' or ip == 'bottom-center' or ip == 'bottom-right' or ip == 'middle-center' %}flex-column{% elif ip == 'middle-left' %}flex-md-row-reverse align-items-center{% else %}align-items-center{% endif %}">
+            <div class="{% if item.block.resolved_image_url and ip == 'middle-left' or item.block.resolved_image_url and ip == 'middle-right' %}col-md-7{% else %}col-12{% endif %} {% if ip == 'middle-center' %}text-center{% endif %}">
                 {% if item.block.title %}<h2 class="h4 fw-bold mb-2">{{ item.block.title }}</h2>{% endif %}
                 {% if item.block.subtitle %}<div class="{% if item.block.is_dark_surface %}opacity-75{% else %}text-muted{% endif %} mb-2">{{ item.block.subtitle }}</div>{% endif %}
                 {% if item.block.body %}<div class="text-break">{{ item.block.body|linebreaksbr }}</div>{% endif %}
@@ -32,13 +35,14 @@
                 {% endif %}
             </div>
             {% if item.block.resolved_image_url %}
-            <div class="{% if item.block.image_position == 'top' %}col-12{% else %}col-md-5{% endif %} text-center">
+            <div class="{% if ip == 'middle-left' or ip == 'middle-right' %}col-md-5{% else %}col-12{% endif %} {% if ip == 'top-left' or ip == 'bottom-left' %}text-start{% elif ip == 'top-right' or ip == 'bottom-right' %}text-end{% else %}text-center{% endif %}">
                 <img src="{{ item.block.resolved_image_url }}" alt="{{ item.block.title }}" class="img-fluid {{ item.block.image_shape_class }}" {% if item.block.image_aspect_style %}style="{{ item.block.image_aspect_style }}"{% endif %}>
             </div>
             {% endif %}
         </div>
     </div>
 </section>
+{% endwith %}
 
 {% elif item.block.block_type == 'stats_bar' %}
 <section class="mb-4">
@@ -166,16 +170,17 @@
         <div class="row g-3">
         {% endif %}
         {% for p in item.people %}
+        {% with pip=item.person_image_position|default:'top-center' %}
         <div class="{% if item.people_layout == 'carousel' %}site-card-carousel-item{% elif item.person_col_span == 12 %}col-12{% elif item.person_col_span == 6 %}col-12 col-md-6{% elif item.person_col_span == 3 %}col-12 col-sm-6 col-lg-3{% else %}col-12 col-sm-6 col-md-4{% endif %}">
             <div class="{% if item.person_card_style == 'flat' %}border-bottom pb-2 h-100{% else %}card shadow-sm h-100{% endif %}">
-                <div class="{% if item.person_card_style == 'flat' %}py-2{% else %}card-body {% if item.block.is_compact %}p-2{% else %}p-3{% endif %}{% endif %} d-flex {% if item.person_card_style == 'horizontal' or item.block.is_compact %}flex-row align-items-center gap-3{% else %}flex-column gap-2{% endif %} position-relative">
+                <div class="{% if item.person_card_style == 'flat' %}py-2{% else %}card-body {% if item.block.is_compact %}p-2{% else %}p-3{% endif %}{% endif %} d-flex {% if item.person_card_style == 'horizontal' or item.block.is_compact %}{% if pip == 'top-right' or pip == 'middle-right' or pip == 'bottom-right' %}flex-row-reverse{% else %}flex-row{% endif %} {% if pip == 'top-left' or pip == 'top-right' %}align-items-start{% elif pip == 'bottom-left' or pip == 'bottom-right' %}align-items-end{% else %}align-items-center{% endif %} gap-3{% else %}{% if pip == 'bottom-left' or pip == 'bottom-center' or pip == 'bottom-right' %}flex-column-reverse{% elif pip == 'middle-left' %}flex-row align-items-center{% elif pip == 'middle-right' %}flex-row-reverse align-items-center{% else %}flex-column{% endif %} gap-2{% endif %} position-relative">
                     {% if item.show_photos %}
-                    <div class="flex-shrink-0 {% if item.person_card_style != 'horizontal' and not item.block.is_compact %}text-center{% endif %}">
+                    <div class="flex-shrink-0 {% if item.person_card_style != 'horizontal' and not item.block.is_compact and pip != 'middle-left' and pip != 'middle-right' %}{% if pip == 'top-left' or pip == 'bottom-left' %}text-start{% elif pip == 'top-right' or pip == 'bottom-right' %}text-end{% else %}text-center{% endif %}{% endif %}">
                         {% if p.photo %}
-                        <img src="{% url 'domain_kit:person_photo' p.id %}" alt="{{ p.display_name|default:p.first_name }}" class="object-fit-cover {{ item.block.image_shape_class }}" style="width: {% if item.block.is_compact %}48px{% elif item.person_card_style == 'horizontal' %}64px{% else %}84px{% endif %}; height: {% if item.block.is_compact %}48px{% elif item.person_card_style == 'horizontal' %}64px{% else %}84px{% endif %};">
+                        <img src="{% url 'domain_kit:person_photo' p.id %}" alt="{{ p.display_name|default:p.first_name }}" class="object-fit-cover {{ item.block.image_shape_class }}" style="width: {% if item.block.is_compact %}48px{% elif item.person_card_style == 'horizontal' or pip == 'middle-left' or pip == 'middle-right' %}64px{% else %}84px{% endif %}; height: {% if item.block.is_compact %}48px{% elif item.person_card_style == 'horizontal' or pip == 'middle-left' or pip == 'middle-right' %}64px{% else %}84px{% endif %};">
                         {% else %}
-                        <span class="bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center {{ item.block.image_shape_class }}" style="width: {% if item.block.is_compact %}48px{% elif item.person_card_style == 'horizontal' %}64px{% else %}84px{% endif %}; height: {% if item.block.is_compact %}48px{% elif item.person_card_style == 'horizontal' %}64px{% else %}84px{% endif %};">
-                            <i class="bi bi-person-fill {% if item.block.is_compact %}fs-4{% elif item.person_card_style == 'horizontal' %}fs-3{% else %}fs-1{% endif %}"></i>
+                        <span class="bg-primary bg-opacity-10 text-primary d-inline-flex align-items-center justify-content-center {{ item.block.image_shape_class }}" style="width: {% if item.block.is_compact %}48px{% elif item.person_card_style == 'horizontal' or pip == 'middle-left' or pip == 'middle-right' %}64px{% else %}84px{% endif %}; height: {% if item.block.is_compact %}48px{% elif item.person_card_style == 'horizontal' or pip == 'middle-left' or pip == 'middle-right' %}64px{% else %}84px{% endif %};">
+                            <i class="bi bi-person-fill {% if item.block.is_compact %}fs-4{% elif item.person_card_style == 'horizontal' or pip == 'middle-left' or pip == 'middle-right' %}fs-3{% else %}fs-1{% endif %}"></i>
                         </span>
                         {% endif %}
                     </div>
@@ -217,6 +222,7 @@
                 </div>
             </div>
         </div>
+        {% endwith %}
         {% empty %}
         <div class="col-12"><div class="text-muted small py-2">Keine öffentlichen Kontakte hinterlegt.</div></div>
         {% endfor %}

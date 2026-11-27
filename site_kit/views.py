@@ -479,24 +479,49 @@ def _resolve_block_data(block: PageBlock, request=None) -> dict:
             except Exception:
                 data["events"] = []
 
+    elif block.block_type in ("hero", "text_image"):
+        raw_pos = (cfg.get("image_position") or "middle-right").strip()
+        pos_norm = {
+            "left": "middle-left",
+            "right": "middle-right",
+            "top": "top-center",
+            "bottom": "bottom-center",
+        }.get(raw_pos, raw_pos)
+        data["image_pos_norm"] = pos_norm
+
     elif block.block_type == "people_grid" and apps.is_installed("domain_kit"):
         try:
+            from django.db.models import Q
             from domain_kit.models import Person
 
             qs = Person.objects.filter(is_public=True).prefetch_related("roles")
-            role_filter = (cfg.get("role_filter") or "").strip()
-            if role_filter:
-                qs = qs.filter(roles__name__icontains=role_filter).distinct()
-            cat_filter = (cfg.get("category_filter") or "").strip()
-            if cat_filter:
-                qs = qs.filter(category__name__icontains=cat_filter)
+            role_filters = block.role_filters
+            if role_filters:
+                q_role = Q()
+                for rf in role_filters:
+                    q_role |= Q(roles__name__icontains=rf)
+                qs = qs.filter(q_role).distinct()
+            cat_filters = block.category_filters
+            if cat_filters:
+                q_cat = Q()
+                for cf in cat_filters:
+                    q_cat |= Q(category__name__icontains=cf)
+                qs = qs.filter(q_cat).distinct()
             data["people"] = _resolve_people_with_courses(qs[:limit])
         except Exception:
             data["people"] = []
         data["show_photos"] = cfg.get("show_photos", True)
         data["person_col_span"] = int(cfg.get("person_col_span") or 4)
-        data["person_card_style"] = cfg.get("person_card_style") or "card"
+        pcs = cfg.get("person_card_style") or "card"
+        data["person_card_style"] = pcs
         data["people_layout"] = cfg.get("people_layout") or "grid"
+        raw_pos = (cfg.get("image_position") or "").strip()
+        if not raw_pos or raw_pos in ("right", "left", "top", "bottom"):
+            if pcs == "horizontal":
+                raw_pos = "middle-right" if raw_pos == "right" else "middle-left"
+            else:
+                raw_pos = {"left": "middle-left", "right": "top-center", "top": "top-center", "bottom": "bottom-center"}.get(raw_pos, "top-center")
+        data["person_image_position"] = raw_pos
 
     elif block.block_type == "downloads" and apps.is_installed("domain_kit"):
         try:
@@ -1673,8 +1698,14 @@ def _parse_block_layout_config(request, existing_cfg=None) -> dict:
     if "bg_overlay" in request.POST:
         bo = (request.POST.get("bg_overlay") or "dark").strip()
         cfg["bg_overlay"] = bo if bo in ("dark", "light", "none") else "dark"
-    ip = (request.POST.get("image_position") or cfg.get("image_position") or "right").strip()
-    cfg["image_position"] = ip if ip in ("right", "left", "top") else "right"
+    ip = (request.POST.get("image_position") or cfg.get("image_position") or "middle-right").strip()
+    valid_ip = (
+        "right", "left", "top", "bottom",
+        "top-left", "top-center", "top-right",
+        "middle-left", "middle-center", "middle-right",
+        "bottom-left", "bottom-center", "bottom-right",
+    )
+    cfg["image_position"] = ip if ip in valid_ip else "middle-right"
     ishape = (request.POST.get("image_shape") or cfg.get("image_shape") or "rounded").strip()
     cfg["image_shape"] = ishape if ishape in ("rounded", "square", "circle") else "rounded"
     iasp = (request.POST.get("image_aspect") or cfg.get("image_aspect") or "auto").strip()
@@ -1718,10 +1749,18 @@ def _parse_block_layout_config(request, existing_cfg=None) -> dict:
         cfg["linked_event_id"] = (request.POST.get("linked_event_id") or "").strip()[:20]
     if "linked_person_id" in request.POST:
         cfg["linked_person_id"] = (request.POST.get("linked_person_id") or "").strip()[:20]
-    if "role_filter" in request.POST:
-        cfg["role_filter"] = (request.POST.get("role_filter") or "").strip()[:60]
-    if "category_filter" in request.POST:
-        cfg["category_filter"] = (request.POST.get("category_filter") or "").strip()[:60]
+    if "role_filters" in request.POST or "people_layout_present" in request.POST or "role_filter" in request.POST:
+        r_vals = [v.strip()[:60] for v in request.POST.getlist("role_filters") if v.strip()]
+        if not r_vals and (request.POST.get("role_filter") or "").strip():
+            r_vals = [(request.POST.get("role_filter") or "").strip()[:60]]
+        cfg["role_filters"] = r_vals
+        cfg["role_filter"] = ", ".join(r_vals)[:60]
+    if "category_filters" in request.POST or "people_layout_present" in request.POST or "category_filter" in request.POST:
+        c_vals = [v.strip()[:60] for v in request.POST.getlist("category_filters") if v.strip()]
+        if not c_vals and (request.POST.get("category_filter") or "").strip():
+            c_vals = [(request.POST.get("category_filter") or "").strip()[:60]]
+        cfg["category_filters"] = c_vals
+        cfg["category_filter"] = ", ".join(c_vals)[:60]
     if "collection_slug" in request.POST:
         cfg["collection_slug"] = (request.POST.get("collection_slug") or "").strip()[:80]
     if "calendar_category" in request.POST:

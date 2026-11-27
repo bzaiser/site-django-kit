@@ -758,6 +758,43 @@ class SiteKitTests(TestCase):
         self.assertContains(r_on, "Ganz langer Beschreibungstext")
         self.assertContains(r_on, "Kommende Termine")
 
+    def test_people_grid_multi_filters_and_matrix_image_position(self):
+        from domain_kit.models import Category, Person, Role
+
+        r_vor = Role.objects.create(name="Vorstand")
+        r_bei = Role.objects.create(name="Beirat")
+        r_mit = Role.objects.create(name="Mitglied")
+        c_kun = Category.objects.create(name="Kunst", purpose="person")
+        c_mus = Category.objects.create(name="Musik", purpose="person")
+
+        p1 = Person.objects.create(first_name="Anna", last_name="Vor", category=c_kun, is_public=True)
+        p1.roles.add(r_vor)
+        p2 = Person.objects.create(first_name="Ben", last_name="Bei", category=c_mus, is_public=True)
+        p2.roles.add(r_bei)
+        p3 = Person.objects.create(first_name="Carl", last_name="Mit", category=c_kun, is_public=True)
+        p3.roles.add(r_mit)
+
+        self.client.force_login(self.staff)
+        p = PublicPage.objects.create(title="Team Matrix", is_published=True)
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "add_block",
+                "block_type": "people_grid",
+                "people_layout_present": "1",
+                "role_filters": ["Vorstand", "Beirat"],
+                "category_filters": ["Kunst", "Musik"],
+                "person_card_style": "horizontal",
+                "image_position": "bottom-left",
+                "title": "Team",
+            },
+        )
+        pub = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(pub, "Anna Vor")
+        self.assertContains(pub, "Ben Bei")
+        self.assertNotContains(pub, "Carl Mit")
+        self.assertContains(pub, "align-items-end")
+
 
 if __name__ == "__main__":
     import unittest
