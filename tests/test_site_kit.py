@@ -1128,6 +1128,7 @@ class SiteKitTests(TestCase):
         self.assertContains(res, 'value="Grafik"')
         self.assertContains(res, 'Mitgliedschaft')
         self.assertContains(res, 'col-md-6')
+        self.assertContains(res, 'd-print-flex')
 
 
 if __name__ == "__main__":
