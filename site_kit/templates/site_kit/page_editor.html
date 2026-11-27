@@ -367,6 +367,20 @@
                             <label class="form-label small text-muted mb-1">oder YouTube / Vimeo / Video-URL</label>
                             <input type="url" name="video_url" class="form-control form-control-sm" placeholder="https://youtu.be/... oder https://vimeo.com/...">
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted mb-1">Rand / Größe</label>
+                            <select name="video_padding" class="form-select form-select-sm">
+                                <option value="normal" selected>Standard-Rand</option>
+                                <option value="narrow">Schmaler Rand</option>
+                                <option value="none">Randlos (Card-Größe)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check mb-1">
+                                <input type="checkbox" name="video_autoplay" value="1" id="addVidAuto" class="form-check-input">
+                                <label class="form-check-label small" for="addVidAuto">Autostart (stumm, Endlosschleife)</label>
+                            </div>
+                        </div>
                     </div>
                     <input type="text" name="title" class="form-control form-control-sm" placeholder="Überschrift">
                     <input type="text" name="subtitle" class="form-control form-control-sm" placeholder="Untertitel (optional)">
@@ -750,11 +764,28 @@
                         <label class="form-label small mb-1">oder YouTube / Vimeo / Video-URL</label>
                         <input type="url" name="video_url" value="{{ b.config_json.video_url|default:'' }}" class="form-control form-control-sm">
                     </div>
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1">Rand / Größe</label>
+                        <select name="video_padding" class="form-select form-select-sm">
+                            <option value="normal" {% if b.config_json.video_padding == 'normal' or not b.config_json.video_padding %}selected{% endif %}>Standard-Rand</option>
+                            <option value="narrow" {% if b.config_json.video_padding == 'narrow' %}selected{% endif %}>Schmaler Rand</option>
+                            <option value="none" {% if b.config_json.video_padding == 'none' %}selected{% endif %}>Randlos (Card-Größe)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <div class="form-check mb-1">
+                            <input type="checkbox" name="video_autoplay" value="1" id="editAutoVid-{{ b.id }}" class="form-check-input" {% if b.config_json.video_autoplay %}checked{% endif %}>
+                            <label class="form-check-label small" for="editAutoVid-{{ b.id }}">Autostart (stumm, Endlosschleife)</label>
+                        </div>
+                    </div>
                     {% if b.video_file %}
-                    <div class="col-12">
-                        <div class="form-check">
+                    <div class="col-12 d-flex flex-wrap align-items-center gap-3">
+                        <a href="{{ b.video_file.url }}" target="_blank" class="badge bg-body-secondary text-body border text-decoration-none">
+                            <i class="bi bi-film me-1 text-primary"></i>{{ b.video_file.name }}
+                        </a>
+                        <div class="form-check mb-0">
                             <input type="checkbox" name="remove_video" value="1" id="editRemVid-{{ b.id }}" class="form-check-input">
-                            <label class="form-check-label small" for="editRemVid-{{ b.id }}">Hochgeladenes Video entfernen</label>
+                            <label class="form-check-label small text-danger" for="editRemVid-{{ b.id }}">Hochgeladenes Video entfernen</label>
                         </div>
                     </div>
                     {% endif %}

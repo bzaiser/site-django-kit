@@ -646,10 +646,17 @@ def _resolve_block_data(block: PageBlock, request=None) -> dict:
     elif block.block_type == "video":
         v_url = block.resolved_video_url
         provider, embed_url = _parse_video_embed(v_url)
+        autoplay = bool(cfg.get("video_autoplay", False))
+        if autoplay and embed_url:
+            sep = "&" if "?" in embed_url else "?"
+            embed_url = f"{embed_url}{sep}autoplay=1&mute=1"
+        pad = (cfg.get("video_padding") or "normal").strip()
         data["video_src"] = v_url
         data["video_provider"] = provider
         data["video_embed_url"] = embed_url
         data["video_is_file"] = bool(block.video_file) or (bool(v_url) and not embed_url)
+        data["video_padding"] = pad if pad in ("normal", "narrow", "none") else "normal"
+        data["video_autoplay"] = autoplay
 
     elif block.block_type == "stats_bar":
         raw_stats = []
@@ -1969,6 +1976,9 @@ def _parse_block_layout_config(request, existing_cfg=None) -> dict:
         cfg["links"] = parsed_links
     if "video_url" in request.POST:
         cfg["video_url"] = (request.POST.get("video_url") or "").strip()[:300]
+        vp = (request.POST.get("video_padding") or "normal").strip()
+        cfg["video_padding"] = vp if vp in ("normal", "narrow", "none") else "normal"
+        cfg["video_autoplay"] = request.POST.get("video_autoplay") in ("1", "on", "true")
     if "gallery_layout" in request.POST:
         gl = (request.POST.get("gallery_layout") or "grid").strip()
         cfg["gallery_layout"] = gl if gl in ("grid", "carousel") else "grid"

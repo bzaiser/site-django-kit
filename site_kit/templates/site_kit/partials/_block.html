@@ -618,16 +618,20 @@
 
 {% elif item.block.block_type == 'video' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
-    <div class="{% if item.block.style_variant == 'flat' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
-        {% if item.block.title %}<h2 class="h4 fw-bold mb-1">{{ item.block.title }}</h2>{% endif %}
-        {% if item.block.subtitle %}<div class="text-muted small mb-3">{{ item.block.subtitle }}</div>{% endif %}
+    <div class="{% if item.block.style_variant == 'flat' %}{% else %}card-body {% if item.video_padding == 'none' %}p-0{% elif item.video_padding == 'narrow' %}p-2{% elif item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
+        {% if item.block.title or item.block.subtitle %}
+        <div class="{% if item.video_padding == 'none' %}px-3 pt-3{% endif %}">
+            {% if item.block.title %}<h2 class="h4 fw-bold mb-1">{{ item.block.title }}</h2>{% endif %}
+            {% if item.block.subtitle %}<div class="text-muted small mb-3">{{ item.block.subtitle }}</div>{% endif %}
+        </div>
+        {% endif %}
         {% if item.video_is_file and item.video_src %}
-        <video controls preload="metadata" class="w-100 rounded-4 shadow-sm" style="max-height: 520px;">
+        <video controls {% if item.video_autoplay %}autoplay muted loop playsinline{% endif %} preload="metadata" class="w-100 d-block {% if item.video_padding != 'none' %}rounded-4 shadow-sm{% endif %}" style="max-height: 520px;">
             <source src="{{ item.video_src }}">
             Ihr Browser unterstützt keine Video-Wiedergabe.
         </video>
         {% elif item.video_embed_url %}
-        <div class="ratio ratio-16x9 rounded-4 overflow-hidden bg-body-tertiary border d-flex align-items-center justify-content-center" data-video-embed="{{ item.video_embed_url }}">
+        <div class="ratio ratio-16x9 {% if item.video_padding != 'none' %}rounded-4{% endif %} overflow-hidden bg-body-tertiary border d-flex align-items-center justify-content-center" data-video-embed="{{ item.video_embed_url }}">
             <div class="text-center p-4 d-flex flex-column align-items-center justify-content-center gap-2">
                 <i class="bi bi-play-circle fs-1 text-primary"></i>
                 <div class="fw-semibold">{{ item.video_provider }}-Video laden</div>
@@ -636,9 +640,9 @@
             </div>
         </div>
         {% else %}
-        <div class="text-muted small py-2">Noch kein Video hinterlegt.</div>
+        <div class="text-muted small py-2 {% if item.video_padding == 'none' %}px-3{% endif %}">Noch kein Video hinterlegt.</div>
         {% endif %}
-        {% if item.block.body %}<div class="small text-muted mt-2">{{ item.block.body|linebreaksbr }}</div>{% endif %}
+        {% if item.block.body %}<div class="small text-muted mt-2 {% if item.video_padding == 'none' %}px-3 pb-3{% endif %}">{{ item.block.body|linebreaksbr }}</div>{% endif %}
     </div>
 </section>
 

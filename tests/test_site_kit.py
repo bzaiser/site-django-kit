@@ -1134,6 +1134,25 @@ class SiteKitTests(TestCase):
         self.assertNotContains(res, '[[ORG_NAME]]')
         self.assertContains(res, 'd-print-flex')
 
+    def test_video_block_padding_autoplay_and_filename_display(self):
+        self.client.force_login(self.staff)
+        p = PublicPage.objects.create(title="VideoOpts", is_published=True)
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "add_block",
+                "block_type": "video",
+                "title": "Clip",
+                "video_url": "https://example.com/clip.mp4",
+                "video_padding": "none",
+                "video_autoplay": "1",
+            },
+        )
+        self.client.logout()
+        pub = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(pub, "card-body p-0")
+        self.assertContains(pub, "autoplay muted loop playsinline")
+
 
 if __name__ == "__main__":
     import unittest
