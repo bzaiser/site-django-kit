@@ -33,9 +33,9 @@
             </div>
             <div class="card-body p-4">
                 {% if form_header_text %}
-                <div class="bg-body-tertiary border rounded-3 p-3 mb-4 small text-body-secondary">
+                <p class="border-start border-3 border-primary ps-3 py-1 mb-4 text-body-secondary lh-base">
                     {{ form_header_text|linebreaksbr }}
-                </div>
+                </p>
                 {% endif %}
                 <form method="post" action="{% url 'list_kit:public_submit' form_collection.id %}" class="row g-3">
                     {% csrf_token %}

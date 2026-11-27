@@ -1070,6 +1070,7 @@ class SiteKitTests(TestCase):
         tpl = ListTemplate.objects.create(
             name="Mitgliedsantrag Optionen",
             slug="mitgliedsantrag-opts-tpl",
+            description="Aufnahme in den [[ORG_NAME]].",
             content_type="form_inbox",
             custom_fields_json=[
                 {
@@ -1129,6 +1130,8 @@ class SiteKitTests(TestCase):
         self.assertContains(res, 'Mitgliedschaft')
         self.assertContains(res, 'col-md-6')
         self.assertContains(res, 'custom_nachname')
+        self.assertContains(res, 'Aufnahme in den Mein Verein.')
+        self.assertNotContains(res, '[[ORG_NAME]]')
         self.assertContains(res, 'd-print-flex')
 
 

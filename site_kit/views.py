@@ -1616,20 +1616,36 @@ def _resolve_form_header_text(raw_text: str) -> str:
             line += f" · BIC: {branding['bic']}"
         bank_lines.append(line)
 
+    org_name = (branding.get("org_name") or "").strip()
+    if not org_name:
+        try:
+            org_name = (SiteConfig.get_solo().site_name or "").strip()
+        except Exception:
+            org_name = ""
+
     if not text:
-        parts = [p for p in (branding.get("org_name"), branding.get("address"), branding.get("website")) if p]
+        parts = [p for p in (org_name, branding.get("address"), branding.get("website")) if p]
         return " · ".join(parts)
 
+    bank_str = "\n".join(bank_lines) if bank_lines else "—"
     replacements = {
-        "{{ vereinsname }}": branding.get("org_name") or "",
-        "{{ organisationsname }}": branding.get("org_name") or "",
+        "[[ORG_NAME]]": org_name,
+        "[[ORG_ADDRESS]]": branding.get("address") or "",
+        "[[ORG_EMAIL]]": branding.get("email") or "",
+        "[[ORG_WEBSITE]]": branding.get("website") or "",
+        "[[ORG_PHONE]]": branding.get("phone") or "",
+        "[[ORG_IBAN]]": branding.get("iban") or "",
+        "[[ORG_BIC]]": branding.get("bic") or "",
+        "[[BANKVERBINDUNGEN]]": bank_str,
+        "{{ vereinsname }}": org_name,
+        "{{ organisationsname }}": org_name,
         "{{ adresse }}": branding.get("address") or "",
         "{{ webseite }}": branding.get("website") or "",
         "{{ email }}": branding.get("email") or "",
         "{{ telefon }}": branding.get("phone") or "",
         "{{ iban }}": branding.get("iban") or "",
         "{{ bic }}": branding.get("bic") or "",
-        "{{ bankverbindungen }}": "\n".join(bank_lines) if bank_lines else "—",
+        "{{ bankverbindungen }}": bank_str,
     }
     for k, v in replacements.items():
         text = text.replace(k, v)
