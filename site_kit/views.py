@@ -2109,6 +2109,18 @@ def program_manage_view(request):
                     bcfg["program_slug"] = prog.slug
                     blk.config_json = bcfg
                     blk.save(update_fields=["config_json"])
+            sc = SiteConfig.get_solo()
+            nav_cfg = dict(sc.nav_config_json) if isinstance(sc.nav_config_json, dict) else {}
+            nav_items = dict(nav_cfg.get("items") or {}) if isinstance(nav_cfg.get("items"), dict) else {}
+            old_nav_key = f"program:{old_slug}"
+            new_nav_key = f"program:{prog.slug}"
+            if old_nav_key in nav_items or new_nav_key in nav_items:
+                entry = dict(nav_items.pop(old_nav_key, None) or nav_items.get(new_nav_key) or {})
+                entry["visible"] = prog.show_in_nav
+                nav_items[new_nav_key] = entry
+                nav_cfg["items"] = nav_items
+                sc.nav_config_json = nav_cfg
+                sc.save(update_fields=["nav_config_json"])
             messages.success(request, f"Programm „{prog.title}“ aktualisiert.")
         elif action == "delete":
             prog = get_object_or_404(Program, pk=request.POST.get("program_id"))

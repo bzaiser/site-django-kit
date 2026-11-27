@@ -750,6 +750,7 @@ class SiteKitTests(TestCase):
         r_new = self.client.get(reverse("site_kit:program_detail", args=["ferien-sommer"]))
         self.assertEqual(r_new.status_code, 200)
         self.assertContains(r_new, "Ferien-Töpfern")
+        self.assertContains(r_new, 'href="/programm/ferien-sommer/"')
 
     def test_events_list_settings_hide_description_by_default_and_group_toggle(self):
         from cal_kit.models import CalendarEvent

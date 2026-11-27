@@ -217,14 +217,14 @@ body[data-menu-style="gradient"] .app-navbar .site-nav-logout {
                         </a>
                         <ul class="dropdown-menu">
                             <li>
-                                <a class="dropdown-item {% if witem.key == 'home' and request.resolver_match.url_name == 'home' %}active{% elif witem.page_id and page and page.id == witem.page_id %}active{% elif request.resolver_match.url_name in witem.match_url_names %}active{% endif %}" href="{{ witem.url }}">
+                                <a class="dropdown-item {% if witem.key == 'home' and request.resolver_match.url_name == 'home' %}active{% elif witem.page_id and page and page.id == witem.page_id %}active{% elif witem.url == request.path %}active{% elif witem.key != 'programm' and request.resolver_match.url_name in witem.match_url_names %}active{% endif %}" href="{{ witem.url }}">
                                     {% if witem.icon and witem.icon != 'none' %}<i class="bi {{ witem.icon }} me-2"></i>{% endif %}{{ witem.label }}
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             {% for child in witem.children %}
                             <li>
-                                <a class="dropdown-item {% if child.page_id and page and page.id == child.page_id %}active{% elif request.resolver_match.url_name in child.match_url_names %}active{% endif %}" href="{{ child.url }}">
+                                <a class="dropdown-item {% if child.page_id and page and page.id == child.page_id %}active{% elif child.url == request.path %}active{% elif request.resolver_match.url_name in child.match_url_names %}active{% endif %}" href="{{ child.url }}">
                                     {% if child.icon and child.icon != 'none' %}<i class="bi {{ child.icon }} me-2"></i>{% endif %}{{ child.label }}
                                 </a>
                             </li>
