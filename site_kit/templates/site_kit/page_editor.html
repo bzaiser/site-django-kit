@@ -453,10 +453,13 @@
                     <div class="col-md-4">
                         <label class="form-label small mb-1">Hintergrundbild (Upload)</label>
                         <input type="file" name="bg_image" accept="image/*" class="form-control form-control-sm">
-                        {% if b.bg_image %}
-                        <div class="form-check mt-1">
-                            <input type="checkbox" name="remove_bg_image" value="1" id="rmBgImg{{ b.id }}" class="form-check-input">
-                            <label class="form-check-label small" for="rmBgImg{{ b.id }}">Hintergrundbild entfernen</label>
+                        {% if b.resolved_bg_image_url %}
+                        <div class="d-flex align-items-center gap-2 mt-1">
+                            <img src="{{ b.resolved_bg_image_url }}" alt="" class="rounded border object-fit-cover" style="width: 48px; height: 36px;">
+                            <div class="form-check mb-0">
+                                <input type="checkbox" name="remove_bg_image" value="1" id="rmBgImg{{ b.id }}" class="form-check-input">
+                                <label class="form-check-label small text-danger" for="rmBgImg{{ b.id }}">Hintergrundbild entfernen</label>
+                            </div>
                         </div>
                         {% endif %}
                     </div>
@@ -741,6 +744,15 @@
                     <div class="col-md-6"><input type="file" name="image" accept="image/*" class="form-control form-control-sm"></div>
                     <div class="col-md-6"><input type="url" name="image_url" value="{{ b.image_url }}" class="form-control form-control-sm" placeholder="Bild-URL"></div>
                 </div>
+                {% if b.resolved_image_url %}
+                <div class="d-flex align-items-center gap-2">
+                    <img src="{{ b.resolved_image_url }}" alt="" class="rounded border object-fit-cover" style="width: 48px; height: 36px;">
+                    <div class="form-check mb-0">
+                        <input type="checkbox" name="remove_image" value="1" id="editRemoveImg-{{ b.id }}" class="form-check-input">
+                        <label class="form-check-label small text-danger" for="editRemoveImg-{{ b.id }}">Bild entfernen</label>
+                    </div>
+                </div>
+                {% endif %}
                 {% endif %}
             </div>
             <div class="modal-footer">

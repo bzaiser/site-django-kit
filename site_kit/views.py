@@ -2254,6 +2254,10 @@ def _apply_block_bg_image(request, block: PageBlock) -> None:
         block.bg_image = request.FILES["bg_image"]
     elif request.POST.get("remove_bg_image") == "1":
         block.bg_image = None
+        if isinstance(block.config_json, dict) and block.config_json.get("bg_image_url"):
+            cfg = dict(block.config_json)
+            cfg["bg_image_url"] = ""
+            block.config_json = cfg
 
 
 @_editor_required
@@ -2334,6 +2338,7 @@ def page_edit_view(request, pk):
                     block.image = request.FILES["image"]
                 elif request.POST.get("remove_image") == "1":
                     block.image = None
+                    block.image_url = ""
                 _apply_block_bg_image(request, block)
                 if request.FILES.get("video_file"):
                     block.video_file = request.FILES["video_file"]

@@ -970,6 +970,35 @@ class SiteKitTests(TestCase):
         self.assertEqual(r_ed.status_code, 200)
         self.assertContains(r_ed, "/formular/mitgliedsantrag/")
 
+    def test_block_editor_shows_remove_image_and_clears_image_and_bg_image(self):
+        self.client.force_login(self.staff)
+        p = PublicPage.objects.create(title="Bild Entfernen", is_published=True)
+        blk = PageBlock.objects.create(
+            page=p,
+            block_type="hero",
+            title="Hero",
+            image_url="https://example.com/hero.jpg",
+            config_json={"bg_image_url": "https://example.com/bg.jpg"},
+        )
+        r_ed = self.client.get(reverse("site_kit:page_edit", args=[p.id]))
+        self.assertContains(r_ed, f'id="editRemoveImg-{blk.id}"')
+        self.assertContains(r_ed, f'id="rmBgImg{blk.id}"')
+
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "edit_block",
+                "block_id": str(blk.id),
+                "block_type": "hero",
+                "title": "Hero",
+                "remove_image": "1",
+                "remove_bg_image": "1",
+            },
+        )
+        blk.refresh_from_db()
+        self.assertEqual(blk.resolved_image_url, "")
+        self.assertEqual(blk.config_json.get("bg_image_url", ""), "")
+
 
 if __name__ == "__main__":
     import unittest
