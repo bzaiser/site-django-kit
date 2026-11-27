@@ -426,7 +426,7 @@ def _attach_news_preview_html(entries):
     return entries
 
 
-def _resolve_block_data(block: PageBlock) -> dict:
+def _resolve_block_data(block: PageBlock, request=None) -> dict:
     cfg = block.config_json if isinstance(block.config_json, dict) else {}
     limit = int(cfg.get("limit") or 6)
     data = {"block": block, "config": cfg}
@@ -461,17 +461,23 @@ def _resolve_block_data(block: PageBlock) -> dict:
             data["form_collection"] = None
 
     elif block.block_type == "upcoming_events" and apps.is_installed("cal_kit"):
-        try:
-            from cal_kit.models import CalendarEvent
-            now = timezone.now()
-            qs = CalendarEvent.objects.filter(is_public=True, end_at__gte=now)
-            cal_cat = (cfg.get("calendar_category") or "").strip()
-            if cal_cat.isdigit():
-                qs = qs.filter(category_id=int(cal_cat))
-                data["calendar_category_id"] = cal_cat
-            data["events"] = list(qs.order_by("start_at")[: max(1, min(50, limit))])
-        except Exception:
-            data["events"] = []
+        if cfg.get("full_list") or getattr(block.page, "slug", "") == "termine":
+            ev_data = _build_events_list_data(request)
+            data["full_list"] = True
+            data["site_cfg"] = SiteConfig.get_solo()
+            data.update(ev_data)
+        else:
+            try:
+                from cal_kit.models import CalendarEvent
+                now = timezone.now()
+                qs = CalendarEvent.objects.filter(is_public=True, end_at__gte=now)
+                cal_cat = (cfg.get("calendar_category") or "").strip()
+                if cal_cat.isdigit():
+                    qs = qs.filter(category_id=int(cal_cat))
+                    data["calendar_category_id"] = cal_cat
+                data["events"] = list(qs.order_by("start_at")[: max(1, min(50, limit))])
+            except Exception:
+                data["events"] = []
 
     elif block.block_type == "people_grid" and apps.is_installed("domain_kit"):
         try:
@@ -499,15 +505,32 @@ def _resolve_block_data(block: PageBlock) -> dict:
         except Exception:
             data["documents"] = []
 
+    elif block.block_type == "program_hub":
+        data.update(_build_program_hub_data())
+
     elif block.block_type == "annual_program":
+        p_slug = (cfg.get("program_slug") or "").strip() or None
+        if not p_slug and getattr(block.page, "slug", "").startswith("programm-"):
+            p_slug = block.page.slug[len("programm-"):]
+        yr = (request.GET.get("jahr") or "").strip() if request else cfg.get("program_year")
+        cid = (request.GET.get("kategorie") or "").strip() if request else cfg.get("calendar_category")
+        iref = (request.GET.get("dozent") or "").strip() if request else None
         prog = _build_program_data(
-            year=cfg.get("program_year"),
-            cat_id=cfg.get("calendar_category"),
-            program_slug=(cfg.get("program_slug") or "").strip() or None,
+            year=yr or None,
+            cat_id=cid or None,
+            instructor_ref=iref or None,
+            program_slug=p_slug,
         )
         data["program_items"] = prog["items"]
         data["program_year"] = prog["year"]
         data["program_title"] = prog["program_title"]
+        data["program_obj"] = prog.get("program_obj")
+        data["program_description"] = prog.get("program_description", "")
+        data["program_slug"] = p_slug or ""
+        if request and getattr(block.page, "slug", "").startswith("programm"):
+            data["program_years"] = prog["years"]
+            data["program_categories"] = prog["categories"]
+            data["active_category"] = cid or ""
 
     elif block.block_type == "photo_gallery":
         col_slug = (cfg.get("collection_slug") or "").strip() or None
@@ -706,15 +729,12 @@ def news_detail_view(request, slug):
     return render(request, "site_kit/news_detail.html", ctx)
 
 
-def events_list_view(request):
-    sys_page = PublicPage.objects.filter(slug="termine").first()
-    ctx = _public_base_context(request, page=sys_page)
-    ctx["extra_blocks"] = [_resolve_block_data(b) for b in sys_page.blocks.filter(is_visible=True)] if sys_page else []
-    ctx["has_news_feed_block"] = any(item["block"].block_type == "news_feed" for item in ctx["extra_blocks"])
+def _build_events_list_data(request=None) -> dict:
     events = []
     categories = []
     grouped_events = []
-    active_calendar = (request.GET.get("kalender") or "").strip()
+    active_calendar = (request.GET.get("kalender") or "").strip() if request else ""
+    cfg = SiteConfig.get_solo()
 
     if apps.is_installed("cal_kit"):
         try:
@@ -818,7 +838,7 @@ def events_list_view(request):
 
             events = filtered[:80]
 
-            if getattr(ctx["site_cfg"], "events_group_by_category", True):
+            if getattr(cfg, "events_group_by_category", True):
                 groups_map = {}
                 for item in events:
                     cat = item["category"]
@@ -846,14 +866,79 @@ def events_list_view(request):
             logging.getLogger(__name__).exception("events_list_view failed")
             events = []
 
-    ctx.update({
+    return {
         "events": events,
         "categories": categories,
         "grouped_events": grouped_events,
         "active_calendar": active_calendar,
         "total_public_events": sum(c["count"] for c in categories),
-    })
-    return render(request, "site_kit/events_list.html", ctx)
+    }
+
+
+def _ensure_system_page(slug: str) -> PublicPage:
+    titles = {"news": "News", "termine": "Termine", "programm": "Angebote & Programme"}
+    title = titles.get(slug)
+    if not title and slug.startswith("programm-") and apps.is_installed("cal_kit"):
+        from cal_kit.models import Program
+        prog = Program.objects.filter(slug=slug[len("programm-"):]).first()
+        title = prog.title if prog else "Programm"
+    page, _ = PublicPage.objects.get_or_create(
+        slug=slug,
+        defaults={
+            "title": (title or slug)[:160],
+            "is_published": True,
+            "show_in_nav": False,
+        },
+    )
+    if not page.blocks.exists():
+        if slug == "news":
+            PageBlock.objects.create(
+                page=page,
+                block_type="news_feed",
+                col_span=12,
+                title="Aktuelles & News",
+                config_json={"limit": 18, "style_variant": "card"},
+                position=10,
+            )
+        elif slug == "termine":
+            PageBlock.objects.create(
+                page=page,
+                block_type="upcoming_events",
+                col_span=12,
+                title="Öffentliche Termine",
+                config_json={"limit": 80, "full_list": True, "style_variant": "card"},
+                position=10,
+            )
+        elif slug == "programm":
+            has_progs = False
+            if apps.is_installed("cal_kit"):
+                from cal_kit.models import Program
+                has_progs = Program.objects.filter(is_public=True).exists()
+            PageBlock.objects.create(
+                page=page,
+                block_type="program_hub" if has_progs else "annual_program",
+                col_span=12,
+                title="Angebote & Programme" if has_progs else "",
+                config_json={},
+                position=10,
+            )
+        elif slug.startswith("programm-"):
+            PageBlock.objects.create(
+                page=page,
+                block_type="annual_program",
+                col_span=12,
+                title="",
+                config_json={"program_slug": slug[len("programm-"):]},
+                position=10,
+            )
+    return page
+
+
+def events_list_view(request):
+    sys_page = _ensure_system_page("termine")
+    ctx = _public_base_context(request, page=sys_page)
+    ctx["blocks"] = [_resolve_block_data(b, request=request) for b in sys_page.blocks.filter(is_visible=True)]
+    return render(request, "site_kit/page.html", ctx)
 
 
 def event_detail_view(request, pk):
@@ -1179,14 +1264,18 @@ def offering_preview_view(request, pk):
     return render(request, "site_kit/offering_preview.html", ctx)
 
 
-def _render_program_hub(request):
+def _build_program_hub_data() -> dict:
+    if not apps.is_installed("cal_kit"):
+        return {
+            "featured_programs": [],
+            "browse_programs": [],
+            "hub_layout": "cards_large",
+            "standard_count": 0,
+            "upcoming_total": 0,
+        }
     from cal_kit.models import CalendarEvent, OfferingTemplate, Program
 
     now = timezone.now()
-    sys_page = PublicPage.objects.filter(slug="programm").first()
-    ctx = _public_base_context(request, page=sys_page)
-    ctx["extra_blocks"] = [_resolve_block_data(b) for b in sys_page.blocks.filter(is_visible=True)] if sys_page else []
-
     progs = list(Program.objects.filter(is_public=True).order_by("position", "title", "id"))
     featured_programs = []
     browse_programs = []
@@ -1216,14 +1305,20 @@ def _render_program_hub(request):
         program__isnull=True, is_active=True, show_in_program=True
     ).count()
     upcoming_total = CalendarEvent.objects.filter(is_public=True, end_at__gte=now).count()
-    cfg = ctx["site_cfg"]
-    ctx.update({
+    cfg = SiteConfig.get_solo()
+    return {
         "featured_programs": featured_programs,
         "browse_programs": browse_programs,
         "hub_layout": getattr(cfg, "program_hub_layout", "cards_large") or "cards_large",
         "standard_count": standard_count,
         "upcoming_total": upcoming_total,
-    })
+    }
+
+
+def _render_program_hub(request):
+    sys_page = _ensure_system_page("programm")
+    ctx = _public_base_context(request, page=sys_page)
+    ctx.update(_build_program_hub_data())
     return render(request, "site_kit/program_hub.html", ctx)
 
 
@@ -1232,10 +1327,30 @@ def program_standard_view(request):
 
 
 def annual_program_view(request, program_slug=None, force_standard=False):
-    if program_slug is None and not force_standard and apps.is_installed("cal_kit"):
-        from cal_kit.models import Program
-        if Program.objects.filter(is_public=True).exists():
-            return _render_program_hub(request)
+    if not force_standard:
+        if program_slug:
+            if not apps.is_installed("cal_kit"):
+                raise Http404()
+            from cal_kit.models import Program
+            if not Program.objects.filter(slug=program_slug, is_public=True).exists():
+                raise Http404()
+            sys_page = _ensure_system_page(f"programm-{program_slug}")
+        else:
+            sys_page = _ensure_system_page("programm")
+            if apps.is_installed("cal_kit"):
+                from cal_kit.models import Program
+                if (
+                    Program.objects.filter(is_public=True).exists()
+                    and sys_page.blocks.filter(block_type="annual_program").exists()
+                    and not sys_page.blocks.filter(block_type="program_hub").exists()
+                    and sys_page.blocks.count() == 1
+                ):
+                    sys_page.blocks.filter(block_type="annual_program").update(
+                        block_type="program_hub", title="Angebote & Programme"
+                    )
+        ctx = _public_base_context(request, page=sys_page)
+        ctx["blocks"] = [_resolve_block_data(b, request=request) for b in sys_page.blocks.filter(is_visible=True)]
+        return render(request, "site_kit/page.html", ctx)
     year = (request.GET.get("jahr") or "").strip()
     cat_id = (request.GET.get("kategorie") or "").strip()
     inst_ref = (request.GET.get("dozent") or "").strip()
@@ -1770,7 +1885,9 @@ def manage_view(request):
         messages.success(request, "Webseiten-Einstellungen gespeichert.")
         return redirect("site_kit:manage")
 
-    pages = PublicPage.objects.exclude(slug__in=("news", "termine", "programm")).exclude(slug__startswith="programm-")
+    for sys_slug in ("news", "termine", "programm"):
+        _ensure_system_page(sys_slug)
+    pages = PublicPage.objects.all()
     programs = []
     program_card_mode_choices = []
     if apps.is_installed("cal_kit"):
@@ -1858,14 +1975,7 @@ def program_blocks_edit_view(request, pk):
         raise Http404()
     from cal_kit.models import Program
     prog = get_object_or_404(Program, pk=pk)
-    page, _ = PublicPage.objects.get_or_create(
-        slug=f"programm-{prog.slug}",
-        defaults={
-            "title": prog.title,
-            "is_published": True,
-            "show_in_nav": False,
-        },
-    )
+    page = _ensure_system_page(f"programm-{prog.slug}")
     return redirect("site_kit:page_edit", pk=page.id)
 
 
@@ -1877,34 +1987,7 @@ def _warn_if_reserved_nav_page(request, page: PublicPage):
 def system_page_edit_view(request, slug):
     if slug not in ("news", "termine", "programm"):
         raise Http404()
-    title = {"news": "News", "termine": "Termine", "programm": "Programm"}[slug]
-    page, _ = PublicPage.objects.get_or_create(
-        slug=slug,
-        defaults={
-            "title": title,
-            "is_published": True,
-            "show_in_nav": False,
-        },
-    )
-    if not page.blocks.exists():
-        if slug == "news":
-            PageBlock.objects.create(
-                page=page,
-                block_type="news_feed",
-                col_span=12,
-                title="Aktuelles & News",
-                config_json={"limit": 18, "style_variant": "card"},
-                position=10,
-            )
-        elif slug == "termine":
-            PageBlock.objects.create(
-                page=page,
-                block_type="upcoming_events",
-                col_span=12,
-                title="Nächste Termine",
-                config_json={"limit": 25, "style_variant": "card"},
-                position=10,
-            )
+    page = _ensure_system_page(slug)
     return redirect("site_kit:page_edit", pk=page.id)
 
 

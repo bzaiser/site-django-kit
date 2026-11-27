@@ -120,6 +120,11 @@
 </section>
 
 {% elif item.block.block_type == 'upcoming_events' %}
+{% if item.full_list %}
+<section class="mb-3">
+    {% include "site_kit/partials/_events_list_body.html" with grouped_events=item.grouped_events categories=item.categories active_calendar=item.active_calendar total_public_events=item.total_public_events site_cfg=item.site_cfg %}
+</section>
+{% else %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
     <div class="{% if item.block.style_variant == 'flat' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -141,6 +146,7 @@
         </div>
     </div>
 </section>
+{% endif %}
 
 {% elif item.block.block_type == 'people_grid' %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
@@ -287,16 +293,53 @@
     {% endif %}
 </section>
 
+{% elif item.block.block_type == 'program_hub' %}
+<section class="mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+        <div>
+            <h2 class="h3 fw-bold mb-1"><i class="bi bi-journal-richtext text-primary me-2"></i>{{ item.block.title|default:"Angebote & Programme" }}</h2>
+            {% if item.block.subtitle %}<p class="text-muted mb-0">{{ item.block.subtitle }}</p>{% endif %}
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'site_kit:events_list' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3"><i class="bi bi-calendar-event me-1"></i>Alle Termine ({{ item.upcoming_total }})</a>
+            {% if item.standard_count %}
+            <a href="{% url 'site_kit:program_standard' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="bi bi-collection me-1"></i>Allgemeine Angebote ({{ item.standard_count }})</a>
+            {% endif %}
+        </div>
+    </div>
+    {% include "site_kit/partials/_program_hub_body.html" with featured_programs=item.featured_programs browse_programs=item.browse_programs hub_layout=item.hub_layout standard_count=item.standard_count upcoming_total=item.upcoming_total %}
+</section>
+
 {% elif item.block.block_type == 'annual_program' %}
 <section class="mb-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
-            {% if item.block.title %}<h2 class="h4 fw-bold mb-0">{{ item.block.title }}</h2>{% else %}<h2 class="h4 fw-bold mb-0">{{ item.program_title|default:"Jahresprogramm" }} {{ item.program_year }}</h2>{% endif %}
-            {% if item.block.subtitle %}<div class="{% if item.block.is_dark_surface %}opacity-75{% else %}text-muted{% endif %} small">{{ item.block.subtitle }}</div>{% endif %}
+            {% if item.program_obj %}<h2 class="h3 fw-bold mb-1">{{ item.program_obj.title }} {{ item.program_year }}</h2>{% elif item.block.title %}<h2 class="h4 fw-bold mb-0">{{ item.block.title }}</h2>{% else %}<h2 class="h4 fw-bold mb-0">{{ item.program_title|default:"Jahresprogramm" }} {{ item.program_year }}</h2>{% endif %}
+            {% if item.program_description %}<div class="text-muted small">{{ item.program_description }}</div>{% elif item.block.subtitle %}<div class="{% if item.block.is_dark_surface %}opacity-75{% else %}text-muted{% endif %} small">{{ item.block.subtitle }}</div>{% endif %}
         </div>
-        <a href="{% url 'site_kit:annual_program' %}" class="btn btn-outline-primary btn-sm rounded-pill">Komplettes Programm &rarr;</a>
+        <div class="d-flex flex-wrap gap-2">
+            {% if item.program_slug %}
+            <a href="{% url 'site_kit:program_detail_pdf' item.program_slug %}?jahr={{ item.program_year }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3"><i class="bi bi-file-earmark-pdf me-1"></i>PDF / Broschüre</a>
+            {% else %}
+            <a href="{% url 'site_kit:annual_program_pdf' %}?jahr={{ item.program_year }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3"><i class="bi bi-file-earmark-pdf me-1"></i>PDF / Broschüre</a>
+            {% endif %}
+        </div>
     </div>
-    {% include "site_kit/partials/_program_cards.html" with program_items=item.program_items %}
+    {% if item.program_years %}
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3 d-print-none">
+        {% for y in item.program_years %}
+        <a href="?jahr={{ y }}{% if item.active_category %}&kategorie={{ item.active_category }}{% endif %}" class="btn btn-sm rounded-pill {% if item.program_year == y %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ y }}</a>
+        {% endfor %}
+        {% if item.program_categories %}
+        <span class="text-muted mx-1">|</span>
+        <a href="?jahr={{ item.program_year }}" class="btn btn-sm rounded-pill {% if not item.active_category %}btn-primary{% else %}btn-outline-secondary{% endif %}">Alle Kategorien</a>
+        {% for c in item.program_categories %}
+        <a href="?jahr={{ item.program_year }}&kategorie={{ c.id }}" class="btn btn-sm rounded-pill {% if item.active_category == c.id|stringformat:'s' %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ c.name }}</a>
+        {% endfor %}
+        {% endif %}
+    </div>
+    {% endif %}
+    {% include "site_kit/partials/_program_cards.html" with program_items=item.program_items program_obj=item.program_obj %}
 </section>
 
 {% elif item.block.block_type == 'photo_gallery' %}

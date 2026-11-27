@@ -7,7 +7,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h4 fw-bold mb-0"><i class="bi bi-layout-text-window me-2 text-primary"></i>{{ page.title }}</h1>
     <div class="d-flex gap-2">
-        <a href="{% if page.slug == 'news' %}{% url 'site_kit:news_list' %}{% elif page.slug == 'termine' %}{% url 'site_kit:events_list' %}{% else %}{% url 'site_kit:page_detail' page.slug %}{% endif %}" target="_blank" class="btn btn-outline-primary btn-sm">Vorschau</a>
+        <a href="{% if page.slug == 'news' %}{% url 'site_kit:news_list' %}{% elif page.slug == 'termine' %}{% url 'site_kit:events_list' %}{% elif page.slug == 'programm' %}{% url 'site_kit:annual_program' %}{% else %}{% url 'site_kit:page_detail' page.slug %}{% endif %}" target="_blank" class="btn btn-outline-primary btn-sm">Vorschau</a>
         <form method="post" action="{% url 'site_kit:page_delete' page.id %}" onsubmit="return confirm('Seite „{{ page.title|escapejs }}“ wirklich löschen?');">
             {% csrf_token %}
             <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-trash3 me-1"></i>Seite löschen</button>

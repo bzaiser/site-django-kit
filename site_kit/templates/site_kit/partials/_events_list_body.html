@@ -1,0 +1,127 @@
+{% load i18n %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h2 fw-bold mb-0"><i class="bi bi-calendar-event text-primary me-2"></i>{% trans "Öffentliche Termine" %}</h1>
+    <div class="btn-group btn-group-sm" role="group" aria-label="{% trans 'Darstellung' %}" id="siteEventsViewSwitcher">
+        <button type="button" class="btn {% if site_cfg.events_layout != 'cards' and site_cfg.events_layout != 'stacked' %}btn-primary{% else %}btn-outline-secondary{% endif %} site-ev-mode-btn" data-mode="row" title="{% trans 'Zeilen' %}"><i class="bi bi-list-ul"></i></button>
+        <button type="button" class="btn {% if site_cfg.events_layout == 'cards' %}btn-primary{% else %}btn-outline-secondary{% endif %} site-ev-mode-btn" data-mode="cards" title="{% trans 'Karten' %}"><i class="bi bi-grid-3x3-gap"></i></button>
+        <button type="button" class="btn {% if site_cfg.events_layout == 'stacked' %}btn-primary{% else %}btn-outline-secondary{% endif %} site-ev-mode-btn" data-mode="stacked" title="{% trans 'Stapel' %}"><i class="bi bi-view-stacked"></i></button>
+    </div>
+</div>
+
+{% if categories %}
+<div class="d-flex flex-wrap gap-2 mb-4" aria-label="Kalender-Filter">
+    <a href="{% url 'site_kit:events_list' %}" class="btn btn-sm rounded-pill {% if not active_calendar %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+        {% trans "Alle" %} <span class="badge bg-body-secondary text-body border ms-1">{{ total_public_events }}</span>
+    </a>
+    {% for cat in categories %}
+    <a href="{% url 'site_kit:events_list' %}?kalender={{ cat.key }}" class="btn btn-sm rounded-pill d-inline-flex align-items-center gap-1 {% if active_calendar == cat.key %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+        <span class="rounded-circle d-inline-block" style="width: 8px; height: 8px; background-color: {{ cat.color }};"></span>
+        <span>{{ cat.name }}</span>
+        <span class="badge bg-body-secondary text-body border ms-1">{{ cat.count }}</span>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% for group in grouped_events %}
+<section class="mb-4">
+    <h2 class="h5 fw-bold mb-2 d-flex align-items-center gap-2">
+        <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background-color: {{ group.color }};"></span>
+        <span>{{ group.name }}</span>
+        <span class="badge bg-body-secondary text-body border">{{ group.items|length }}</span>
+    </h2>
+    <div class="site-ev-group-container {% if site_cfg.events_layout == 'cards' %}row g-3{% elif site_cfg.events_layout == 'stacked' %}d-flex flex-column gap-3{% else %}d-flex flex-column gap-2{% endif %}" data-default-mode="{{ site_cfg.events_layout|default:'row' }}" data-img-pos="{{ site_cfg.events_image_position|default:'left' }}">
+        {% for ev in group.items %}
+        <div class="site-ev-item {% if site_cfg.events_layout == 'cards' %}col-12 col-md-6 col-lg-4{% endif %}">
+            <div class="card shadow-sm rounded-4 site-hover-row h-100 overflow-hidden">
+                <div class="card-body {% if site_cfg.events_layout == 'row' or not site_cfg.events_layout %}py-2 px-3{% else %}py-3 px-3{% endif %} d-flex flex-column justify-content-between gap-2">
+                    <div class="site-ev-media-wrap d-flex gap-3 {% if site_cfg.events_layout == 'cards' %}flex-column{% elif site_cfg.events_image_position == 'right' %}flex-row-reverse align-items-start{% elif site_cfg.events_image_position == 'top' %}flex-column{% else %}flex-row align-items-start{% endif %}">
+                        {% if ev.image_url and site_cfg.events_image_position != 'none' %}
+                        <a href="{% url 'site_kit:event_detail' ev.event.id %}" class="flex-shrink-0">
+                            <img src="{{ ev.image_url }}" alt="{{ ev.title }}" class="site-ev-img rounded-3 object-fit-cover shadow-sm" style="{% if site_cfg.events_layout == 'cards' or site_cfg.events_image_position == 'top' %}width:100%;height:180px;{% else %}width:96px;height:72px;{% endif %}">
+                        </a>
+                        {% endif %}
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-bold"><a href="{% url 'site_kit:event_detail' ev.event.id %}" class="text-decoration-none text-reset">{{ ev.title }}</a></div>
+                            {% if ev.location %}<div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ ev.location }}</div>{% endif %}
+                            {% if ev.instructor_name %}<div class="small text-muted"><i class="bi bi-mortarboard me-1"></i>{{ ev.instructor_name }}</div>{% endif %}
+                            {% if ev.description and site_cfg.events_show_description %}<div class="small text-muted mt-1">{{ ev.description|striptags|truncatechars:160 }}</div>{% endif %}
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 border-top pt-2">
+                        <span class="badge text-bg-primary">{% if ev.all_day %}{{ ev.start_at|date:"d.m.Y" }} · Ganztägig{% else %}{{ ev.start_at|date:"d.m.Y H:i" }}{% endif %}</span>
+                        <div class="d-flex flex-wrap align-items-center gap-1">
+                            {% if ev.allow_registration %}
+                                {% if ev.is_full %}
+                                <span class="badge text-bg-danger">Ausgebucht ({{ ev.reg_count }}/{{ ev.max_participants }})</span>
+                                {% elif ev.max_participants %}
+                                <span class="badge text-bg-success">Noch {{ ev.seats_left }} Plätze frei</span>
+                                {% endif %}
+                                <a href="{% url 'site_kit:event_registration' %}?event={{ ev.event.id }}" class="btn btn-sm {% if ev.is_full %}btn-outline-secondary{% else %}btn-outline-primary{% endif %} rounded-pill px-3">
+                                    {% if ev.is_full %}Warteliste / Anfrage{% else %}Jetzt anmelden{% endif %}
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% empty %}
+<div class="card shadow-sm rounded-4">
+    <div class="card-body text-muted p-4 text-center">{% trans "Aktuell keine öffentlichen Termine." %}</div>
+</div>
+{% endfor %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var containers = document.querySelectorAll('.site-ev-group-container');
+    if (!containers.length) return;
+    var key = 'site_events_layout_mode';
+    function applyEvMode(mode) {
+        containers.forEach(function (c) {
+            var pos = c.getAttribute('data-img-pos') || 'left';
+            c.className = 'site-ev-group-container ' + (mode === 'cards' ? 'row g-3' : (mode === 'stacked' ? 'd-flex flex-column gap-3' : 'd-flex flex-column gap-2'));
+            c.querySelectorAll('.site-ev-item').forEach(function (item) {
+                item.className = 'site-ev-item' + (mode === 'cards' ? ' col-12 col-md-6 col-lg-4' : '');
+            });
+            c.querySelectorAll('.site-ev-media-wrap').forEach(function (w) {
+                var cls = 'site-ev-media-wrap d-flex gap-3 ';
+                if (mode === 'cards' || pos === 'top') cls += 'flex-column';
+                else if (pos === 'right') cls += 'flex-row-reverse align-items-start';
+                else cls += 'flex-row align-items-start';
+                w.className = cls;
+            });
+            c.querySelectorAll('.site-ev-img').forEach(function (img) {
+                if (mode === 'cards' || pos === 'top') {
+                    img.style.width = '100%';
+                    img.style.height = '180px';
+                } else if (mode === 'stacked') {
+                    img.style.width = '160px';
+                    img.style.height = '115px';
+                } else {
+                    img.style.width = '96px';
+                    img.style.height = '72px';
+                }
+            });
+        });
+        document.querySelectorAll('.site-ev-mode-btn').forEach(function (btn) {
+            var act = btn.getAttribute('data-mode') === mode;
+            btn.classList.toggle('btn-primary', act);
+            btn.classList.toggle('btn-outline-secondary', !act);
+        });
+    }
+    var saved = localStorage.getItem(key);
+    if (saved && ['row', 'cards', 'stacked'].indexOf(saved) !== -1) {
+        applyEvMode(saved);
+    }
+    document.querySelectorAll('.site-ev-mode-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var m = btn.getAttribute('data-mode') || 'row';
+            localStorage.setItem(key, m);
+            applyEvMode(m);
+        });
+    });
+});
+</script>
