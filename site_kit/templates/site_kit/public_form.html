@@ -1,0 +1,35 @@
+{% extends "site_kit/layouts/public.html" %}
+
+{% block title %}{{ form_collection.title }} – {{ site_config.site_name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4">
+            <div class="card-header bg-transparent border-bottom py-3 px-4">
+                <h1 class="h3 fw-bold mb-0"><i class="bi bi-envelope-paper me-2 text-primary"></i>{{ form_collection.title }}</h1>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" action="{% url 'list_kit:public_submit' form_collection.id %}" class="d-flex flex-column gap-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <div>
+                        <label class="form-label small fw-semibold">Betreff / Anliegen</label>
+                        <input type="text" name="title" class="form-control" required>
+                    </div>
+                    {% for cf in form_collection.template.custom_fields_json %}
+                    {% include "site_kit/partials/_public_custom_field.html" with cf=cf %}
+                    {% endfor %}
+                    <div>
+                        <label class="form-label small fw-semibold">Nachricht</label>
+                        <textarea name="notes" rows="3" class="form-control"></textarea>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4">Absenden</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

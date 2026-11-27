@@ -944,6 +944,26 @@ class SiteKitTests(TestCase):
         self.assertContains(r_2027, "Frühjahrsfest 2027")
         self.assertContains(r_2027, "?jahr=2027")
 
+    def test_public_form_route_and_quick_link_targets_include_mitgliedsantrag(self):
+        from list_kit.models import Collection
+        from list_kit.services import seed_default_templates
+
+        tpl = next(t for t in seed_default_templates() if t.slug == "mitgliedsantrag")
+        Collection.objects.get_or_create(
+            slug="mitgliedsantrag",
+            defaults={"title": "Mitgliedsantrag", "template": tpl, "owner": self.staff, "is_public": True, "allow_public_submit": True},
+        )
+        r_form = self.client.get(reverse("site_kit:public_form", args=["mitgliedsantrag"]))
+        self.assertEqual(r_form.status_code, 200)
+        self.assertContains(r_form, "Mitgliedsantrag")
+        self.assertContains(r_form, "Betreff / Anliegen")
+
+        self.client.force_login(self.staff)
+        p = PublicPage.objects.create(title="Start Test", is_published=True)
+        r_ed = self.client.get(reverse("site_kit:page_edit", args=[p.id]))
+        self.assertEqual(r_ed.status_code, 200)
+        self.assertContains(r_ed, "/formular/mitgliedsantrag/")
+
 
 if __name__ == "__main__":
     import unittest

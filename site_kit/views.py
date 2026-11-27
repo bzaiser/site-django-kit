@@ -1529,6 +1529,21 @@ def event_registration_view(request):
     return render(request, "site_kit/event_registration.html", ctx)
 
 
+def public_form_view(request, slug):
+    if not apps.is_installed("list_kit"):
+        raise Http404()
+    from list_kit.models import Collection
+
+    col = get_object_or_404(
+        Collection.objects.select_related("template"),
+        slug=slug,
+        template__content_type="form_inbox",
+    )
+    ctx = _public_base_context(request)
+    ctx["form_collection"] = col
+    return render(request, "site_kit/public_form.html", ctx)
+
+
 def imprint_view(request):
     from .legal import DEFAULT_IMPRINT_TEMPLATE, render_legal_text
 
@@ -2467,6 +2482,14 @@ def page_edit_view(request, pk):
                 quick_link_targets.insert(1, {"group": "Programme", "items": prog_items})
         except Exception:
             pass
+    if form_collections:
+        quick_link_targets.append({
+            "group": "Formulare",
+            "items": [
+                {"label": fc["title"], "url": reverse("site_kit:public_form", args=[fc["slug"]])}
+                for fc in form_collections
+            ],
+        })
     return render(request, "site_kit/page_editor.html", {
         "page": page,
         "blocks": page.blocks.all(),

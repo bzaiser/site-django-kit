@@ -23,6 +23,7 @@ urlpatterns = [
     path("programm/<slug:program_slug>/pdf/", views.annual_program_pdf_view, name="program_detail_pdf"),
     path("programm/<slug:program_slug>/", views.annual_program_view, name="program_detail"),
     path("anmeldung/", views.event_registration_view, name="event_registration"),
+    path("formular/<slug:slug>/", views.public_form_view, name="public_form"),
     path("impressum/", views.imprint_view, name="imprint"),
     path("datenschutz/", views.privacy_view, name="privacy"),
     path("sitemap.xml", views.sitemap_view, name="sitemap"),
