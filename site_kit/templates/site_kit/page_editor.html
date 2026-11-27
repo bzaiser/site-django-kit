@@ -910,6 +910,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const active = b === dot;
             b.classList.toggle("btn-primary", active);
             b.classList.toggle("btn-outline-secondary", !active);
+            b.classList.toggle("opacity-50", !active);
         });
     });
 
