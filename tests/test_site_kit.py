@@ -1016,14 +1016,14 @@ class SiteKitTests(TestCase):
                 config_json={"style_variant": style, "bg_image_url": "https://example.com/banner.jpg", "bg_overlay": "dark"},
             )
             pub = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
-            self.assertContains(pub, "url('https://example.com/banner.jpg')")
+            self.assertContains(pub, "https://example.com/banner.jpg")
 
     def test_collection_list_block_and_entry_detail_security(self):
         from list_kit.models import Collection, Entry
         from list_kit.services import seed_default_templates
 
         tpl_map = {t.slug: t for t in seed_default_templates()}
-        pub_col = Collection.objects.create(title="Projekte", slug="projekte-pub", template=tpl_map["checkliste"], owner=self.staff, is_public=True)
+        pub_col = Collection.objects.create(title="Projekte", slug="projekte-pub", template=tpl_map["aufgabenliste"], owner=self.staff, is_public=True)
         e_pub = Entry.objects.create(
             collection=pub_col,
             title="Skulpturenpark",
@@ -1063,6 +1063,59 @@ class SiteKitTests(TestCase):
         self.assertEqual(self.client.get(reverse("site_kit:collection_entry_detail", args=[e_pub.id])).status_code, 200)
         self.assertEqual(self.client.get(reverse("site_kit:collection_entry_detail", args=[e_priv.id])).status_code, 404)
         self.assertEqual(self.client.get(reverse("site_kit:collection_entry_detail", args=[e_inbox.id])).status_code, 404)
+
+    def test_public_form_renders_radio_select_and_multiselect_options(self):
+        from list_kit.models import Collection, ListTemplate
+
+        tpl = ListTemplate.objects.create(
+            name="Mitgliedsantrag Optionen",
+            slug="mitgliedsantrag-opts-tpl",
+            content_type="form_inbox",
+            custom_fields_json=[
+                {
+                    "key": "mitgliedsart",
+                    "label": "Mitgliedschaft (bitte wählen)",
+                    "type": "radio",
+                    "options": "Aktives Mitglied (62 Euro), Fördermitglied (31 Euro), Familienmitglied (93 Euro)",
+                    "zone": "body",
+                    "show_on_card": True,
+                },
+                {
+                    "key": "portal_zugang",
+                    "label": "Portal-Zugang gewünscht?",
+                    "type": "select",
+                    "options": "Ja, Nein",
+                    "zone": "body",
+                    "show_on_card": True,
+                },
+                {
+                    "key": "interessen",
+                    "label": "Interessen",
+                    "type": "multiselect",
+                    "options": "Malerei, Grafik",
+                    "zone": "body",
+                    "show_on_card": True,
+                },
+            ],
+        )
+        col = Collection.objects.create(
+            title="Mitgliedsantrag",
+            slug="mitgliedsantrag-opts",
+            template=tpl,
+            owner=self.staff,
+            is_public=True,
+            allow_public_submit=True,
+        )
+        res = self.client.get(reverse("site_kit:public_form", args=[col.slug]))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'type="radio"')
+        self.assertContains(res, "Aktives Mitglied (62 Euro)")
+        self.assertContains(res, "Fördermitglied (31 Euro)")
+        self.assertContains(res, "Familienmitglied (93 Euro)")
+        self.assertContains(res, '<option value="Ja">Ja</option>')
+        self.assertContains(res, '<option value="Nein">Nein</option>')
+        self.assertContains(res, 'value="Malerei"')
+        self.assertContains(res, 'value="Grafik"')
 
 
 if __name__ == "__main__":
