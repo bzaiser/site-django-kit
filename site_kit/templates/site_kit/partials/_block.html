@@ -183,7 +183,7 @@
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
     <div class="{% if item.block.style_variant == 'flat' %}{% else %}card-body {% if item.block.is_compact %}p-3{% else %}p-4{% endif %}{% endif %}">
         <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
-            <h2 class="h4 fw-bold mb-0"><i class="bi bi-people text-primary me-2"></i>{{ item.block.title|default:"Ansprechpartner & Vorstand" }}</h2>
+            <h2 class="h4 fw-bold mb-0"><i class="bi bi-people text-primary me-2"></i>{{ item.block.title|default:"Team & Ansprechpartner" }}</h2>
             {% if item.people_layout == 'carousel' and item.people %}
             <div class="btn-group btn-group-sm" role="group" aria-label="Personen blättern">
                 <button type="button" class="btn btn-outline-secondary rounded-start-pill" data-site-carousel-nav="sitePeopleCar-{{ item.block.id }}" data-dir="prev" aria-label="Zurück"><i class="bi bi-chevron-left"></i></button>

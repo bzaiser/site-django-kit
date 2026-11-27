@@ -18,24 +18,14 @@ from django.views.decorators.http import require_POST
 from .models import PageBlock, PublicPage, SiteConfig
 
 
-SITE_EDITOR_GROUPS = ("Redakteur", "Pressewart", "Leitung / Vorstand", "Vorstand")
-SITE_CONFIG_GROUPS = ("Leitung / Vorstand", "Vorstand")
-
-
 def _has_site_editor_access(user) -> bool:
-    if not user or not getattr(user, "is_authenticated", False):
-        return False
-    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
-        return True
-    return user.groups.filter(name__in=SITE_EDITOR_GROUPS).exists()
+    from design_studio.permissions import user_has_role
+    return user_has_role(user, "editorial")
 
 
 def _has_site_config_access(user) -> bool:
-    if not user or not getattr(user, "is_authenticated", False):
-        return False
-    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
-        return True
-    return user.groups.filter(name__in=SITE_CONFIG_GROUPS).exists()
+    from design_studio.permissions import user_has_role
+    return user_has_role(user, "management")
 
 
 def _editor_required(view_func):
@@ -1564,6 +1554,7 @@ def _resolve_form_header_text(raw_text: str) -> str:
 
     replacements = {
         "{{ vereinsname }}": branding.get("org_name") or "",
+        "{{ organisationsname }}": branding.get("org_name") or "",
         "{{ adresse }}": branding.get("address") or "",
         "{{ webseite }}": branding.get("website") or "",
         "{{ email }}": branding.get("email") or "",
@@ -1594,11 +1585,11 @@ def public_form_view(request, slug):
 
 
 def imprint_view(request):
-    from .legal import DEFAULT_IMPRINT_TEMPLATE, render_legal_text
+    from .legal import get_default_imprint_template, render_legal_text
 
     ctx = _public_base_context(request)
     ctx["legal_title"] = "Impressum"
-    raw = (ctx["site_cfg"].imprint_text or "").strip() or DEFAULT_IMPRINT_TEMPLATE
+    raw = (ctx["site_cfg"].imprint_text or "").strip() or get_default_imprint_template()
     ctx["legal_body"] = render_legal_text(raw, ctx["site_cfg"], request=request)
     return render(request, "site_kit/legal.html", ctx)
 

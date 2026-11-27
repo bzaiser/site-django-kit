@@ -34,6 +34,40 @@ Urheberrecht:
 Die durch den Verein erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Eine Vervielfältigung, Bearbeitung oder Verbreitung außerhalb der Grenzen des Urheberrechts bedarf der schriftlichen Zustimmung."""
 
 
+DEFAULT_BUSINESS_IMPRINT_TEMPLATE = """Angaben gemäß § 5 Digitale-Dienste-Gesetz (DDG)
+
+{{ organisationsname }}
+{{ adresse }}
+
+Vertreten durch / Ansprechpartner:
+{{ ansprechpartner }}
+
+Kontakt:
+Telefon: {{ telefon }}
+E-Mail: {{ email }}
+Internet: {{ webseite }}
+
+Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV:
+{{ ansprechpartner }}
+{{ adresse }}
+
+Steuerliche Angaben / Hinweise:
+{{ steuer_hinweis }}
+
+Verbraucherstreitbeilegung / Universalschlichtungsstelle:
+Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen (§ 36 VSBG)."""
+
+
+def get_default_imprint_template() -> str:
+    try:
+        from design_studio.permissions import is_npo_profile
+        if not is_npo_profile():
+            return DEFAULT_BUSINESS_IMPRINT_TEMPLATE
+    except Exception:
+        pass
+    return DEFAULT_IMPRINT_TEMPLATE
+
+
 DEFAULT_PRIVACY_TEMPLATE = """Datenschutzerklärung gemäß DSGVO
 
 1. Verantwortlicher
@@ -177,10 +211,22 @@ def get_dynamic_legal_context(site_cfg, request=None) -> dict[str, str]:
     webseite = webseite or "—"
 
     tax_id = (branding.get("tax_id") or "").strip()
-    steuer_hinweis = f"Steuernummer / USt-IdNr.: {tax_id}" if tax_id else "Gemeinnütziger Verein (ohne gesonderte USt-IdNr.)"
+    is_npo = True
+    try:
+        from design_studio.permissions import is_npo_profile
+        is_npo = is_npo_profile()
+    except Exception:
+        pass
+    if tax_id:
+        steuer_hinweis = f"Steuernummer / USt-IdNr.: {tax_id}"
+    elif is_npo:
+        steuer_hinweis = "Gemeinnütziger Verein (ohne gesonderte USt-IdNr.)"
+    else:
+        steuer_hinweis = "—"
 
     return {
         "vereinsname": vereinsname,
+        "organisationsname": vereinsname,
         "vorsitz_name": vorsitz_name,
         "vorsitz_liste": vorsitz_liste,
         "ansprechpartner": vorsitz_name,
