@@ -929,6 +929,21 @@ class SiteKitTests(TestCase):
         self.assertContains(pub2, "btn-outline-success")
         self.assertNotContains(pub2, "bi-calendar-event")
 
+    def test_public_events_list_year_filter(self):
+        from cal_kit.models import CalendarEvent
+
+        CalendarEvent.objects.create(
+            user=self.staff,
+            title="Frühjahrsfest 2027",
+            start_at="2027-04-15T14:00Z",
+            end_at="2027-04-15T17:00Z",
+            is_public=True,
+        )
+        r_2027 = self.client.get(reverse("site_kit:events_list") + "?jahr=2027")
+        self.assertEqual(r_2027.status_code, 200)
+        self.assertContains(r_2027, "Frühjahrsfest 2027")
+        self.assertContains(r_2027, "?jahr=2027")
+
 
 if __name__ == "__main__":
     import unittest

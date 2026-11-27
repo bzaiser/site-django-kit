@@ -8,13 +8,23 @@
     </div>
 </div>
 
+{% if event_years|length > 1 or active_year %}
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3" aria-label="Jahresfilter">
+    <span class="small text-muted fw-semibold"><i class="bi bi-calendar-range me-1"></i>{% trans "Zeitraum:" %}</span>
+    <a href="{% url 'site_kit:events_list' %}{% if active_calendar %}?kalender={{ active_calendar }}{% endif %}" class="btn btn-sm rounded-pill {% if not active_year %}btn-primary{% else %}btn-outline-secondary{% endif %}">{% trans "Kommende" %}</a>
+    {% for yr in event_years %}
+    <a href="{% url 'site_kit:events_list' %}?jahr={{ yr }}{% if active_calendar %}&kalender={{ active_calendar }}{% endif %}" class="btn btn-sm rounded-pill {% if active_year == yr %}btn-primary{% else %}btn-outline-secondary{% endif %}">{{ yr }}</a>
+    {% endfor %}
+</div>
+{% endif %}
+
 {% if categories %}
 <div class="d-flex flex-wrap gap-2 mb-4" aria-label="Kalender-Filter">
-    <a href="{% url 'site_kit:events_list' %}" class="btn btn-sm rounded-pill {% if not active_calendar %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+    <a href="{% url 'site_kit:events_list' %}{% if active_year %}?jahr={{ active_year }}{% endif %}" class="btn btn-sm rounded-pill {% if not active_calendar %}btn-primary{% else %}btn-outline-secondary{% endif %}">
         {% trans "Alle" %} <span class="badge bg-body-secondary text-body border ms-1">{{ total_public_events }}</span>
     </a>
     {% for cat in categories %}
-    <a href="{% url 'site_kit:events_list' %}?kalender={{ cat.key }}" class="btn btn-sm rounded-pill d-inline-flex align-items-center gap-1 {% if active_calendar == cat.key %}btn-primary{% else %}btn-outline-secondary{% endif %}">
+    <a href="{% url 'site_kit:events_list' %}?kalender={{ cat.key }}{% if active_year %}&jahr={{ active_year }}{% endif %}" class="btn btn-sm rounded-pill d-inline-flex align-items-center gap-1 {% if active_calendar == cat.key %}btn-primary{% else %}btn-outline-secondary{% endif %}">
         <span class="rounded-circle d-inline-block" style="width: 8px; height: 8px; background-color: {{ cat.color }};"></span>
         <span>{{ cat.name }}</span>
         <span class="badge bg-body-secondary text-body border ms-1">{{ cat.count }}</span>

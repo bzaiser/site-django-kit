@@ -777,21 +777,34 @@ def _build_events_list_data(request=None) -> dict:
     events = []
     categories = []
     grouped_events = []
+    event_years = []
+    active_year = None
     active_calendar = (request.GET.get("kalender") or "").strip() if request else ""
+    raw_year = (request.GET.get("jahr") or "").strip() if request else ""
+    if raw_year.isdigit():
+        active_year = int(raw_year)
     cfg = SiteConfig.get_solo()
 
     if apps.is_installed("cal_kit"):
         try:
-            from datetime import timedelta
+            from datetime import datetime, timedelta
             from cal_kit.models import CalendarCategory, CalendarEvent
 
             now = timezone.now()
-            window_end = now + timedelta(days=180)
+            tz = timezone.get_current_timezone()
             public_qs = (
                 CalendarEvent.objects.filter(is_public=True)
                 .select_related("category", "offering_template")
                 .order_by("start_at")
             )
+            ev_year_dates = set(public_qs.dates("start_at", "year"))
+            event_years = sorted({d.year for d in ev_year_dates} | {now.year})
+            if active_year:
+                window_start = datetime(active_year, 1, 1, 0, 0, 0, tzinfo=tz)
+                window_end = datetime(active_year, 12, 31, 23, 59, 59, tzinfo=tz)
+            else:
+                window_start = now
+                window_end = now + timedelta(days=180)
 
             reg_counts = _get_event_registration_counts()
 
@@ -819,10 +832,10 @@ def _build_events_list_data(request=None) -> dict:
             expanded = []
             for ev in public_qs:
                 if ev.recurrence_rule == "none":
-                    if ev.end_at >= now and ev.start_at <= window_end:
+                    if ev.end_at >= window_start and ev.start_at <= window_end:
                         expanded.append(_ev_payload(ev, ev.start_at, ev.end_at))
                 else:
-                    for occ_start, occ_end, _occ_title in ev.get_occurrences(now, window_end):
+                    for occ_start, occ_end, _occ_title in ev.get_occurrences(window_start, window_end):
                         expanded.append(_ev_payload(ev, occ_start, occ_end))
 
             expanded.sort(key=lambda item: item["start_at"])
@@ -915,6 +928,8 @@ def _build_events_list_data(request=None) -> dict:
         "categories": categories,
         "grouped_events": grouped_events,
         "active_calendar": active_calendar,
+        "event_years": event_years,
+        "active_year": active_year,
         "total_public_events": sum(c["count"] for c in categories),
     }
 

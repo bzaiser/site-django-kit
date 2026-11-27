@@ -153,7 +153,7 @@
 {% elif item.block.block_type == 'upcoming_events' %}
 {% if item.full_list %}
 <section class="mb-3">
-    {% include "site_kit/partials/_events_list_body.html" with grouped_events=item.grouped_events categories=item.categories active_calendar=item.active_calendar total_public_events=item.total_public_events site_cfg=item.site_cfg %}
+    {% include "site_kit/partials/_events_list_body.html" with grouped_events=item.grouped_events categories=item.categories active_calendar=item.active_calendar event_years=item.event_years active_year=item.active_year total_public_events=item.total_public_events site_cfg=item.site_cfg %}
 </section>
 {% else %}
 <section class="{{ item.block.card_wrapper_class }}" {% if item.block.card_wrapper_style %}style="{{ item.block.card_wrapper_style }}"{% endif %}>
