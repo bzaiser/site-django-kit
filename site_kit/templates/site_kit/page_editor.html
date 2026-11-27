@@ -238,11 +238,31 @@
                         </div>
                     </div>
                     <div class="row g-2 d-none" id="addNewsLayoutWrap">
-                        <div class="col-md-6">
+                        <input type="hidden" name="news_options_present" value="1">
+                        <div class="col-md-4">
                             <select name="news_layout" class="form-select form-select-sm">
                                 <option value="grid" selected>News-Layout: Raster</option>
                                 <option value="carousel">News-Layout: Karussell (Slider)</option>
                             </select>
+                        </div>
+                        <div class="col-md-4">
+                            <select name="news_density" class="form-select form-select-sm">
+                                <option value="full" selected>Text: Voll</option>
+                                <option value="compact">Text: Kompakt (max. 100 Z.)</option>
+                                <option value="single_line">Text: Einzeilig</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <select name="news_image_fit" class="form-select form-select-sm">
+                                <option value="contain" selected>Bild: Komplett (unbeschnitten)</option>
+                                <option value="cover">Bild: Zugeschnitten (gleich hoch)</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check mb-0">
+                                <input type="checkbox" name="show_news_images" id="addShowNewsImg" class="form-check-input" checked>
+                                <label class="form-check-label small" for="addShowNewsImg">Bilder anzeigen</label>
+                            </div>
                         </div>
                     </div>
                     <div class="row g-2 d-none" id="addEventsFilterWrap">
@@ -532,13 +552,35 @@
                 </div>
                 {% endif %}
                 {% if b.block_type == 'news_feed' %}
+                <input type="hidden" name="news_options_present" value="1">
                 <div class="row g-2">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label small mb-1">News-Layout</label>
                         <select name="news_layout" class="form-select form-select-sm">
                             <option value="grid" {% if b.config_json.news_layout == 'grid' or not b.config_json.news_layout %}selected{% endif %}>Raster</option>
                             <option value="carousel" {% if b.config_json.news_layout == 'carousel' %}selected{% endif %}>Karussell (Slider)</option>
                         </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small mb-1">Darstellung / Text</label>
+                        <select name="news_density" class="form-select form-select-sm">
+                            <option value="full" {% if b.config_json.news_density == 'full' or not b.config_json.news_density and not b.is_compact %}selected{% endif %}>Voll</option>
+                            <option value="compact" {% if b.config_json.news_density == 'compact' or not b.config_json.news_density and b.is_compact %}selected{% endif %}>Kompakt (max. 100 Z. + Button)</option>
+                            <option value="single_line" {% if b.config_json.news_density == 'single_line' %}selected{% endif %}>Einzeilig</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small mb-1">Bild-Anpassung</label>
+                        <select name="news_image_fit" class="form-select form-select-sm">
+                            <option value="contain" {% if b.config_json.news_image_fit == 'contain' or not b.config_json.news_image_fit %}selected{% endif %}>Komplett (unbeschnitten)</option>
+                            <option value="cover" {% if b.config_json.news_image_fit == 'cover' %}selected{% endif %}>Zugeschnitten (gleich hoch)</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check mb-0">
+                            <input type="checkbox" name="show_news_images" id="editShowNewsImg-{{ b.id }}" class="form-check-input" {% if b.config_json.show_news_images is not False %}checked{% endif %}>
+                            <label class="form-check-label small" for="editShowNewsImg-{{ b.id }}">Bilder anzeigen</label>
+                        </div>
                     </div>
                 </div>
                 {% endif %}

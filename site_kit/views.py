@@ -433,14 +433,25 @@ def _resolve_block_data(block: PageBlock, request=None) -> dict:
 
     if block.block_type == "news_feed" and apps.is_installed("list_kit"):
         try:
+            from django.utils.html import strip_tags
             from list_kit.services import get_published_entries
             col_slug = (cfg.get("collection_slug") or "").strip() or None
-            data["news_items"] = _attach_news_preview_html(
+            n_items = _attach_news_preview_html(
                 get_published_entries(content_type="news", collection_slug=col_slug, limit=limit)
             )
+            for ne in n_items:
+                ne.short_text = " ".join(strip_tags(getattr(ne, "preview_html", "") or getattr(ne, "notes", "") or "").split())
+            data["news_items"] = n_items
         except Exception:
             data["news_items"] = []
         data["news_layout"] = cfg.get("news_layout") or "grid"
+        nd = (cfg.get("news_density") or "").strip()
+        if nd not in ("full", "compact", "single_line"):
+            nd = "compact" if block.is_compact else "full"
+        data["news_density"] = nd
+        data["show_news_images"] = cfg.get("show_news_images", True)
+        nif = (cfg.get("news_image_fit") or "contain").strip()
+        data["news_image_fit"] = nif if nif in ("contain", "cover") else "contain"
 
     elif block.block_type == "faq_list" and apps.is_installed("list_kit"):
         try:
@@ -1726,6 +1737,14 @@ def _parse_block_layout_config(request, existing_cfg=None) -> dict:
     if "news_layout" in request.POST:
         nl = (request.POST.get("news_layout") or "grid").strip()
         cfg["news_layout"] = nl if nl in ("grid", "carousel") else "grid"
+    if "news_density" in request.POST:
+        nd = (request.POST.get("news_density") or "full").strip()
+        cfg["news_density"] = nd if nd in ("full", "compact", "single_line") else "full"
+    if "news_image_fit" in request.POST:
+        nif = (request.POST.get("news_image_fit") or "contain").strip()
+        cfg["news_image_fit"] = nif if nif in ("contain", "cover") else "contain"
+    if "news_options_present" in request.POST:
+        cfg["show_news_images"] = request.POST.get("show_news_images") == "on"
     if "video_url" in request.POST:
         cfg["video_url"] = (request.POST.get("video_url") or "").strip()[:300]
     if "gallery_layout" in request.POST:

@@ -807,6 +807,58 @@ class SiteKitTests(TestCase):
         for role in ("primary", "secondary", "success", "info", "warning", "danger"):
             self.assertContains(pub, f"--bs-{role}-rgb:")
 
+    def test_news_feed_compact_single_line_and_image_fit(self):
+        from list_kit.models import Collection, Entry
+        from list_kit.services import seed_default_templates
+
+        tpl = next(t for t in seed_default_templates() if t.slug == "news-aktuelles")
+        col = Collection.objects.create(title="News", slug="news-compact-test", template=tpl, owner=self.staff, is_public=True)
+        long_text = "A" * 130
+        Entry.objects.create(
+            collection=col,
+            title="Kurze Meldung",
+            notes=f"<p>{long_text}</p>",
+            image_url="https://example.com/hochformat.jpg",
+            visibility="public",
+            created_by=self.staff,
+        )
+
+        self.client.force_login(self.staff)
+        p = PublicPage.objects.create(title="News Kompakt", is_published=True)
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "add_block",
+                "block_type": "news_feed",
+                "news_options_present": "1",
+                "news_density": "compact",
+                "news_image_fit": "contain",
+                "show_news_images": "on",
+                "title": "Kompakt News",
+            },
+        )
+        pub = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(pub, "Details ansehen")
+        self.assertContains(pub, "object-fit-contain")
+        self.assertNotContains(pub, long_text)
+
+        blk = p.blocks.first()
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "edit_block",
+                "block_id": str(blk.id),
+                "block_type": "news_feed",
+                "news_options_present": "1",
+                "news_density": "single_line",
+                "title": "Einzeilig News",
+            },
+        )
+        pub2 = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(pub2, "Kurze Meldung")
+        self.assertContains(pub2, "Details ansehen")
+        self.assertNotContains(pub2, "hochformat.jpg")
+
 
 if __name__ == "__main__":
     import unittest
