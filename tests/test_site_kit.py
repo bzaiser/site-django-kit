@@ -1174,6 +1174,16 @@ class SiteKitTests(TestCase):
         html = self.client.get(reverse("site_kit:page_detail", args=[p.slug])).content.decode()
         self.assertLess(html.index("Anna Zeta"), html.index("Zoe Alpha"))
 
+        # Edit modal for collection_list includes unified image_shape, image_aspect, and limit fields
+        self.client.force_login(self.staff)
+        p_cl = PublicPage.objects.create(title="CLParity", is_published=True)
+        PageBlock.objects.create(page=p_cl, block_type="collection_list", title="Listen", config_json={"collection_slug": ""})
+        ed = self.client.get(reverse("site_kit:page_edit", args=[p_cl.id]))
+        self.assertContains(ed, 'name="image_shape"')
+        self.assertContains(ed, 'name="image_aspect"')
+        self.assertContains(ed, 'name="news_layout"')
+        self.assertContains(ed, 'name="limit"')
+
 
 if __name__ == "__main__":
     import unittest

@@ -1,0 +1,409 @@
+<input type="hidden" name="layout_fields_present" value="1">
+<div class="row g-2">
+    {% if not b %}
+    <div class="col-md-6">
+        <label class="form-label small mb-1">Blocktyp</label>
+        <select name="block_type" class="form-select form-select-sm" id="addBlockTypeSelect">
+            {% for bk, bl in block_choices %}<option value="{{ bk }}">{{ bl }}</option>{% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label small mb-1">Breite (Grid)</label>
+        <select name="col_span" class="form-select form-select-sm">
+            {% for ck, cl in col_choices %}<option value="{{ ck }}">{{ cl }}</option>{% endfor %}
+        </select>
+    </div>
+    {% else %}
+    <div class="col-md-4">
+        <label class="form-label small mb-1">Breite (Grid)</label>
+        <select name="col_span" class="form-select form-select-sm">
+            {% for ck, cl in col_choices %}<option value="{{ ck }}" {% if b.col_span == ck %}selected{% endif %}>{{ cl }}</option>{% endfor %}
+        </select>
+    </div>
+    {% endif %}
+    <div class="{% if b %}col-md-4{% else %}col-md-6{% endif %}">
+        <label class="form-label small mb-1">Darstellung</label>
+        <select name="style_variant" class="form-select form-select-sm">
+            <option value="card" {% if b and b.style_variant == 'card' %}selected{% endif %}>Design-Standard (ggf. durchscheinend)</option>
+            <option value="solid" {% if b and b.style_variant == 'solid' %}selected{% endif %}>Volldeckend (opak)</option>
+            <option value="flat" {% if b and b.style_variant == 'flat' %}selected{% endif %}>Flat (ohne Card)</option>
+            <option value="flat_solid" {% if b and b.style_variant == 'flat_solid' %}selected{% endif %}>Flat mit Farbe (ohne Glas)</option>
+            <option value="subtle" {% if b and b.style_variant == 'subtle' %}selected{% endif %}>Dezent (getönt)</option>
+            <option value="primary" {% if b and b.style_variant == 'primary' %}selected{% endif %}>Primär-Akzent (Banner)</option>
+            <option value="bg_image" {% if b and b.style_variant == 'bg_image' %}selected{% endif %}>Hintergrundbild</option>
+        </select>
+    </div>
+    <div class="{% if b %}col-md-4{% else %}col-md-6{% endif %}">
+        <label class="form-label small mb-1">Bildposition (3×3-Matrix)</label>
+        {% if b %}
+        {% include "site_kit/partials/_image_position_matrix.html" with value=b.image_position %}
+        {% else %}
+        {% include "site_kit/partials/_image_position_matrix.html" with value="middle-right" %}
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-2">
+    <div class="col-md-3">
+        <label class="form-label small mb-1">Hintergrundfarbe</label>
+        <input type="text" name="bg_color" value="{% if b %}{{ b.bg_color }}{% endif %}" class="form-control form-control-sm" placeholder="#ffffff" maxlength="7">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label small mb-1">Hintergrundbild (Upload)</label>
+        <input type="file" name="bg_image" accept="image/*" class="form-control form-control-sm">
+        {% if b and b.resolved_bg_image_url %}
+        <div class="d-flex align-items-center gap-2 mt-1">
+            <img src="{{ b.resolved_bg_image_url }}" alt="" class="rounded border object-fit-cover" style="width: 40px; height: 28px;">
+            <div class="form-check mb-0">
+                <input type="checkbox" name="remove_bg_image" value="1" id="rmBgImg{{ b.id }}" class="form-check-input">
+                <label class="form-check-label small text-danger" for="rmBgImg{{ b.id }}">Hintergrundbild entfernen</label>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small mb-1">Hintergrundbild-URL</label>
+        <input type="text" name="bg_image_url" value="{% if b %}{{ b.bg_image_url }}{% endif %}" class="form-control form-control-sm" placeholder="https://...">
+    </div>
+    <div class="col-md-2">
+        <label class="form-label small mb-1">Overlay</label>
+        <select name="bg_overlay" class="form-select form-select-sm">
+            <option value="dark" {% if b and b.bg_overlay == 'dark' %}selected{% endif %}>Dunkel</option>
+            <option value="light" {% if b and b.bg_overlay == 'light' %}selected{% endif %}>Hell</option>
+            <option value="none" {% if b and b.bg_overlay == 'none' %}selected{% endif %}>Ohne</option>
+        </select>
+    </div>
+</div>
+
+{% if not b or b.block_type == 'hero' or b.block_type == 'text_image' or b.block_type == 'people_grid' or b.block_type == 'news_feed' or b.block_type == 'collection_list' or b.block_type == 'rich_html' %}
+<div class="row g-2" {% if not b %}data-add-section="hero,text_image,people_grid,news_feed,collection_list,rich_html"{% endif %}>
+    <div class="col-md-6">
+        <label class="form-label small mb-1">Bildform</label>
+        <select name="image_shape" class="form-select form-select-sm">
+            <option value="rounded" {% if b and b.image_shape == 'rounded' %}selected{% endif %}>Abgerundet</option>
+            <option value="square" {% if b and b.image_shape == 'square' %}selected{% endif %}>Eckig</option>
+            <option value="circle" {% if b and b.image_shape == 'circle' %}selected{% endif %}>Kreisrund</option>
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label small mb-1">Bild-Format</label>
+        <select name="image_aspect" class="form-select form-select-sm">
+            <option value="auto" {% if b and b.image_aspect == 'auto' %}selected{% endif %}>Original</option>
+            <option value="landscape" {% if b and b.image_aspect == 'landscape' %}selected{% endif %}>Landscape (16:9)</option>
+            <option value="portrait" {% if b and b.image_aspect == 'portrait' %}selected{% endif %}>Portrait (3:4)</option>
+            <option value="square" {% if b and b.image_aspect == 'square' %}selected{% endif %}>Quadratisch (1:1)</option>
+        </select>
+    </div>
+</div>
+{% endif %}
+
+{% if not b or b.block_type == 'people_grid' %}
+<div class="row g-2" {% if not b %}data-add-section="people_grid"{% endif %}>
+    <input type="hidden" name="people_layout_present" value="1">
+    <div class="col-md-6">
+        <label class="form-label small mb-1">Personen-Filter (Rollen, Mehrfachauswahl)</label>
+        <div class="d-flex flex-wrap gap-2 border rounded p-2 bg-body-tertiary" style="max-height:110px;overflow-y:auto;">
+            {% for rn in domain_roles %}
+            <label class="form-check-label small"><input type="checkbox" name="role_filters" value="{{ rn }}" class="form-check-input me-1" {% if b and rn in b.role_filters %}checked{% endif %}>{{ rn }}</label>
+            {% empty %}
+            <span class="small text-muted">Alle Rollen</span>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label small mb-1">Personen-Filter (Kategorien, Mehrfachauswahl)</label>
+        <div class="d-flex flex-wrap gap-2 border rounded p-2 bg-body-tertiary" style="max-height:110px;overflow-y:auto;">
+            {% for cn in domain_categories %}
+            <label class="form-check-label small"><input type="checkbox" name="category_filters" value="{{ cn }}" class="form-check-input me-1" {% if b and cn in b.category_filters %}checked{% endif %}>{{ cn }}</label>
+            {% empty %}
+            <span class="small text-muted">Alle Kategorien</span>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small mb-1">Layout</label>
+        <select name="people_layout" class="form-select form-select-sm">
+            <option value="grid" {% if not b or b.config_json.people_layout == 'grid' or not b.config_json.people_layout %}selected{% endif %}>Raster</option>
+            <option value="carousel" {% if b and b.config_json.people_layout == 'carousel' %}selected{% endif %}>Karussell (Slider)</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small mb-1">Breite je Person</label>
+        <select name="person_col_span" class="form-select form-select-sm">
+            <option value="4" {% if not b or b.config_json.person_col_span == 4 or not b.config_json.person_col_span %}selected{% endif %}>3 pro Zeile (Drittel)</option>
+            <option value="6" {% if b and b.config_json.person_col_span == 6 %}selected{% endif %}>2 pro Zeile (Halb)</option>
+            <option value="3" {% if b and b.config_json.person_col_span == 3 %}selected{% endif %}>4 pro Zeile (Viertel)</option>
+            <option value="12" {% if b and b.config_json.person_col_span == 12 %}selected{% endif %}>1 pro Zeile (Voll)</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small mb-1">Karten-Aussehen</label>
+        <select name="person_card_style" class="form-select form-select-sm">
+            <option value="card" {% if not b or b.config_json.person_card_style == 'card' or not b.config_json.person_card_style %}selected{% endif %}>Standard-Karte</option>
+            <option value="horizontal" {% if b and b.config_json.person_card_style == 'horizontal' %}selected{% endif %}>Visitenkarte (Position per 3×3-Matrix)</option>
+            <option value="flat" {% if b and b.config_json.person_card_style == 'flat' %}selected{% endif %}>Dezent (ohne Rahmen)</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small mb-1">Sortierung</label>
+        <select name="people_order" class="form-select form-select-sm">
+            <option value="last_name" {% if not b or b.config_json.people_order == 'last_name' or not b.config_json.people_order %}selected{% endif %}>Nachname (A–Z)</option>
+            <option value="first_name" {% if b and b.config_json.people_order == 'first_name' %}selected{% endif %}>Vorname (A–Z)</option>
+            <option value="newest" {% if b and b.config_json.people_order == 'newest' %}selected{% endif %}>Neueste zuerst</option>
+            <option value="oldest" {% if b and b.config_json.people_order == 'oldest' %}selected{% endif %}>Älteste zuerst</option>
+            <option value="random" {% if b and b.config_json.people_order == 'random' %}selected{% endif %}>Zufällig</option>
+        </select>
+    </div>
+    <div class="col-12 d-flex align-items-center">
+        <div class="form-check mb-0">
+            <input type="checkbox" name="show_photos" id="showPhotos-{{ uid }}" class="form-check-input" {% if not b or b.config_json.show_photos is not False %}checked{% endif %}>
+            <label class="form-check-label small" for="showPhotos-{{ uid }}">Fotos anzeigen</label>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if not b or b.block_type == 'news_feed' or b.block_type == 'collection_list' %}
+<div class="row g-2" {% if not b %}data-add-section="news_feed,collection_list"{% endif %}>
+    <input type="hidden" name="news_options_present" value="1">
+    {% if not b or b.block_type == 'collection_list' %}
+    <div class="col-12" {% if not b %}data-add-section="collection_list"{% endif %}>
+        <label class="form-label small mb-1">Liste / Sammlung wählen</label>
+        <select name="collection_slug" class="form-select form-select-sm">
+            <option value="">— Bitte wählen —</option>
+            {% for lc in public_list_collections %}
+            <option value="{{ lc.slug }}" {% if b and b.config_json.collection_slug == lc.slug %}selected{% endif %}>{{ lc.title }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+    <div class="col-md-3">
+        <label class="form-label small mb-1">Layout</label>
+        <select name="news_layout" class="form-select form-select-sm">
+            <option value="grid" {% if not b or b.config_json.news_layout == 'grid' or not b.config_json.news_layout %}selected{% endif %}>Raster</option>
+            <option value="carousel" {% if b and b.config_json.news_layout == 'carousel' %}selected{% endif %}>Karussell (Slider)</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small mb-1">Darstellung / Text</label>
+        <select name="news_density" class="form-select form-select-sm">
+            <option value="full" {% if not b or b.config_json.news_density == 'full' or not b.config_json.news_density and not b.is_compact %}selected{% endif %}>Voll</option>
+            <option value="compact" {% if b and b.config_json.news_density == 'compact' or b and not b.config_json.news_density and b.is_compact %}selected{% endif %}>Kompakt (max. 100 Z. + Button)</option>
+            <option value="single_line" {% if b and b.config_json.news_density == 'single_line' %}selected{% endif %}>Einzeilig</option>
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label small mb-1">Bild-Anpassung</label>
+        <select name="news_image_fit" class="form-select form-select-sm">
+            <option value="contain" {% if not b or b.config_json.news_image_fit == 'contain' or not b.config_json.news_image_fit %}selected{% endif %}>Komplett (unbeschnitten)</option>
+            <option value="cover" {% if b and b.config_json.news_image_fit == 'cover' %}selected{% endif %}>Zugeschnitten (gleich hoch)</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label small mb-1">Max. Einträge</label>
+        <input type="number" name="limit" min="1" max="100" value="{% if b %}{{ b.config_json.limit|default:6 }}{% else %}6{% endif %}" class="form-control form-control-sm">
+    </div>
+    <div class="col-12">
+        <div class="form-check mb-0">
+            <input type="checkbox" name="show_news_images" id="showNewsImg-{{ uid }}" class="form-check-input" {% if not b or b.config_json.show_news_images is not False %}checked{% endif %}>
+            <label class="form-check-label small" for="showNewsImg-{{ uid }}">Bilder anzeigen</label>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if not b or b.block_type == 'upcoming_events' %}
+<div class="row g-2" {% if not b %}data-add-section="upcoming_events"{% endif %}>
+    <div class="col-md-6">
+        <label class="form-label small mb-1">Kalender / Art</label>
+        <select name="calendar_category" class="form-select form-select-sm">
+            <option value="">Alle öffentlichen Kalender</option>
+            {% for cc in cal_categories %}<option value="{{ cc.id }}" {% if b and b.config_json.calendar_category == cc.id|stringformat:'s' %}selected{% endif %}>{{ cc.name }}</option>{% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label small mb-1">Anzahl Termine</label>
+        <input type="number" name="limit" min="1" max="100" value="{% if b %}{{ b.config_json.limit|default:6 }}{% else %}6{% endif %}" list="calEventLimitPresets" class="form-control form-control-sm">
+    </div>
+</div>
+{% endif %}
+
+{% if not b or b.block_type == 'public_form' %}
+<div {% if not b %}data-add-section="public_form"{% endif %}>
+    <label class="form-label small mb-1">Verknüpftes Formular</label>
+    <select name="collection_slug" class="form-select form-select-sm">
+        <option value="">Standard (erstes öffentliches Formular)</option>
+        {% for fc in form_collections %}<option value="{{ fc.slug }}" {% if b and b.config_json.collection_slug == fc.slug %}selected{% endif %}>{{ fc.title }}</option>{% endfor %}
+    </select>
+</div>
+{% endif %}
+
+{% if not b or b.block_type == 'quick_links' %}
+<div {% if not b %}data-add-section="quick_links"{% endif %}>
+    {% if b %}
+    {% include "site_kit/partials/_quick_links_editor.html" with uid=b.id links=b.config_json.links links_layout=b.config_json.links_layout links_style=b.config_json.links_style show_icons=b.config_json.show_icons %}
+    {% else %}
+    {% include "site_kit/partials/_quick_links_editor.html" with uid="add" links=None links_layout="grid_3" links_style="cards" show_icons=True %}
+    {% endif %}
+</div>
+{% endif %}
+
+{% if not b or b.block_type == 'photo_gallery' %}
+<div class="row g-2" {% if not b %}data-add-section="photo_gallery"{% endif %}>
+    <div class="col-md-6">
+        <label class="form-label small mb-1">Fotoalbum (list_kit)</label>
+        <select name="collection_slug" class="form-select form-select-sm">
+            <option value="">Alle öffentlichen Bilder</option>
+            {% for gc in gallery_collections %}<option value="{{ gc.slug }}" {% if b and b.config_json.collection_slug == gc.slug %}selected{% endif %}>{{ gc.title }}</option>{% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small mb-1">Darstellung</label>
+        <select name="gallery_layout" class="form-select form-select-sm">
+            <option value="grid" {% if not b or b.config_json.gallery_layout == 'grid' or not b.config_json.gallery_layout %}selected{% endif %}>Raster</option>
+            <option value="carousel" {% if b and b.config_json.gallery_layout == 'carousel' %}selected{% endif %}>Karussell</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small mb-1">Spalten (Raster)</label>
+        <select name="gallery_cols" class="form-select form-select-sm">
+            <option value="3" {% if not b or b.config_json.gallery_cols == 3 or not b.config_json.gallery_cols %}selected{% endif %}>3 Spalten</option>
+            <option value="4" {% if b and b.config_json.gallery_cols == 4 %}selected{% endif %}>4 Spalten</option>
+            <option value="2" {% if b and b.config_json.gallery_cols == 2 %}selected{% endif %}>2 Spalten</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small mb-1">Autoplay (Karussell)</label>
+        <select name="gallery_interval" class="form-select form-select-sm">
+            <option value="5000" {% if not b or b.config_json.gallery_interval == 5000 or b.config_json.gallery_interval is None %}selected{% endif %}>5 Sekunden</option>
+            <option value="3000" {% if b and b.config_json.gallery_interval == 3000 %}selected{% endif %}>3 Sekunden</option>
+            <option value="8000" {% if b and b.config_json.gallery_interval == 8000 %}selected{% endif %}>8 Sekunden</option>
+            <option value="0" {% if b and b.config_json.gallery_interval == 0 %}selected{% endif %}>Aus (manuell)</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small mb-1">Bildtext</label>
+        <select name="gallery_caption_mode" class="form-select form-select-sm">
+            <option value="below" {% if not b or b.config_json.gallery_caption_mode == 'below' or not b.config_json.gallery_caption_mode %}selected{% endif %}>Unter dem Bild</option>
+            <option value="overlay" {% if b and b.config_json.gallery_caption_mode == 'overlay' %}selected{% endif %}>Als Overlay im Bild</option>
+            <option value="none" {% if b and b.config_json.gallery_caption_mode == 'none' %}selected{% endif %}>Ausblenden</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small mb-1">Thumbnails (Karussell)</label>
+        <select name="gallery_show_thumbs" class="form-select form-select-sm">
+            <option value="1" {% if not b or b.config_json.gallery_show_thumbs is not False %}selected{% endif %}>Anzeigen</option>
+            <option value="0" {% if b and b.config_json.gallery_show_thumbs is False %}selected{% endif %}>Ausblenden</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label small mb-1">Höhe (Karussell)</label>
+        <select name="gallery_height" class="form-select form-select-sm">
+            <option value="440" {% if not b or b.config_json.gallery_height == 440 or not b.config_json.gallery_height %}selected{% endif %}>Standard (440px)</option>
+            <option value="300" {% if b and b.config_json.gallery_height == 300 %}selected{% endif %}>Kompakt (300px)</option>
+            <option value="580" {% if b and b.config_json.gallery_height == 580 %}selected{% endif %}>Groß (580px)</option>
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label small mb-1">Verknüpfter Termin (optional)</label>
+        <select name="linked_event_id" class="form-select form-select-sm">
+            <option value="">— Keiner —</option>
+            {% for ev in public_events %}<option value="{{ ev.id }}" {% if b and b.config_json.linked_event_id == ev.id|stringformat:'s' %}selected{% endif %}>{{ ev.title }} ({{ ev.start_at|date:"d.m.Y" }})</option>{% endfor %}
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label small mb-1">Verknüpfte Person (optional)</label>
+        <select name="linked_person_id" class="form-select form-select-sm">
+            <option value="">— Keine —</option>
+            {% for pp in public_persons %}<option value="{{ pp.id }}" {% if b and b.config_json.linked_person_id == pp.id|stringformat:'s' %}selected{% endif %}>{{ pp.full_name }}</option>{% endfor %}
+        </select>
+    </div>
+</div>
+{% endif %}
+
+{% if not b or b.block_type == 'video' %}
+<div class="row g-2" {% if not b %}data-add-section="video"{% endif %}>
+    <div class="col-md-6">
+        <label class="form-label small mb-1">Video hochladen (MP4/WebM)</label>
+        <input type="file" name="video_file" accept="video/mp4,video/webm,video/ogg" class="form-control form-control-sm">
+    </div>
+    <div class="col-md-6">
+        <label class="form-label small mb-1">oder YouTube / Vimeo / Video-URL</label>
+        <input type="url" name="video_url" value="{% if b %}{{ b.config_json.video_url|default:'' }}{% endif %}" class="form-control form-control-sm" placeholder="https://youtu.be/... oder https://vimeo.com/...">
+    </div>
+    <div class="col-md-6">
+        <label class="form-label small mb-1">Rand / Größe</label>
+        <select name="video_padding" class="form-select form-select-sm">
+            <option value="normal" {% if not b or b.config_json.video_padding == 'normal' or not b.config_json.video_padding %}selected{% endif %}>Standard-Rand</option>
+            <option value="narrow" {% if b and b.config_json.video_padding == 'narrow' %}selected{% endif %}>Schmaler Rand</option>
+            <option value="none" {% if b and b.config_json.video_padding == 'none' %}selected{% endif %}>Randlos (Card-Größe)</option>
+        </select>
+    </div>
+    <div class="col-md-6 d-flex align-items-end">
+        <div class="form-check mb-1">
+            <input type="checkbox" name="video_autoplay" value="1" id="autoVid-{{ uid }}" class="form-check-input" {% if b and b.config_json.video_autoplay %}checked{% endif %}>
+            <label class="form-check-label small" for="autoVid-{{ uid }}">Autostart (stumm, Endlosschleife)</label>
+        </div>
+    </div>
+    {% if b and b.video_file %}
+    <div class="col-12 d-flex flex-wrap align-items-center gap-3">
+        <a href="{{ b.video_file.url }}" target="_blank" class="badge bg-body-secondary text-body border text-decoration-none">
+            <i class="bi bi-film me-1 text-primary"></i>{{ b.video_file.name }}
+        </a>
+        <div class="form-check mb-0">
+            <input type="checkbox" name="remove_video" value="1" id="editRemVid-{{ b.id }}" class="form-check-input">
+            <label class="form-check-label small text-danger" for="editRemVid-{{ b.id }}">Hochgeladenes Video entfernen</label>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="form-check">
+    <input type="checkbox" name="compact" id="compact-{{ uid }}" class="form-check-input" {% if b and b.is_compact %}checked{% endif %}>
+    <label class="form-check-label small" for="compact-{{ uid }}">Einzeilig / Kompakt</label>
+</div>
+
+<input type="text" name="title" value="{% if b %}{{ b.title }}{% endif %}" class="form-control form-control-sm" placeholder="Überschrift">
+<input type="text" name="subtitle" value="{% if b %}{{ b.subtitle }}{% endif %}" class="form-control form-control-sm" placeholder="Untertitel (optional)">
+
+{% if not b or b.block_type == 'rich_html' %}
+<div class="border rounded-3 p-2 bg-body-tertiary" {% if not b %}id="addWysiwygWrap" data-add-section="rich_html"{% endif %}>
+    {% if b %}
+        {% with bid=b.id|stringformat:"s" %}
+            {% with tb_key="edit-"|add:bid %}
+                {% include "site_kit/partials/_wysiwyg_toolbar.html" with toolbar_key=tb_key show_html_toggle=is_admin %}
+            {% endwith %}
+        {% endwith %}
+        <div id="edit-{{ b.id }}-editor" contenteditable="true" class="form-control form-control-sm bg-body" style="min-height: 120px;">{{ b.body|safe }}</div>
+        <textarea name="body" id="edit-{{ b.id }}-textarea" rows="4" class="form-control form-control-sm d-none mt-2">{{ b.body }}</textarea>
+    {% else %}
+        {% include "site_kit/partials/_wysiwyg_toolbar.html" with toolbar_key="addWysiwyg" show_html_toggle=True %}
+        <div id="addWysiwygEditor" contenteditable="true" class="form-control form-control-sm bg-body" style="min-height: 110px;"></div>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if not b or b.block_type == 'stats_bar' %}
+<div class="alert alert-info py-2 small mb-0" {% if not b %}data-add-section="stats_bar"{% endif %}>Pro Zeile: <code>Wert | Bezeichnung | Icon/Emoji (optional) | F / B / FB</code> (z. B. <code>10 | Themen | 🍀 | F</code>, <code>15 | Dozenten | 🧑‍🎨 | FB</code>).</div>
+{% endif %}
+
+{% if not b or b.block_type != 'rich_html' %}
+<textarea name="body" {% if not b %}id="addBlockBody" data-add-hide-for="rich_html,quick_links"{% endif %} rows="3" class="form-control form-control-sm" placeholder="Text / Inhalt">{% if b %}{{ b.body }}{% endif %}</textarea>
+{% endif %}
+
+{% if not b or is_admin or b.block_type != 'rich_html' %}
+<div class="row g-2" {% if not b %}id="addImageFields" data-add-section="hero,text_image,rich_html,news_feed,collection_list"{% endif %}>
+    <div class="col-md-6"><input type="file" name="image" accept="image/*" class="form-control form-control-sm"></div>
+    <div class="col-md-6"><input type="url" name="image_url" value="{% if b %}{{ b.image_url }}{% endif %}" class="form-control form-control-sm" placeholder="Bild-URL (optional)"></div>
+</div>
+{% if b and b.resolved_image_url %}
+<div class="d-flex align-items-center gap-2">
+    <img src="{{ b.resolved_image_url }}" alt="" class="rounded border object-fit-cover" style="width: 48px; height: 36px;">
+    <div class="form-check mb-0">
+        <input type="checkbox" name="remove_image" value="1" id="editRemoveImg-{{ b.id }}" class="form-check-input">
+        <label class="form-check-label small text-danger" for="editRemoveImg-{{ b.id }}">Bild entfernen</label>
+    </div>
+</div>
+{% endif %}
+{% endif %}
