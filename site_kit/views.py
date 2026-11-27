@@ -1676,7 +1676,7 @@ def _sanitize_rich_html(raw_html: str) -> str:
 def _parse_col_span(raw_val) -> int:
     try:
         val = int(raw_val)
-        return val if val in (12, 8, 6, 4, 3) else 12
+        return val if val in (12, 9, 8, 6, 4, 3) else 12
     except (TypeError, ValueError):
         return 12
 

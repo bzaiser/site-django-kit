@@ -795,6 +795,18 @@ class SiteKitTests(TestCase):
         self.assertNotContains(pub, "Carl Mit")
         self.assertContains(pub, "align-items-end")
 
+    def test_col_span_9_and_design_studio_bootstrap_semantic_vars(self):
+        self.client.force_login(self.staff)
+        p = PublicPage.objects.create(title="Grid 9/12", is_published=True)
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {"action": "add_block", "block_type": "news_feed", "col_span": "9", "title": "News 9/12"},
+        )
+        pub = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(pub, "col-lg-9")
+        for role in ("primary", "secondary", "success", "info", "warning", "danger"):
+            self.assertContains(pub, f"--bs-{role}-rgb:")
+
 
 if __name__ == "__main__":
     import unittest

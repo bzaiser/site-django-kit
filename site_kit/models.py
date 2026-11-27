@@ -131,6 +131,7 @@ class PageBlock(models.Model):
     ]
     COL_SPAN_CHOICES = [
         (12, "Volle Breite (12/12)"),
+        (9, "Drei Viertel (9/12)"),
         (8, "Zwei Drittel (8/12)"),
         (6, "Halbe Breite (6/12)"),
         (4, "Drittel Breite (4/12)"),
@@ -181,6 +182,7 @@ class PageBlock(models.Model):
     @property
     def grid_col_class(self) -> str:
         return {
+            9: "col-12 col-lg-9",
             8: "col-12 col-lg-8",
             6: "col-12 col-lg-6",
             4: "col-12 col-md-6 col-lg-4",
@@ -271,8 +273,14 @@ class PageBlock(models.Model):
     @property
     def image_position(self) -> str:
         cfg = self.config_json if isinstance(self.config_json, dict) else {}
-        val = (cfg.get("image_position") or "right").strip()
-        return val if val in ("right", "left", "top") else "right"
+        val = (cfg.get("image_position") or "middle-right").strip()
+        valid = (
+            "right", "left", "top", "bottom",
+            "top-left", "top-center", "top-right",
+            "middle-left", "middle-center", "middle-right",
+            "bottom-left", "bottom-center", "bottom-right",
+        )
+        return val if val in valid else "middle-right"
 
     @property
     def image_shape(self) -> str:
