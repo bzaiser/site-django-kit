@@ -486,7 +486,7 @@ def _resolve_block_data(block: PageBlock, request=None) -> dict:
                 if cal_cat.isdigit():
                     qs = qs.filter(category_id=int(cal_cat))
                     data["calendar_category_id"] = cal_cat
-                data["events"] = list(qs.order_by("start_at")[: max(1, min(50, limit))])
+                data["events"] = list(qs.order_by("start_at")[: max(1, min(100, limit))])
             except Exception:
                 data["events"] = []
 
@@ -1846,7 +1846,7 @@ def _parse_block_layout_config(request, existing_cfg=None) -> dict:
     if "limit" in request.POST:
         raw_lim = (request.POST.get("limit") or "").strip()
         if raw_lim.isdigit():
-            cfg["limit"] = max(1, min(50, int(raw_lim)))
+            cfg["limit"] = max(1, min(100, int(raw_lim)))
     return cfg
 
 
