@@ -999,6 +999,19 @@ class SiteKitTests(TestCase):
         self.assertEqual(blk.resolved_image_url, "")
         self.assertEqual(blk.config_json.get("bg_image_url", ""), "")
 
+    def test_block_bg_image_renders_for_all_style_variants(self):
+        p = PublicPage.objects.create(title="BG Styles", is_published=True)
+        for style in ("card", "solid", "flat", "subtle", "primary"):
+            PageBlock.objects.all().delete()
+            PageBlock.objects.create(
+                page=p,
+                block_type="hero",
+                title=f"Hero {style}",
+                config_json={"style_variant": style, "bg_image_url": "https://example.com/banner.jpg", "bg_overlay": "dark"},
+            )
+            pub = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+            self.assertContains(pub, "url('https://example.com/banner.jpg')")
+
 
 if __name__ == "__main__":
     import unittest

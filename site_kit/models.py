@@ -217,7 +217,11 @@ class PageBlock(models.Model):
     @property
     def is_dark_surface(self) -> bool:
         sv = self.style_variant
-        return sv == "primary" or (sv == "bg_image" and self.bg_overlay == "dark")
+        if self.resolved_bg_image_url:
+            if sv == "primary" and self.bg_overlay != "light":
+                return True
+            return self.bg_overlay == "dark"
+        return sv == "primary"
 
     @property
     def style_variant(self) -> str:
@@ -228,22 +232,36 @@ class PageBlock(models.Model):
     @property
     def card_wrapper_class(self) -> str:
         sv = self.style_variant
+        has_bg = bool(self.resolved_bg_image_url)
+        txt = (" " + ("text-white" if self.is_dark_surface else "text-dark")) if has_bg else ""
         if sv == "flat":
-            return "py-2 h-100"
+            return f"py-2{' rounded-4 overflow-hidden px-3' if has_bg else ''}{txt} h-100"
         if sv == "flat_solid":
-            return "rounded-4 overflow-hidden h-100"
+            return f"rounded-4 overflow-hidden{txt} h-100"
         if sv == "subtle":
-            return "rounded-4 overflow-hidden border h-100"
+            return f"rounded-4 overflow-hidden border{txt} h-100"
         if sv == "primary":
-            return "rounded-4 overflow-hidden shadow-sm text-white h-100"
+            return f"rounded-4 overflow-hidden shadow-sm {'text-white' if (not has_bg or self.is_dark_surface) else 'text-dark'} h-100"
         if sv == "bg_image":
-            txt = "text-white" if self.bg_overlay == "dark" else "text-dark"
-            return f"rounded-4 overflow-hidden shadow-sm {txt} h-100"
-        return "card shadow-sm rounded-4 overflow-hidden h-100"
+            return f"rounded-4 overflow-hidden shadow-sm {'text-white' if self.bg_overlay == 'dark' else 'text-dark'} h-100"
+        return f"card shadow-sm rounded-4 overflow-hidden{txt} h-100"
 
     @property
     def card_wrapper_style(self) -> str:
         sv = self.style_variant
+        img = self.resolved_bg_image_url
+        if img:
+            safe_img = img.replace("'", "").replace('"', "")
+            if sv == "primary" and self.bg_overlay != "light":
+                ov = "linear-gradient(color-mix(in srgb, var(--app-primary, #0d6efd) 68%, transparent), color-mix(in srgb, var(--app-primary, #0d6efd) 68%, transparent)), "
+            elif self.bg_overlay == "dark":
+                ov = "linear-gradient(rgba(15, 23, 42, 0.56), rgba(15, 23, 42, 0.56)), "
+            elif self.bg_overlay == "light":
+                ov = "linear-gradient(rgba(255, 255, 255, 0.76), rgba(255, 255, 255, 0.76)), "
+            else:
+                ov = ""
+            extra = " box-shadow: none !important;" if sv == "flat_solid" else (" border: none !important;" if sv == "primary" else "")
+            return f"background: {ov}url('{safe_img}') center / cover no-repeat !important;{extra}"
         if sv == "solid":
             bg = self.bg_color or "var(--bs-body-bg, #ffffff)"
             return f"background: {bg} !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;"
@@ -258,16 +276,6 @@ class PageBlock(models.Model):
                 return f"background: {self.bg_color} !important; border: none !important;"
             return "background: var(--app-gradient, var(--app-primary, #0d6efd)) !important; border: none !important;"
         if sv == "bg_image":
-            img = self.resolved_bg_image_url
-            if img:
-                safe_img = img.replace("'", "").replace('"', "")
-                if self.bg_overlay == "dark":
-                    ov = "linear-gradient(rgba(15, 23, 42, 0.56), rgba(15, 23, 42, 0.56)), "
-                elif self.bg_overlay == "light":
-                    ov = "linear-gradient(rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.72)), "
-                else:
-                    ov = ""
-                return f"background: {ov}url('{safe_img}') center / cover no-repeat !important;"
             return "background: var(--app-gradient, var(--app-primary, #0d6efd)) !important;"
         return ""
 
