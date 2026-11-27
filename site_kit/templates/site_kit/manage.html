@@ -128,7 +128,11 @@
                         <input type="hidden" name="program_id" value="{{ prog.id }}">
                         <div class="col-md-4">
                             <input type="text" name="title" value="{{ prog.title }}" class="form-control form-control-sm fw-semibold" required>
-                            <div class="small text-muted mt-1"><a href="{% url 'site_kit:program_detail' prog.slug %}" target="_blank" class="text-decoration-none">/programm/{{ prog.slug }}/ <i class="bi bi-box-arrow-up-right"></i></a></div>
+                            <div class="input-group input-group-sm mt-1">
+                                <span class="input-group-text py-0 px-1 small text-muted">/programm/</span>
+                                <input type="text" name="slug" value="{{ prog.slug }}" class="form-control form-control-sm py-0" placeholder="url-slug" title="URL-Slug (leer lassen zum automatischen Erzeugen aus Titel)">
+                                <a href="{% url 'site_kit:program_detail' prog.slug %}" target="_blank" class="btn btn-outline-secondary py-0 px-2" title="Öffnen"><i class="bi bi-box-arrow-up-right"></i></a>
+                            </div>
                         </div>
                         <div class="col-md-2">
                             <select name="card_mode" class="form-select form-select-sm" title="Detail-Karten">

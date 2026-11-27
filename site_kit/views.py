@@ -1174,7 +1174,11 @@ def _build_program_data(year=None, cat_id=None, instructor_ref=None, program_slu
 
         base_qs = OfferingTemplate.objects.filter(show_in_program=True, is_active=True)
         if program_obj:
-            base_qs = base_qs.filter(program=program_obj)
+            if program_obj.slug == "jahresprogramm":
+                from django.db.models import Q as _Q
+                base_qs = base_qs.filter(_Q(program=program_obj) | _Q(program__isnull=True))
+            else:
+                base_qs = base_qs.filter(program=program_obj)
         else:
             base_qs = base_qs.filter(program__isnull=True)
 
@@ -1367,6 +1371,11 @@ def _render_program_hub(request):
 
 
 def program_standard_view(request):
+    if apps.is_installed("cal_kit"):
+        from cal_kit.models import Program
+        jp = Program.objects.filter(slug="jahresprogramm", is_public=True).first()
+        if jp:
+            return redirect("site_kit:program_detail", program_slug=jp.slug)
     return annual_program_view(request, program_slug=None, force_standard=True)
 
 
@@ -2061,10 +2070,21 @@ def program_manage_view(request):
                 )
                 messages.success(request, f"Programm „{p.title}“ erstellt.")
         elif action == "update":
+            from django.utils.text import slugify
             prog = get_object_or_404(Program, pk=request.POST.get("program_id"))
+            old_slug = prog.slug
             title = (request.POST.get("title") or "").strip()[:120]
             if title:
                 prog.title = title
+            if "slug" in request.POST:
+                raw_slug = (request.POST.get("slug") or "").strip()
+                base_slug = slugify(raw_slug) if raw_slug else (slugify(prog.title) or "programm")
+                cand = base_slug[:160]
+                idx = 2
+                while Program.objects.filter(slug=cand).exclude(pk=prog.pk).exists():
+                    cand = f"{base_slug[:150]}-{idx}"
+                    idx += 1
+                prog.slug = cand
             prog.description = (request.POST.get("description") or "").strip()
             cm = (request.POST.get("card_mode") or "equal_max").strip()
             if cm in dict(Program.CARD_MODE_CHOICES):
@@ -2077,6 +2097,18 @@ def program_manage_view(request):
             prog.is_public = request.POST.get("is_public") == "on"
             prog.is_featured = request.POST.get("is_featured") == "on"
             prog.save()
+            old_page = PublicPage.objects.filter(slug=f"programm-{old_slug}").first()
+            if old_page:
+                new_page_slug = f"programm-{prog.slug}"
+                if old_slug != prog.slug and not PublicPage.objects.filter(slug=new_page_slug).exclude(pk=old_page.pk).exists():
+                    old_page.slug = new_page_slug
+                old_page.title = prog.title[:160]
+                old_page.save(update_fields=["slug", "title"])
+                for blk in old_page.blocks.filter(block_type="annual_program"):
+                    bcfg = dict(blk.config_json) if isinstance(blk.config_json, dict) else {}
+                    bcfg["program_slug"] = prog.slug
+                    blk.config_json = bcfg
+                    blk.save(update_fields=["config_json"])
             messages.success(request, f"Programm „{prog.title}“ aktualisiert.")
         elif action == "delete":
             prog = get_object_or_404(Program, pk=request.POST.get("program_id"))

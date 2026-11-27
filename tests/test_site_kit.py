@@ -510,7 +510,7 @@ class SiteKitTests(TestCase):
             allow_registration=True,
         )
 
-        prog = self.client.get(reverse("site_kit:annual_program"))
+        prog = self.client.get(reverse("site_kit:program_detail", args=["jahresprogramm"]))
         self.assertEqual(prog.status_code, 200)
         self.assertContains(prog, "Aquarellkurs")
         self.assertContains(prog, reverse("site_kit:person_detail", args=[p.id]))
@@ -699,8 +699,8 @@ class SiteKitTests(TestCase):
             r_hl = self.client.get(reverse("site_kit:annual_program"))
             self.assertContains(r_hl, f'data-hub-layout="{layout_mode}"')
 
-        # /programm/standard/ shows only ungrouped default offerings
-        r_std = self.client.get(reverse("site_kit:program_standard"))
+        # /programm/standard/ redirects to /programm/jahresprogramm/ showing default offerings
+        r_std = self.client.get(reverse("site_kit:program_standard"), follow=True)
         self.assertEqual(r_std.status_code, 200)
         self.assertContains(r_std, "Regulärer Malkurs")
         self.assertNotContains(r_std, "Ferien-Töpfern")
@@ -728,6 +728,28 @@ class SiteKitTests(TestCase):
         self.assertRedirects(r_redir, reverse("site_kit:program_detail", args=["kinderferienprogramm"]), fetch_redirect_response=False)
         r_mgr = self.client.get(reverse("site_kit:manage"))
         self.assertNotContains(r_mgr, "/seite/programm-kinderferienprogramm/")
+
+        # Renaming program title & slug updates URL and associated PublicPage
+        self.client.post(
+            reverse("site_kit:program_manage"),
+            {
+                "action": "update",
+                "program_id": str(prog.id),
+                "title": "Ferienprogramm Sommer",
+                "slug": "ferien-sommer",
+                "card_mode": "compact_uniform",
+                "show_in_nav": "on",
+                "is_public": "on",
+                "is_featured": "on",
+                "position": "10",
+            },
+        )
+        prog.refresh_from_db()
+        self.assertEqual(prog.slug, "ferien-sommer")
+        self.assertTrue(PublicPage.objects.filter(slug="programm-ferien-sommer").exists())
+        r_new = self.client.get(reverse("site_kit:program_detail", args=["ferien-sommer"]))
+        self.assertEqual(r_new.status_code, 200)
+        self.assertContains(r_new, "Ferien-Töpfern")
 
     def test_events_list_settings_hide_description_by_default_and_group_toggle(self):
         from cal_kit.models import CalendarEvent
