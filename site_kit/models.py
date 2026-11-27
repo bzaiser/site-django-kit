@@ -122,6 +122,7 @@ class PageBlock(models.Model):
         ("downloads", "Downloads (domain_kit)"),
         ("faq_list", "FAQ-Akkordeon (list_kit)"),
         ("public_form", "Öffentliches Formular (list_kit)"),
+        ("quick_links", "Schnellzugriffe / Link-Kacheln"),
         ("program_hub", "Programme-Übersicht / Hub (cal_kit)"),
         ("annual_program", "Jahresprogramm / Angebotskatalog (cal_kit)"),
         ("photo_gallery", "Bildergalerie / Impressionen (list_kit)"),

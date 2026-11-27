@@ -859,6 +859,53 @@ class SiteKitTests(TestCase):
         self.assertContains(pub2, "Details ansehen")
         self.assertNotContains(pub2, "hochformat.jpg")
 
+    def test_quick_links_block_internal_external_icons_and_layouts(self):
+        import json
+
+        self.client.force_login(self.staff)
+        p = PublicPage.objects.create(title="Schnellzugriffe", is_published=True)
+        links = [
+            {"label": "Termine", "subtitle": "Alle Events", "url": "/termine/", "icon": "bi-calendar-event", "accent": "primary", "new_tab": False},
+            {"label": "Partner", "subtitle": "", "url": "https://example.org", "icon": "bi-box-arrow-up-right", "accent": "success", "new_tab": True},
+        ]
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "add_block",
+                "block_type": "quick_links",
+                "quick_links_present": "1",
+                "links_layout": "grid_3",
+                "links_style": "cards",
+                "show_icons": "on",
+                "quick_links_json": json.dumps(links),
+                "title": "Direkt zu",
+            },
+        )
+        pub = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(pub, "Direkt zu")
+        self.assertContains(pub, "bi-calendar-event")
+        self.assertContains(pub, 'href="https://example.org"')
+        self.assertContains(pub, 'target="_blank"')
+        self.assertContains(pub, "col-lg-4")
+
+        blk = p.blocks.first()
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "edit_block",
+                "block_id": str(blk.id),
+                "block_type": "quick_links",
+                "quick_links_present": "1",
+                "links_layout": "inline",
+                "links_style": "pills",
+                "quick_links_json": json.dumps(links),
+                "title": "Direkt zu",
+            },
+        )
+        pub2 = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(pub2, "btn-outline-success")
+        self.assertNotContains(pub2, "bi-calendar-event")
+
 
 if __name__ == "__main__":
     import unittest

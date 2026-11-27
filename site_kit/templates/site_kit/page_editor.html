@@ -289,6 +289,9 @@
                             </select>
                         </div>
                     </div>
+                    <div class="d-none" id="addQuickLinksWrap">
+                        {% include "site_kit/partials/_quick_links_editor.html" with uid="add" links=None links_layout="grid_3" links_style="cards" show_icons=True %}
+                    </div>
                     <div class="row g-2 d-none" id="addGalleryWrap">
                         <div class="col-md-6">
                             <select name="collection_slug" class="form-select form-select-sm">
@@ -613,6 +616,9 @@
                     </select>
                 </div>
                 {% endif %}
+                {% if b.block_type == 'quick_links' %}
+                {% include "site_kit/partials/_quick_links_editor.html" with uid=b.id links=b.config_json.links links_layout=b.config_json.links_layout links_style=b.config_json.links_style show_icons=b.config_json.show_icons %}
+                {% endif %}
                 <div class="form-check">
                     <input type="checkbox" name="compact" id="editCompact-{{ b.id }}" class="form-check-input" {% if b.is_compact %}checked{% endif %}>
                     <label class="form-check-label small" for="editCompact-{{ b.id }}">Einzeilig / Kompakt</label>
@@ -783,6 +789,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const isNews = typeSel.value === "news_feed";
         const isEvents = typeSel.value === "upcoming_events";
         const isForm = typeSel.value === "public_form";
+        const isQuickLinks = typeSel.value === "quick_links";
         const isStats = typeSel.value === "stats_bar";
         const isGallery = typeSel.value === "photo_gallery";
         const isVideo = typeSel.value === "video";
@@ -790,11 +797,12 @@ document.addEventListener("DOMContentLoaded", function () {
         const newsWrap = document.getElementById("addNewsLayoutWrap");
         const eventsWrap = document.getElementById("addEventsFilterWrap");
         const formWrap = document.getElementById("addPublicFormWrap");
+        const qlWrap = document.getElementById("addQuickLinksWrap");
         const galleryWrap = document.getElementById("addGalleryWrap");
         const videoWrap = document.getElementById("addVideoWrap");
         const statsHint = document.getElementById("addStatsHint");
         if (wysiWrap) wysiWrap.classList.toggle("d-none", !isRich);
-        if (addBody) addBody.classList.toggle("d-none", isRich);
+        if (addBody) addBody.classList.toggle("d-none", isRich || isQuickLinks);
         if (addImg) addImg.classList.toggle("d-none", !(isRich || typeSel.value === "hero" || typeSel.value === "text_image"));
         if (peopleWrap) peopleWrap.classList.toggle("d-none", !isPeople);
         if (newsWrap) {
@@ -805,6 +813,10 @@ document.addEventListener("DOMContentLoaded", function () {
         if (formWrap) {
             formWrap.classList.toggle("d-none", !isForm);
             formWrap.querySelectorAll("select, input").forEach(function (el) { el.disabled = !isForm; });
+        }
+        if (qlWrap) {
+            qlWrap.classList.toggle("d-none", !isQuickLinks);
+            qlWrap.querySelectorAll("select, input, button").forEach(function (el) { el.disabled = !isQuickLinks; });
         }
         if (galleryWrap) {
             galleryWrap.classList.toggle("d-none", !isGallery);
@@ -901,6 +913,61 @@ document.addEventListener("DOMContentLoaded", function () {
             const active = b === dot;
             b.classList.toggle("btn-primary", active);
             b.classList.toggle("btn-outline-secondary", !active);
+        });
+    });
+
+    document.addEventListener("click", function (ev) {
+        const addBtn = ev.target.closest("[data-ql-add]");
+        if (addBtn) {
+            const ed = addBtn.closest("[data-ql-editor]");
+            const tpl = ed ? ed.querySelector("[data-ql-tpl]") : null;
+            const rows = ed ? ed.querySelector("[data-ql-rows]") : null;
+            if (tpl && rows) rows.appendChild(tpl.content.cloneNode(true));
+            return;
+        }
+        const remBtn = ev.target.closest("[data-ql-remove]");
+        if (remBtn) {
+            const row = remBtn.closest("[data-ql-row]");
+            if (row) row.remove();
+        }
+    });
+
+    document.addEventListener("change", function (ev) {
+        const tgt = ev.target.closest("[data-ql-target]");
+        if (!tgt) return;
+        const row = tgt.closest("[data-ql-row]");
+        if (!row) return;
+        const opt = tgt.options[tgt.selectedIndex];
+        const urlInp = row.querySelector("[data-ql-url]");
+        const lblInp = row.querySelector("[data-ql-label]");
+        const tabChk = row.querySelector("[data-ql-new-tab]");
+        if (tgt.value) {
+            if (urlInp) urlInp.value = tgt.value;
+            if (lblInp && !lblInp.value.trim() && opt) lblInp.value = opt.getAttribute("data-lbl") || "";
+            if (tabChk) tabChk.checked = false;
+        }
+    });
+
+    document.addEventListener("submit", function (ev) {
+        const form = ev.target;
+        form.querySelectorAll("[data-ql-editor]").forEach(function (ed) {
+            const jsonInp = ed.querySelector("[data-ql-json]");
+            if (!jsonInp || jsonInp.disabled) return;
+            const out = [];
+            ed.querySelectorAll("[data-ql-row]").forEach(function (row) {
+                const lbl = (row.querySelector("[data-ql-label]")?.value || "").trim();
+                const url = (row.querySelector("[data-ql-url]")?.value || "").trim();
+                if (!lbl || !url) return;
+                out.push({
+                    label: lbl,
+                    subtitle: (row.querySelector("[data-ql-subtitle]")?.value || "").trim(),
+                    url: url,
+                    icon: (row.querySelector("[data-ql-icon]")?.value || "").trim(),
+                    accent: (row.querySelector("[data-ql-accent]")?.value || "primary").trim(),
+                    new_tab: !!row.querySelector("[data-ql-new-tab]")?.checked
+                });
+            });
+            jsonInp.value = JSON.stringify(out);
         });
     });
 });

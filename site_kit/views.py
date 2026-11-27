@@ -544,6 +544,14 @@ def _resolve_block_data(block: PageBlock, request=None) -> dict:
     elif block.block_type == "program_hub":
         data.update(_build_program_hub_data())
 
+    elif block.block_type == "quick_links":
+        data["quick_links"] = cfg.get("links") if isinstance(cfg.get("links"), list) else []
+        ll = (cfg.get("links_layout") or "grid_3").strip()
+        data["links_layout"] = ll if ll in ("stack", "inline", "grid_2", "grid_3", "grid_4") else "grid_3"
+        ls = (cfg.get("links_style") or "cards").strip()
+        data["links_style"] = ls if ls in ("cards", "pills", "minimal") else "cards"
+        data["show_icons"] = cfg.get("show_icons", True)
+
     elif block.block_type == "annual_program":
         p_slug = (cfg.get("program_slug") or "").strip() or None
         if not p_slug and getattr(block.page, "slug", "").startswith("programm-"):
@@ -1745,6 +1753,57 @@ def _parse_block_layout_config(request, existing_cfg=None) -> dict:
         cfg["news_image_fit"] = nif if nif in ("contain", "cover") else "contain"
     if "news_options_present" in request.POST:
         cfg["show_news_images"] = request.POST.get("show_news_images") == "on"
+    if "quick_links_present" in request.POST:
+        ll = (request.POST.get("links_layout") or "grid_3").strip()
+        cfg["links_layout"] = ll if ll in ("stack", "inline", "grid_2", "grid_3", "grid_4") else "grid_3"
+        ls = (request.POST.get("links_style") or "cards").strip()
+        cfg["links_style"] = ls if ls in ("cards", "pills", "minimal") else "cards"
+        cfg["show_icons"] = request.POST.get("show_icons") == "on"
+        raw_links = (request.POST.get("quick_links_json") or "").strip()
+        parsed_links = []
+        if raw_links:
+            try:
+                loaded = json.loads(raw_links)
+                if isinstance(loaded, list):
+                    for item in loaded[:24]:
+                        if not isinstance(item, dict):
+                            continue
+                        lbl = str(item.get("label") or "").strip()[:80]
+                        url = str(item.get("url") or "").strip()[:300]
+                        if lbl and url:
+                            acc = str(item.get("accent") or "primary").strip()
+                            parsed_links.append({
+                                "label": lbl,
+                                "subtitle": str(item.get("subtitle") or "").strip()[:140],
+                                "url": url,
+                                "icon": str(item.get("icon") or "").strip()[:48],
+                                "accent": acc if acc in ("primary", "secondary", "success", "info", "warning", "danger") else "primary",
+                                "new_tab": bool(item.get("new_tab")),
+                            })
+            except Exception:
+                pass
+        elif "ql_label" in request.POST:
+            lbls = request.POST.getlist("ql_label")
+            urls = request.POST.getlist("ql_url")
+            subs = request.POST.getlist("ql_subtitle")
+            icons = request.POST.getlist("ql_icon")
+            accs = request.POST.getlist("ql_accent")
+            tabs = request.POST.getlist("ql_new_tab")
+            for idx, lbl in enumerate(lbls[:24]):
+                lbl_c = (lbl or "").strip()[:80]
+                url_c = (urls[idx] if idx < len(urls) else "").strip()[:300]
+                if lbl_c and url_c:
+                    acc = (accs[idx] if idx < len(accs) else "primary").strip()
+                    nt_val = (tabs[idx] if idx < len(tabs) else "").strip()
+                    parsed_links.append({
+                        "label": lbl_c,
+                        "subtitle": (subs[idx] if idx < len(subs) else "").strip()[:140],
+                        "url": url_c,
+                        "icon": (icons[idx] if idx < len(icons) else "").strip()[:48],
+                        "accent": acc if acc in ("primary", "secondary", "success", "info", "warning", "danger") else "primary",
+                        "new_tab": nt_val in ("1", "true", "on", "yes"),
+                    })
+        cfg["links"] = parsed_links
     if "video_url" in request.POST:
         cfg["video_url"] = (request.POST.get("video_url") or "").strip()[:300]
     if "gallery_layout" in request.POST:
@@ -2316,6 +2375,39 @@ def page_edit_view(request, pk):
             public_persons = list(Person.objects.filter(is_public=True).order_by("last_name", "first_name")[:100])
         except Exception:
             pass
+    quick_link_targets = [
+        {
+            "group": "Standard-Bereiche",
+            "items": [
+                {"label": "Startseite", "url": reverse("site_kit:home")},
+                {"label": "News", "url": reverse("site_kit:news_list")},
+                {"label": "Termine", "url": reverse("site_kit:events_list")},
+                {"label": "Angebote & Programme", "url": reverse("site_kit:annual_program")},
+                {"label": "Dozenten & Team", "url": reverse("site_kit:lecturers_list")},
+                {"label": "Anmeldung", "url": reverse("site_kit:event_registration")},
+            ],
+        },
+        {
+            "group": "Seiten",
+            "items": [
+                {"label": pg.title, "url": reverse("site_kit:page_detail", args=[pg.slug])}
+                for pg in PublicPage.objects.filter(is_published=True)
+                .exclude(slug__in=("news", "termine", "programm"))
+                .exclude(slug__startswith="programm-")
+            ],
+        },
+    ]
+    if apps.is_installed("cal_kit"):
+        try:
+            from cal_kit.models import Program
+            prog_items = [
+                {"label": pr.title, "url": reverse("site_kit:program_detail", args=[pr.slug])}
+                for pr in Program.objects.filter(is_public=True)
+            ]
+            if prog_items:
+                quick_link_targets.insert(1, {"group": "Programme", "items": prog_items})
+        except Exception:
+            pass
     return render(request, "site_kit/page_editor.html", {
         "page": page,
         "blocks": page.blocks.all(),
@@ -2329,4 +2421,5 @@ def page_edit_view(request, pk):
         "gallery_collections": gallery_collections,
         "public_events": public_events,
         "public_persons": public_persons,
+        "quick_link_targets": quick_link_targets,
     })

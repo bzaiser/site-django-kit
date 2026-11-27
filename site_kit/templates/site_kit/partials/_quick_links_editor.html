@@ -1,0 +1,142 @@
+<div class="site-ql-editor border rounded-3 p-2 bg-body-tertiary" data-ql-editor>
+    <input type="hidden" name="quick_links_present" value="1">
+    <input type="hidden" name="quick_links_json" value="" data-ql-json>
+    <div class="row g-2 mb-2">
+        <div class="col-md-4">
+            <label class="form-label small mb-1">Anordnung</label>
+            <select name="links_layout" class="form-select form-select-sm">
+                <option value="stack" {% if links_layout == 'stack' %}selected{% endif %}>Untereinander (1 Spalte)</option>
+                <option value="inline" {% if links_layout == 'inline' %}selected{% endif %}>Nebeneinander (fließend)</option>
+                <option value="grid_2" {% if links_layout == 'grid_2' %}selected{% endif %}>2 Spalten</option>
+                <option value="grid_3" {% if links_layout == 'grid_3' or not links_layout %}selected{% endif %}>3 Spalten</option>
+                <option value="grid_4" {% if links_layout == 'grid_4' %}selected{% endif %}>4 Spalten</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small mb-1">Optik</label>
+            <select name="links_style" class="form-select form-select-sm">
+                <option value="cards" {% if links_style == 'cards' or not links_style %}selected{% endif %}>Kacheln (Cards)</option>
+                <option value="pills" {% if links_style == 'pills' %}selected{% endif %}>Buttons / Pills</option>
+                <option value="minimal" {% if links_style == 'minimal' %}selected{% endif %}>Dezente Liste</option>
+            </select>
+        </div>
+        <div class="col-md-4 d-flex align-items-end pb-1">
+            <div class="form-check mb-0">
+                <input type="checkbox" name="show_icons" id="qlShowIcons-{{ uid }}" class="form-check-input" {% if show_icons is not False %}checked{% endif %}>
+                <label class="form-check-label small" for="qlShowIcons-{{ uid }}">Icons anzeigen</label>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex flex-column gap-2" data-ql-rows>
+        {% for lnk in links %}
+        <div class="border rounded-2 p-2 bg-body" data-ql-row>
+            <div class="row g-2 align-items-center">
+                <div class="col-md-4">
+                    <select class="form-select form-select-sm" data-ql-target>
+                        <option value="">— Ziel wählen oder URL eingeben —</option>
+                        {% for grp in quick_link_targets %}
+                        <optgroup label="{{ grp.group }}">
+                            {% for it in grp.items %}
+                            <option value="{{ it.url }}" data-lbl="{{ it.label }}" {% if lnk.url == it.url %}selected{% endif %}>{{ it.label }}</option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control form-control-sm" data-ql-label value="{{ lnk.label }}" placeholder="Titel (z. B. Kursprogramm)">
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control form-control-sm" data-ql-url value="{{ lnk.url }}" placeholder="/programm/ oder https://…">
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control form-control-sm" data-ql-subtitle value="{{ lnk.subtitle }}" placeholder="Kurzinfo (optional)">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select form-select-sm" data-ql-icon>
+                        <option value="">Ohne Icon</option>
+                        <option value="bi-arrow-right-circle" {% if lnk.icon == 'bi-arrow-right-circle' %}selected{% endif %}>Pfeil</option>
+                        <option value="bi-calendar-event" {% if lnk.icon == 'bi-calendar-event' %}selected{% endif %}>Kalender</option>
+                        <option value="bi-journal-richtext" {% if lnk.icon == 'bi-journal-richtext' %}selected{% endif %}>Programm</option>
+                        <option value="bi-newspaper" {% if lnk.icon == 'bi-newspaper' %}selected{% endif %}>News</option>
+                        <option value="bi-people" {% if lnk.icon == 'bi-people' %}selected{% endif %}>Personen</option>
+                        <option value="bi-pencil-square" {% if lnk.icon == 'bi-pencil-square' %}selected{% endif %}>Anmeldung</option>
+                        <option value="bi-images" {% if lnk.icon == 'bi-images' %}selected{% endif %}>Galerie</option>
+                        <option value="bi-file-earmark-arrow-down" {% if lnk.icon == 'bi-file-earmark-arrow-down' %}selected{% endif %}>Download</option>
+                        <option value="bi-box-arrow-up-right" {% if lnk.icon == 'bi-box-arrow-up-right' %}selected{% endif %}>Externer Link</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" data-ql-accent>
+                        <option value="primary" {% if lnk.accent == 'primary' or not lnk.accent %}selected{% endif %}>Primary</option>
+                        <option value="secondary" {% if lnk.accent == 'secondary' %}selected{% endif %}>Secondary</option>
+                        <option value="success" {% if lnk.accent == 'success' %}selected{% endif %}>Success</option>
+                        <option value="info" {% if lnk.accent == 'info' %}selected{% endif %}>Info</option>
+                        <option value="warning" {% if lnk.accent == 'warning' %}selected{% endif %}>Warning</option>
+                        <option value="danger" {% if lnk.accent == 'danger' %}selected{% endif %}>Danger</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-center justify-content-between gap-1">
+                    <label class="form-check-label small"><input type="checkbox" class="form-check-input me-1" data-ql-new-tab {% if lnk.new_tab %}checked{% endif %}>Neuer Tab</label>
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" data-ql-remove title="Entfernen"><i class="bi bi-trash3"></i></button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-2">
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" data-ql-add><i class="bi bi-plus-lg me-1"></i>Link hinzufügen</button>
+    </div>
+
+    <template data-ql-tpl>
+        <div class="border rounded-2 p-2 bg-body" data-ql-row>
+            <div class="row g-2 align-items-center">
+                <div class="col-md-4">
+                    <select class="form-select form-select-sm" data-ql-target>
+                        <option value="">— Ziel wählen oder URL eingeben —</option>
+                        {% for grp in quick_link_targets %}
+                        <optgroup label="{{ grp.group }}">
+                            {% for it in grp.items %}
+                            <option value="{{ it.url }}" data-lbl="{{ it.label }}">{{ it.label }}</option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4"><input type="text" class="form-control form-control-sm" data-ql-label placeholder="Titel (z. B. Kursprogramm)"></div>
+                <div class="col-md-4"><input type="text" class="form-control form-control-sm" data-ql-url placeholder="/programm/ oder https://…"></div>
+                <div class="col-md-4"><input type="text" class="form-control form-control-sm" data-ql-subtitle placeholder="Kurzinfo (optional)"></div>
+                <div class="col-md-3">
+                    <select class="form-select form-select-sm" data-ql-icon>
+                        <option value="">Ohne Icon</option>
+                        <option value="bi-arrow-right-circle" selected>Pfeil</option>
+                        <option value="bi-calendar-event">Kalender</option>
+                        <option value="bi-journal-richtext">Programm</option>
+                        <option value="bi-newspaper">News</option>
+                        <option value="bi-people">Personen</option>
+                        <option value="bi-pencil-square">Anmeldung</option>
+                        <option value="bi-images">Galerie</option>
+                        <option value="bi-file-earmark-arrow-down">Download</option>
+                        <option value="bi-box-arrow-up-right">Externer Link</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" data-ql-accent>
+                        <option value="primary" selected>Primary</option>
+                        <option value="secondary">Secondary</option>
+                        <option value="success">Success</option>
+                        <option value="info">Info</option>
+                        <option value="warning">Warning</option>
+                        <option value="danger">Danger</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-center justify-content-between gap-1">
+                    <label class="form-check-label small"><input type="checkbox" class="form-check-input me-1" data-ql-new-tab>Neuer Tab</label>
+                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" data-ql-remove title="Entfernen"><i class="bi bi-trash3"></i></button>
+                </div>
+            </div>
+        </div>
+    </template>
+</div>
