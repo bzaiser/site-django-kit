@@ -170,6 +170,43 @@
             </div>
         </div>
         {% endif %}
+        <div class="card shadow-sm mt-3">
+            <div class="card-header fw-bold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-calendar-event me-1"></i> Terminseite (/termine/) gestalten</span>
+                <a href="{% url 'site_kit:events_list' %}" target="_blank" class="small text-decoration-none">Öffnen <i class="bi bi-box-arrow-up-right"></i></a>
+            </div>
+            <div class="card-body p-3">
+                <form method="post" class="row g-2 align-items-end">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_events_settings">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold mb-1">Darstellung</label>
+                        <select name="events_layout" class="form-select form-select-sm">
+                            <option value="row" {% if site_cfg.events_layout == 'row' or not site_cfg.events_layout %}selected{% endif %}>Zeilen (kompakt)</option>
+                            <option value="cards" {% if site_cfg.events_layout == 'cards' %}selected{% endif %}>Karten (Grid)</option>
+                            <option value="stacked" {% if site_cfg.events_layout == 'stacked' %}selected{% endif %}>Stapel (breit)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold mb-1">Bilder</label>
+                        <select name="events_image_position" class="form-select form-select-sm">
+                            <option value="left" {% if site_cfg.events_image_position == 'left' or not site_cfg.events_image_position %}selected{% endif %}>Links</option>
+                            <option value="right" {% if site_cfg.events_image_position == 'right' %}selected{% endif %}>Rechts</option>
+                            <option value="top" {% if site_cfg.events_image_position == 'top' %}selected{% endif %}>Oben</option>
+                            <option value="none" {% if site_cfg.events_image_position == 'none' %}selected{% endif %}>Keine Bilder (ausblenden)</option>
+                        </select>
+                    </div>
+                    <div class="col-12 small">
+                        <label class="form-check-label d-block"><input type="checkbox" name="events_show_description" class="form-check-input me-1" {% if site_cfg.events_show_description %}checked{% endif %}>Kurzbeschreibung direkt in Terminliste anzeigen</label>
+                        <label class="form-check-label d-block"><input type="checkbox" name="events_group_by_category" class="form-check-input me-1" {% if site_cfg.events_group_by_category %}checked{% endif %}>Nach Kalender-Kategorie gruppieren</label>
+                    </div>
+                    <div class="col-12 d-flex justify-content-between align-items-center mt-2">
+                        <a href="{% url 'site_kit:system_page_edit' 'termine' %}" class="btn btn-sm btn-outline-secondary rounded-pill px-3"><i class="bi bi-grid-1x2 me-1"></i>Blöcke oberhalb bearbeiten</a>
+                        <button type="submit" class="btn btn-sm btn-primary rounded-pill px-3">Speichern</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <div class="col-lg-6">

@@ -45,6 +45,8 @@ class SiteConfig(models.Model):
     member_app_url = models.CharField(max_length=160, default="/app/")
     events_layout = models.CharField(max_length=16, default="row")
     events_image_position = models.CharField(max_length=16, default="left")
+    events_show_description = models.BooleanField(default=False)
+    events_group_by_category = models.BooleanField(default=True)
     program_card_mode = models.CharField(max_length=24, default="equal_max")
     program_hub_layout = models.CharField(max_length=24, choices=PROGRAM_HUB_LAYOUT_CHOICES, default="cards_large")
 

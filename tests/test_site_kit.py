@@ -723,6 +723,41 @@ class SiteKitTests(TestCase):
         self.assertEqual(r_blk.status_code, 302)
         self.assertTrue(PublicPage.objects.filter(slug="programm-kinderferienprogramm").exists())
 
+        # /seite/programm-<slug>/ redirects to /programm/<slug>/ and is hidden from normal pages list in manage
+        r_redir = self.client.get(reverse("site_kit:page_detail", args=["programm-kinderferienprogramm"]))
+        self.assertRedirects(r_redir, reverse("site_kit:program_detail", args=["kinderferienprogramm"]), fetch_redirect_response=False)
+        r_mgr = self.client.get(reverse("site_kit:manage"))
+        self.assertNotContains(r_mgr, "/seite/programm-kinderferienprogramm/")
+
+    def test_events_list_settings_hide_description_by_default_and_group_toggle(self):
+        from cal_kit.models import CalendarEvent
+
+        CalendarEvent.objects.create(
+            user=self.staff,
+            title="Atelier-Abend",
+            description="Ganz langer Beschreibungstext der nur bei Bedarf gezeigt wird.",
+            start_at=timezone.now() + timedelta(days=3),
+            end_at=timezone.now() + timedelta(days=3, hours=2),
+            is_public=True,
+        )
+        r_def = self.client.get(reverse("site_kit:events_list"))
+        self.assertContains(r_def, "Atelier-Abend")
+        self.assertNotContains(r_def, "Ganz langer Beschreibungstext")
+
+        self.client.force_login(self.staff)
+        self.client.post(
+            reverse("site_kit:manage"),
+            {
+                "action": "save_events_settings",
+                "events_layout": "cards",
+                "events_image_position": "none",
+                "events_show_description": "on",
+            },
+        )
+        r_on = self.client.get(reverse("site_kit:events_list"))
+        self.assertContains(r_on, "Ganz langer Beschreibungstext")
+        self.assertContains(r_on, "Kommende Termine")
+
 
 if __name__ == "__main__":
     import unittest

@@ -619,6 +619,8 @@ def page_detail_view(request, slug):
         return redirect("site_kit:news_list")
     if slug == "programm":
         return redirect("site_kit:annual_program")
+    if slug.startswith("programm-"):
+        return redirect("site_kit:program_detail", program_slug=slug[len("programm-"):])
     qs = PublicPage.objects.all() if (request.user.is_authenticated and request.user.is_staff) else PublicPage.objects.filter(is_published=True)
     page = get_object_or_404(qs, slug=slug)
     ctx = _public_base_context(request, page=page)
@@ -816,20 +818,29 @@ def events_list_view(request):
 
             events = filtered[:80]
 
-            groups_map = {}
-            for item in events:
-                cat = item["category"]
-                key = str(cat.pk) if cat is not None else "allgemein"
-                if key not in groups_map:
-                    groups_map[key] = {
-                        "key": key,
-                        "name": cat.name if cat is not None else "Allgemein",
-                        "color": state_colors.get(cat.color_state, "#2563eb") if cat is not None else "#64748b",
-                        "icon": (cat.icon or "bi-calendar-event") if cat is not None else "bi-calendar-event",
-                        "items": [],
-                    }
-                groups_map[key]["items"].append(item)
-            grouped_events = list(groups_map.values())
+            if getattr(ctx["site_cfg"], "events_group_by_category", True):
+                groups_map = {}
+                for item in events:
+                    cat = item["category"]
+                    key = str(cat.pk) if cat is not None else "allgemein"
+                    if key not in groups_map:
+                        groups_map[key] = {
+                            "key": key,
+                            "name": cat.name if cat is not None else "Allgemein",
+                            "color": state_colors.get(cat.color_state, "#2563eb") if cat is not None else "#64748b",
+                            "icon": (cat.icon or "bi-calendar-event") if cat is not None else "bi-calendar-event",
+                            "items": [],
+                        }
+                    groups_map[key]["items"].append(item)
+                grouped_events = list(groups_map.values())
+            elif events:
+                grouped_events = [{
+                    "key": "all",
+                    "name": "Kommende Termine",
+                    "color": "#2563eb",
+                    "icon": "bi-calendar-event",
+                    "items": events,
+                }]
         except Exception:
             import logging
             logging.getLogger(__name__).exception("events_list_view failed")
@@ -1712,6 +1723,16 @@ def manage_view(request):
     cfg = SiteConfig.get_solo()
     can_edit_config = _has_site_config_access(request.user)
     if request.method == "POST":
+        if request.POST.get("action") == "save_events_settings":
+            el = (request.POST.get("events_layout") or "row").strip()
+            ep = (request.POST.get("events_image_position") or "left").strip()
+            cfg.events_layout = el if el in ("row", "cards", "stacked") else "row"
+            cfg.events_image_position = ep if ep in ("left", "right", "top", "none") else "left"
+            cfg.events_show_description = request.POST.get("events_show_description") == "on"
+            cfg.events_group_by_category = request.POST.get("events_group_by_category") == "on"
+            cfg.save(update_fields=["events_layout", "events_image_position", "events_show_description", "events_group_by_category"])
+            messages.success(request, "Einstellungen für die Terminseite (/termine/) gespeichert.")
+            return redirect("site_kit:manage")
         if not can_edit_config:
             return HttpResponseForbidden("Nur Leitung oder Administrator darf globale Webseiten-Einstellungen ändern.")
         if request.POST.get("action") == "reset_legal_defaults":
@@ -1749,7 +1770,7 @@ def manage_view(request):
         messages.success(request, "Webseiten-Einstellungen gespeichert.")
         return redirect("site_kit:manage")
 
-    pages = PublicPage.objects.all()
+    pages = PublicPage.objects.exclude(slug__in=("news", "termine", "programm")).exclude(slug__startswith="programm-")
     programs = []
     program_card_mode_choices = []
     if apps.is_installed("cal_kit"):
