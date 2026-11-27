@@ -1079,6 +1079,16 @@ class SiteKitTests(TestCase):
                     "options": "Aktives Mitglied (62 Euro), Fördermitglied (31 Euro), Familienmitglied (93 Euro)",
                     "zone": "body",
                     "show_on_card": True,
+                    "section": "Mitgliedschaft",
+                },
+                {
+                    "key": "nachname",
+                    "label": "Name",
+                    "type": "text",
+                    "options": "",
+                    "zone": "body",
+                    "show_on_card": True,
+                    "width": "half",
                 },
                 {
                     "key": "portal_zugang",
@@ -1116,6 +1126,8 @@ class SiteKitTests(TestCase):
         self.assertContains(res, '<option value="Nein">Nein</option>')
         self.assertContains(res, 'value="Malerei"')
         self.assertContains(res, 'value="Grafik"')
+        self.assertContains(res, 'Mitgliedschaft')
+        self.assertContains(res, 'col-md-6')
 
 
 if __name__ == "__main__":

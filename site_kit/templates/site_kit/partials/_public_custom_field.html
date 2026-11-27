@@ -1,5 +1,5 @@
 {% load site_kit_tags %}{% if cf.zone != 'hidden' %}
-<div>
+<div class="{% if cf.width == 'half' %}col-12 col-md-6{% else %}col-12{% endif %}">
     {% if cf.type != 'checkbox' %}<label class="form-label small fw-semibold">{{ cf.label }}</label>{% endif %}
     {% if cf.type == 'textarea' or cf.type == 'markdown' or cf.type == 'wysiwyg' %}
     <textarea name="custom_{{ cf.key }}" rows="3" class="form-control"></textarea>

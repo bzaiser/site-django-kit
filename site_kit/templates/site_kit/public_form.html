@@ -18,27 +18,32 @@
                     {{ form_header_text|linebreaksbr }}
                 </div>
                 {% endif %}
-                <form method="post" action="{% url 'list_kit:public_submit' form_collection.id %}" class="d-flex flex-column gap-3">
+                <form method="post" action="{% url 'list_kit:public_submit' form_collection.id %}" class="row g-3">
                     {% csrf_token %}
                     <input type="hidden" name="next" value="{{ request.path }}">
-                    <div>
+                    <div class="col-12">
                         <label class="form-label small fw-semibold">Betreff / Anliegen</label>
-                        <input type="text" name="title" class="form-control" required>
+                        <input type="text" name="title" class="form-control" value="{{ form_collection.title }}" required>
                     </div>
                     {% for cf in form_collection.template.custom_fields_json %}
+                    {% if cf.section and cf.zone != 'hidden' %}
+                    <div class="col-12 border-top pt-3 mt-1">
+                        <h2 class="h6 fw-bold text-uppercase text-muted mb-0">{{ cf.section }}</h2>
+                    </div>
+                    {% endif %}
                     {% include "site_kit/partials/_public_custom_field.html" with cf=cf %}
                     {% endfor %}
-                    <div>
+                    <div class="col-12">
                         <label class="form-label small fw-semibold">Nachricht / Bemerkungen</label>
                         <textarea name="notes" rows="3" class="form-control"></textarea>
                     </div>
-                    <div class="d-none d-print-block pt-4 mt-2 border-top">
+                    <div class="col-12 d-none d-print-block pt-4 mt-2 border-top">
                         <div class="row g-4 small text-muted">
                             <div class="col-6"><div class="border-top border-dark pt-1 mt-4">Ort, Datum</div></div>
                             <div class="col-6"><div class="border-top border-dark pt-1 mt-4">Unterschrift</div></div>
                         </div>
                     </div>
-                    <div class="d-print-none">
+                    <div class="col-12 d-print-none">
                         <button type="submit" class="btn btn-primary rounded-pill px-4">Absenden</button>
                     </div>
                 </form>
