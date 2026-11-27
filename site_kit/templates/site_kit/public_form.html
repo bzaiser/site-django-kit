@@ -45,7 +45,7 @@
                         <input type="text" name="title" class="form-control" value="{{ form_collection.title }}" required>
                     </div>
                     {% for cf in form_collection.template.custom_fields_json %}
-                    {% if cf.section and cf.zone != 'hidden' %}
+                    {% if cf.section %}
                     <div class="col-12 border-top pt-3 mt-1">
                         <h2 class="h6 fw-bold text-uppercase text-muted mb-0">{{ cf.section }}</h2>
                     </div>

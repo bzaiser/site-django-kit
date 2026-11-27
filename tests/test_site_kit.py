@@ -1086,8 +1086,8 @@ class SiteKitTests(TestCase):
                     "label": "Name",
                     "type": "text",
                     "options": "",
-                    "zone": "body",
-                    "show_on_card": True,
+                    "zone": "hidden",
+                    "show_on_card": False,
                     "width": "half",
                 },
                 {
@@ -1128,6 +1128,7 @@ class SiteKitTests(TestCase):
         self.assertContains(res, 'value="Grafik"')
         self.assertContains(res, 'Mitgliedschaft')
         self.assertContains(res, 'col-md-6')
+        self.assertContains(res, 'custom_nachname')
         self.assertContains(res, 'd-print-flex')
 
 

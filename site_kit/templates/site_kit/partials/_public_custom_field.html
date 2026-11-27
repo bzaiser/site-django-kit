@@ -1,4 +1,4 @@
-{% load site_kit_tags %}{% if cf.zone != 'hidden' %}
+{% load site_kit_tags %}
 <div class="{% if cf.width == 'half' %}col-12 col-md-6{% else %}col-12{% endif %}">
     {% if cf.type != 'checkbox' %}<label class="form-label small fw-semibold">{{ cf.label }}</label>{% endif %}
     {% if cf.type == 'textarea' or cf.type == 'markdown' or cf.type == 'wysiwyg' %}
@@ -55,4 +55,3 @@
     <input type="text" name="custom_{{ cf.key }}" class="form-control">
     {% endif %}
 </div>
-{% endif %}
