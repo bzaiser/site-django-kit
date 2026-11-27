@@ -1153,6 +1153,27 @@ class SiteKitTests(TestCase):
         self.assertContains(pub, "card-body p-0")
         self.assertContains(pub, "autoplay muted loop playsinline")
 
+    def test_people_grid_ordering_options(self):
+        from domain_kit.models import Person
+        Person.objects.create(first_name="Zoe", last_name="Alpha", is_public=True)
+        Person.objects.create(first_name="Anna", last_name="Zeta", is_public=True)
+        self.client.force_login(self.staff)
+        p = PublicPage.objects.create(title="PeopleOrder", is_published=True)
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "add_block",
+                "block_type": "people_grid",
+                "title": "Team",
+                "people_layout_present": "1",
+                "people_layout": "carousel",
+                "people_order": "first_name",
+            },
+        )
+        self.client.logout()
+        html = self.client.get(reverse("site_kit:page_detail", args=[p.slug])).content.decode()
+        self.assertLess(html.index("Anna Zeta"), html.index("Zoe Alpha"))
+
 
 if __name__ == "__main__":
     import unittest

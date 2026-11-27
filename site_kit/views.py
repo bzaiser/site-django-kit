@@ -547,7 +547,21 @@ def _resolve_block_data(block: PageBlock, request=None) -> dict:
                 for cf in cat_filters:
                     q_cat |= Q(category__name__icontains=cf)
                 qs = qs.filter(q_cat).distinct()
-            data["people"] = _resolve_people_with_courses(qs[:limit])
+            p_order = (cfg.get("people_order") or "last_name").strip()
+            if p_order == "first_name":
+                people_list = list(qs.order_by("first_name", "last_name", "id")[:limit])
+            elif p_order == "newest":
+                people_list = list(qs.order_by("-id")[:limit])
+            elif p_order == "oldest":
+                people_list = list(qs.order_by("id")[:limit])
+            elif p_order == "random":
+                import random
+                people_list = list(qs)
+                random.shuffle(people_list)
+                people_list = people_list[:limit]
+            else:
+                people_list = list(qs.order_by("last_name", "first_name", "id")[:limit])
+            data["people"] = _resolve_people_with_courses(people_list)
         except Exception:
             data["people"] = []
         data["show_photos"] = cfg.get("show_photos", True)
@@ -1912,6 +1926,9 @@ def _parse_block_layout_config(request, existing_cfg=None) -> dict:
     if "people_layout" in request.POST:
         pl = (request.POST.get("people_layout") or "grid").strip()
         cfg["people_layout"] = pl if pl in ("grid", "carousel") else "grid"
+    if "people_order" in request.POST:
+        po = (request.POST.get("people_order") or "last_name").strip()
+        cfg["people_order"] = po if po in ("last_name", "first_name", "newest", "oldest", "random") else "last_name"
     if "news_layout" in request.POST:
         nl = (request.POST.get("news_layout") or "grid").strip()
         cfg["news_layout"] = nl if nl in ("grid", "carousel") else "grid"

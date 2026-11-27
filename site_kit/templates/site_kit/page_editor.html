@@ -230,7 +230,16 @@
                                 <option value="flat">Optik: Dezent (ohne Rahmen)</option>
                             </select>
                         </div>
-                        <div class="col-12 d-flex align-items-center">
+                        <div class="col-md-4">
+                            <select name="people_order" class="form-select form-select-sm">
+                                <option value="last_name" selected>Sortierung: Nachname (A–Z)</option>
+                                <option value="first_name">Sortierung: Vorname (A–Z)</option>
+                                <option value="newest">Sortierung: Neueste zuerst</option>
+                                <option value="oldest">Sortierung: Älteste zuerst</option>
+                                <option value="random">Sortierung: Zufällig</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8 d-flex align-items-center">
                             <div class="form-check mb-0">
                                 <input type="checkbox" name="show_photos" id="addShowPhotos" class="form-check-input" checked>
                                 <label class="form-check-label small" for="addShowPhotos">Fotos anzeigen</label>
@@ -566,6 +575,16 @@
                             <option value="card" {% if b.config_json.person_card_style == 'card' or not b.config_json.person_card_style %}selected{% endif %}>Standard-Karte</option>
                             <option value="horizontal" {% if b.config_json.person_card_style == 'horizontal' %}selected{% endif %}>Visitenkarte (Position per 3×3-Matrix)</option>
                             <option value="flat" {% if b.config_json.person_card_style == 'flat' %}selected{% endif %}>Dezent (ohne Rahmen)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Sortierung</label>
+                        <select name="people_order" class="form-select form-select-sm">
+                            <option value="last_name" {% if b.config_json.people_order == 'last_name' or not b.config_json.people_order %}selected{% endif %}>Nachname (A–Z)</option>
+                            <option value="first_name" {% if b.config_json.people_order == 'first_name' %}selected{% endif %}>Vorname (A–Z)</option>
+                            <option value="newest" {% if b.config_json.people_order == 'newest' %}selected{% endif %}>Neueste zuerst</option>
+                            <option value="oldest" {% if b.config_json.people_order == 'oldest' %}selected{% endif %}>Älteste zuerst</option>
+                            <option value="random" {% if b.config_json.people_order == 'random' %}selected{% endif %}>Zufällig</option>
                         </select>
                     </div>
                     <div class="col-md-3 d-flex align-items-end pb-1">
