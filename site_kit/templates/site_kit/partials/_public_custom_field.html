@@ -1,6 +1,6 @@
 {% if cf.zone != 'hidden' %}
 <div>
-    <label class="form-label small fw-semibold">{{ cf.label }}</label>
+    {% if cf.type != 'checkbox' %}<label class="form-label small fw-semibold">{{ cf.label }}</label>{% endif %}
     {% if cf.type == 'textarea' or cf.type == 'markdown' or cf.type == 'wysiwyg' %}
     <textarea name="custom_{{ cf.key }}" rows="3" class="form-control"></textarea>
     {% elif cf.type == 'checkbox' %}

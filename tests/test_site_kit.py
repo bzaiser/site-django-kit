@@ -949,14 +949,20 @@ class SiteKitTests(TestCase):
         from list_kit.services import seed_default_templates
 
         tpl = next(t for t in seed_default_templates() if t.slug == "mitgliedsantrag")
+        tpl.description = "An: {{ vereinsname }}\n{{ bankverbindungen }}"
+        tpl.save(update_fields=["description"])
         Collection.objects.get_or_create(
             slug="mitgliedsantrag",
             defaults={"title": "Mitgliedsantrag", "template": tpl, "owner": self.staff, "is_public": True, "allow_public_submit": True},
         )
+        from design_studio.models import BrandingProfile
+        BrandingProfile.objects.update_or_create(pk=1, defaults={"org_name": "Kunstverein Test e.V.", "iban": "DE1234567890", "bic": "TESTBIC"})
         r_form = self.client.get(reverse("site_kit:public_form", args=["mitgliedsantrag"]))
         self.assertEqual(r_form.status_code, 200)
         self.assertContains(r_form, "Mitgliedsantrag")
-        self.assertContains(r_form, "Betreff / Anliegen")
+        self.assertContains(r_form, "Kunstverein Test e.V.")
+        self.assertContains(r_form, "DE1234567890")
+        self.assertContains(r_form, "Formular drucken")
 
         self.client.force_login(self.staff)
         p = PublicPage.objects.create(title="Start Test", is_published=True)

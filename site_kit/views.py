@@ -1529,6 +1529,54 @@ def event_registration_view(request):
     return render(request, "site_kit/event_registration.html", ctx)
 
 
+def _resolve_form_header_text(raw_text: str) -> str:
+    """Replace organization and bank placeholders using design_studio branding and domain_kit accounts."""
+    text = (raw_text or "").strip()
+    branding = {}
+    if apps.is_installed("design_studio"):
+        try:
+            from design_studio.branding import get_branding_context
+            branding = get_branding_context("print")
+        except Exception:
+            branding = {}
+
+    bank_lines = []
+    if apps.is_installed("domain_kit"):
+        try:
+            from domain_kit.models import AssetItem
+            for acc in AssetItem.objects.filter(asset_type="account").order_by("title"):
+                ident = (acc.identifier or "").strip()
+                if ident:
+                    bank_lines.append(f"{acc.title}: {ident}")
+                elif acc.title:
+                    bank_lines.append(acc.title)
+        except Exception:
+            pass
+    if not bank_lines and branding.get("iban"):
+        line = f"IBAN: {branding['iban']}"
+        if branding.get("bic"):
+            line += f" · BIC: {branding['bic']}"
+        bank_lines.append(line)
+
+    if not text:
+        parts = [p for p in (branding.get("org_name"), branding.get("address"), branding.get("website")) if p]
+        return " · ".join(parts)
+
+    replacements = {
+        "{{ vereinsname }}": branding.get("org_name") or "",
+        "{{ adresse }}": branding.get("address") or "",
+        "{{ webseite }}": branding.get("website") or "",
+        "{{ email }}": branding.get("email") or "",
+        "{{ telefon }}": branding.get("phone") or "",
+        "{{ iban }}": branding.get("iban") or "",
+        "{{ bic }}": branding.get("bic") or "",
+        "{{ bankverbindungen }}": "\n".join(bank_lines) if bank_lines else "—",
+    }
+    for k, v in replacements.items():
+        text = text.replace(k, v)
+    return text
+
+
 def public_form_view(request, slug):
     if not apps.is_installed("list_kit"):
         raise Http404()
@@ -1541,6 +1589,7 @@ def public_form_view(request, slug):
     )
     ctx = _public_base_context(request)
     ctx["form_collection"] = col
+    ctx["form_header_text"] = _resolve_form_header_text(col.template.description)
     return render(request, "site_kit/public_form.html", ctx)
 
 
