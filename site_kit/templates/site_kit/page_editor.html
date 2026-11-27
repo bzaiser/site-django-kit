@@ -265,6 +265,16 @@
                             </div>
                         </div>
                     </div>
+                    <div class="row g-2 d-none" id="addCollectionListWrap">
+                        <div class="col-12">
+                            <select name="collection_slug" class="form-select form-select-sm">
+                                <option value="">— Liste / Sammlung wählen —</option>
+                                {% for lc in public_list_collections %}
+                                <option value="{{ lc.slug }}">{{ lc.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
                     <div class="row g-2 d-none" id="addEventsFilterWrap">
                         <div class="col-md-6">
                             <select name="calendar_category" class="form-select form-select-sm">
@@ -552,11 +562,22 @@
                     </div>
                 </div>
                 {% endif %}
-                {% if b.block_type == 'news_feed' %}
+                {% if b.block_type == 'news_feed' or b.block_type == 'collection_list' %}
+                {% if b.block_type == 'collection_list' %}
+                <div>
+                    <label class="form-label small mb-1">Liste / Sammlung wählen</label>
+                    <select name="collection_slug" class="form-select form-select-sm">
+                        <option value="">— Bitte wählen —</option>
+                        {% for lc in public_list_collections %}
+                        <option value="{{ lc.slug }}" {% if b.config_json.collection_slug == lc.slug %}selected{% endif %}>{{ lc.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
                 <input type="hidden" name="news_options_present" value="1">
                 <div class="row g-2">
                     <div class="col-md-4">
-                        <label class="form-label small mb-1">News-Layout</label>
+                        <label class="form-label small mb-1">Layout</label>
                         <select name="news_layout" class="form-select form-select-sm">
                             <option value="grid" {% if b.config_json.news_layout == 'grid' or not b.config_json.news_layout %}selected{% endif %}>Raster</option>
                             <option value="carousel" {% if b.config_json.news_layout == 'carousel' %}selected{% endif %}>Karussell (Slider)</option>
@@ -796,6 +817,8 @@ document.addEventListener("DOMContentLoaded", function () {
         const isRich = typeSel.value === "rich_html";
         const isPeople = typeSel.value === "people_grid";
         const isNews = typeSel.value === "news_feed";
+        const isList = typeSel.value === "collection_list";
+        const showNewsStyle = isNews || isList;
         const isEvents = typeSel.value === "upcoming_events";
         const isForm = typeSel.value === "public_form";
         const isQuickLinks = typeSel.value === "quick_links";
@@ -804,6 +827,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const isVideo = typeSel.value === "video";
         const peopleWrap = document.getElementById("addPeopleFilterWrap");
         const newsWrap = document.getElementById("addNewsLayoutWrap");
+        const listWrap = document.getElementById("addCollectionListWrap");
         const eventsWrap = document.getElementById("addEventsFilterWrap");
         const formWrap = document.getElementById("addPublicFormWrap");
         const qlWrap = document.getElementById("addQuickLinksWrap");
@@ -815,8 +839,12 @@ document.addEventListener("DOMContentLoaded", function () {
         if (addImg) addImg.classList.toggle("d-none", !(isRich || typeSel.value === "hero" || typeSel.value === "text_image"));
         if (peopleWrap) peopleWrap.classList.toggle("d-none", !isPeople);
         if (newsWrap) {
-            newsWrap.classList.toggle("d-none", !isNews);
-            newsWrap.querySelectorAll("select, input").forEach(function (el) { el.disabled = !isNews; });
+            newsWrap.classList.toggle("d-none", !showNewsStyle);
+            newsWrap.querySelectorAll("select, input").forEach(function (el) { el.disabled = !showNewsStyle; });
+        }
+        if (listWrap) {
+            listWrap.classList.toggle("d-none", !isList);
+            listWrap.querySelectorAll("select, input").forEach(function (el) { el.disabled = !isList; });
         }
         if (eventsWrap) eventsWrap.classList.toggle("d-none", !isEvents);
         if (formWrap) {

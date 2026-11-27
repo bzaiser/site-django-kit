@@ -11,6 +11,7 @@ urlpatterns = [
     path("news/archiv/", views.news_archive_view, name="news_archive"),
     path("news/feed.xml", views.news_rss_view, name="news_rss"),
     path("news/<slug:slug>/", views.news_detail_view, name="news_detail"),
+    path("eintrag/<int:pk>/", views.collection_entry_detail_view, name="collection_entry_detail"),
     path("termine/", views.events_list_view, name="events_list"),
     path("termine/<int:pk>/", views.event_detail_view, name="event_detail"),
     path("dozenten/", views.lecturers_list_view, name="lecturers_list"),

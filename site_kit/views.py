@@ -443,6 +443,45 @@ def _resolve_block_data(block: PageBlock, request=None) -> dict:
         nif = (cfg.get("news_image_fit") or "contain").strip()
         data["news_image_fit"] = nif if nif in ("contain", "cover") else "contain"
 
+    elif block.block_type == "collection_list" and apps.is_installed("list_kit"):
+        try:
+            from django.utils.html import strip_tags
+            from list_kit.models import Collection
+            col_slug = (cfg.get("collection_slug") or "").strip()
+            col_obj = None
+            if col_slug:
+                col_obj = (
+                    Collection.objects.select_related("template")
+                    .filter(slug=col_slug, is_public=True)
+                    .exclude(template__content_type="form_inbox")
+                    .first()
+                )
+            data["list_collection"] = col_obj
+            if col_obj is not None:
+                entries = list(
+                    col_obj.entries.exclude(visibility="private")
+                    .select_related("collection", "collection__template")
+                    .prefetch_related("images")
+                    .order_by("position", "-created_at")[:limit]
+                )
+                entries = _attach_news_preview_html(entries)
+                for ne in entries:
+                    ne.short_text = " ".join(strip_tags(getattr(ne, "preview_html", "") or getattr(ne, "notes", "") or "").split())
+                data["list_items"] = entries
+            else:
+                data["list_items"] = []
+        except Exception:
+            data["list_collection"] = None
+            data["list_items"] = []
+        data["news_layout"] = cfg.get("news_layout") or "grid"
+        nd = (cfg.get("news_density") or "").strip()
+        if nd not in ("full", "compact", "single_line"):
+            nd = "compact" if block.is_compact else "full"
+        data["news_density"] = nd
+        data["show_news_images"] = cfg.get("show_news_images", True)
+        nif = (cfg.get("news_image_fit") or "contain").strip()
+        data["news_image_fit"] = nif if nif in ("contain", "cover") else "contain"
+
     elif block.block_type == "faq_list" and apps.is_installed("list_kit"):
         try:
             from list_kit.services import get_published_entries
@@ -761,6 +800,35 @@ def news_detail_view(request, slug):
     ctx["public_documents"] = list(entry.documents.filter(is_public=True))
     ctx["linked_document"] = get_linked_domain_document(entry.linked_document_id, require_public=True) if entry.linked_document_id else None
     return render(request, "site_kit/news_detail.html", ctx)
+
+
+def collection_entry_detail_view(request, pk):
+    if not apps.is_installed("list_kit"):
+        raise Http404()
+    from list_kit.models import Entry
+    from list_kit.services import get_linked_domain_document, render_safe_markdown
+
+    qs = (
+        Entry.objects.select_related("collection", "collection__template", "created_by")
+        .prefetch_related("images")
+        .exclude(collection__template__content_type="form_inbox")
+    )
+    if not (request.user.is_authenticated and request.user.is_staff):
+        entry = get_object_or_404(qs.exclude(visibility="private"), pk=pk, collection__is_public=True)
+    else:
+        entry = get_object_or_404(qs, pk=pk)
+
+    ctx = _public_base_context(request)
+    ctx["entry"] = entry
+    raw_body = (entry.notes or "").strip()
+    if entry.collection.template.use_rich_notes or ("<" in raw_body and ">" in raw_body):
+        ctx["rendered_body"] = _sanitize_rich_html(raw_body)
+    else:
+        ctx["rendered_body"] = render_safe_markdown(raw_body)
+    ctx["custom_display"] = entry.get_custom_field_display()
+    ctx["public_documents"] = list(entry.documents.filter(is_public=True))
+    ctx["linked_document"] = get_linked_domain_document(entry.linked_document_id, require_public=True) if entry.linked_document_id else None
+    return render(request, "site_kit/entry_detail.html", ctx)
 
 
 def _build_events_list_data(request=None) -> dict:
@@ -2458,6 +2526,7 @@ def page_edit_view(request, pk):
             pass
     form_collections = []
     gallery_collections = []
+    public_list_collections = []
     if apps.is_installed("list_kit"):
         try:
             from list_kit.models import Collection
@@ -2475,6 +2544,12 @@ def page_edit_view(request, pk):
                     template__use_image=True,
                     is_public=True,
                 )
+                .order_by("title")
+                .values("slug", "title")
+            )
+            public_list_collections = list(
+                Collection.objects.filter(is_public=True)
+                .exclude(template__content_type="form_inbox")
                 .order_by("title")
                 .values("slug", "title")
             )
@@ -2546,6 +2621,7 @@ def page_edit_view(request, pk):
         "cal_categories": cal_categories,
         "form_collections": form_collections,
         "gallery_collections": gallery_collections,
+        "public_list_collections": public_list_collections,
         "public_events": public_events,
         "public_persons": public_persons,
         "quick_link_targets": quick_link_targets,

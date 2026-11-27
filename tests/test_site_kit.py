@@ -1012,6 +1012,52 @@ class SiteKitTests(TestCase):
             pub = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
             self.assertContains(pub, "url('https://example.com/banner.jpg')")
 
+    def test_collection_list_block_and_entry_detail_security(self):
+        from list_kit.models import Collection, Entry
+        from list_kit.services import seed_default_templates
+
+        tpl_map = {t.slug: t for t in seed_default_templates()}
+        pub_col = Collection.objects.create(title="Projekte", slug="projekte-pub", template=tpl_map["checkliste"], owner=self.staff, is_public=True)
+        e_pub = Entry.objects.create(
+            collection=pub_col,
+            title="Skulpturenpark",
+            notes="<p>" + ("B" * 130) + "</p>",
+            image_url="https://example.com/park.jpg",
+            visibility="team",
+            created_by=self.staff,
+        )
+        e_priv = Entry.objects.create(collection=pub_col, title="Geheim", visibility="private", created_by=self.staff)
+
+        inbox_col = Collection.objects.create(title="Anträge", slug="antraege-sec", template=tpl_map["mitgliedsantrag"], owner=self.staff, is_public=True)
+        e_inbox = Entry.objects.create(collection=inbox_col, title="Vertraulicher Antrag", created_by=self.staff)
+
+        self.client.force_login(self.staff)
+        p = PublicPage.objects.create(title="Listen Block", is_published=True)
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "add_block",
+                "block_type": "collection_list",
+                "collection_slug": "projekte-pub",
+                "news_options_present": "1",
+                "news_layout": "grid",
+                "news_density": "compact",
+                "news_image_fit": "contain",
+                "show_news_images": "on",
+                "title": "Unsere Projekte",
+            },
+        )
+        self.client.logout()
+        pub = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(pub, "Skulpturenpark")
+        self.assertContains(pub, "Details ansehen")
+        self.assertContains(pub, "object-fit-contain")
+        self.assertNotContains(pub, "Geheim")
+
+        self.assertEqual(self.client.get(reverse("site_kit:collection_entry_detail", args=[e_pub.id])).status_code, 200)
+        self.assertEqual(self.client.get(reverse("site_kit:collection_entry_detail", args=[e_priv.id])).status_code, 404)
+        self.assertEqual(self.client.get(reverse("site_kit:collection_entry_detail", args=[e_inbox.id])).status_code, 404)
+
 
 if __name__ == "__main__":
     import unittest

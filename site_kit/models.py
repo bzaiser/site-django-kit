@@ -117,6 +117,7 @@ class PageBlock(models.Model):
         ("hero", "Hero-Kopfbereich"),
         ("text_image", "Text & Bild"),
         ("news_feed", "News-Feed (list_kit)"),
+        ("collection_list", "Liste / Sammlung (list_kit)"),
         ("upcoming_events", "Nächste Termine (cal_kit)"),
         ("people_grid", "Vorstand / Kontakte (domain_kit)"),
         ("downloads", "Downloads (domain_kit)"),
