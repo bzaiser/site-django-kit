@@ -135,9 +135,7 @@
                         </div>
                         <div class="d-flex justify-content-between align-items-center gap-2 small text-muted border-top pt-2">
                             <span>{{ n.publish_at|default:n.created_at|date:"d.m.Y" }}</span>
-                            {% if item.news_density == 'compact' %}
-                            <a href="{% url 'site_kit:news_detail' n.slug %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Details ansehen &rarr;</a>
-                            {% endif %}
+                            <a href="{% url 'site_kit:news_detail' n.slug %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 position-relative z-1">Details ansehen &rarr;</a>
                         </div>
                     </div>
                 </div>
@@ -206,9 +204,7 @@
                         </div>
                         <div class="d-flex justify-content-between align-items-center gap-2 small text-muted border-top pt-2">
                             <span>{{ n.created_at|date:"d.m.Y" }}</span>
-                            {% if item.news_density == 'compact' %}
-                            <a href="{% url 'site_kit:collection_entry_detail' n.id %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Details ansehen &rarr;</a>
-                            {% endif %}
+                            <a href="{% url 'site_kit:collection_entry_detail' n.id %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 position-relative z-1">Details ansehen &rarr;</a>
                         </div>
                     </div>
                 </div>

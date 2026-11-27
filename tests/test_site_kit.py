@@ -1064,6 +1064,11 @@ class SiteKitTests(TestCase):
         self.assertEqual(self.client.get(reverse("site_kit:collection_entry_detail", args=[e_priv.id])).status_code, 404)
         self.assertEqual(self.client.get(reverse("site_kit:collection_entry_detail", args=[e_inbox.id])).status_code, 404)
 
+        # Full mode also renders Details ansehen button
+        p_full = PublicPage.objects.create(title="CLFull", is_published=True)
+        PageBlock.objects.create(page=p_full, block_type="collection_list", title="Listen", config_json={"collection_slug": "projekte-pub", "news_density": "full"})
+        self.assertContains(self.client.get(reverse("site_kit:page_detail", args=[p_full.slug])), "Details ansehen")
+
     def test_public_form_renders_radio_select_and_multiselect_options(self):
         from list_kit.models import Collection, ListTemplate
 
