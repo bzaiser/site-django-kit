@@ -1264,6 +1264,45 @@ class SiteKitTests(TestCase):
         self.assertContains(res, "site-webnav-pad-flush_edge")
         self.assertContains(res, "ps-0 pe-3 pe-md-4")
 
+    def test_annual_program_block_defaults_and_options(self):
+        from cal_kit.models import OfferingTemplate, Program
+
+        prog, _ = Program.objects.get_or_create(slug="jahresprogramm", defaults={"title": "Jahresprogramm", "is_public": True})
+        OfferingTemplate.objects.create(user=self.staff, title="Aquarellkurs Blocktest", program=prog, show_in_program=True, is_active=True)
+
+        p = PublicPage.objects.create(title="StartProgTest", is_published=True)
+        blk = PageBlock.objects.create(page=p, block_type="annual_program", title="Unser Programm", config_json={})
+
+        # Without program_slug it should automatically fall back to jahresprogramm and show offerings
+        res = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(res, "Aquarellkurs Blocktest")
+
+        # Edit modal exposes program_slug, program_layout, limit, show_filters, show_pdf_button
+        self.client.force_login(self.staff)
+        ed = self.client.get(reverse("site_kit:page_edit", args=[p.id]))
+        self.assertContains(ed, 'name="program_slug"')
+        self.assertContains(ed, 'name="program_layout"')
+        self.assertContains(ed, 'name="show_filters"')
+
+        # Save compact layout + limit=1
+        self.client.post(
+            reverse("site_kit:page_edit", args=[p.id]),
+            {
+                "action": "edit_block",
+                "block_id": blk.id,
+                "title": "Kompakt-Programm",
+                "program_layout_present": "1",
+                "program_slug": "__all__",
+                "program_layout": "compact",
+                "limit": "1",
+                "show_pdf_button": "on",
+            },
+        )
+        self.client.logout()
+        res2 = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(res2, "Aquarellkurs Blocktest")
+        self.assertContains(res2, "Alle Angebote ansehen")
+
 
 if __name__ == "__main__":
     import unittest

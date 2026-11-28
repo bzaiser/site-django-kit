@@ -622,8 +622,8 @@ def _resolve_block_data(block: PageBlock, request=None) -> dict:
         p_slug = (cfg.get("program_slug") or "").strip() or None
         if not p_slug and getattr(block.page, "slug", "").startswith("programm-"):
             p_slug = block.page.slug[len("programm-"):]
-        yr = (request.GET.get("jahr") or "").strip() if request else cfg.get("program_year")
-        cid = (request.GET.get("kategorie") or "").strip() if request else cfg.get("calendar_category")
+        yr = ((request.GET.get("jahr") or "").strip() if request else "") or str(cfg.get("program_year") or "").strip()
+        cid = ((request.GET.get("kategorie") or "").strip() if request else "") or str(cfg.get("calendar_category") or "").strip()
         iref = (request.GET.get("dozent") or "").strip() if request else None
         prog = _build_program_data(
             year=yr or None,
@@ -631,13 +631,27 @@ def _resolve_block_data(block: PageBlock, request=None) -> dict:
             instructor_ref=iref or None,
             program_slug=p_slug,
         )
-        data["program_items"] = prog["items"]
+        items_list = prog["items"]
+        try:
+            lim = int(cfg.get("limit") or 0)
+        except (TypeError, ValueError):
+            lim = 0
+        has_more = bool(lim > 0 and len(items_list) > lim)
+        if lim > 0:
+            items_list = items_list[:lim]
+        pl = (cfg.get("program_layout") or "cards").strip()
+        is_prog_page = bool(request and getattr(block.page, "slug", "").startswith("programm"))
+        data["program_items"] = items_list
         data["program_year"] = prog["year"]
         data["program_title"] = prog["program_title"]
         data["program_obj"] = prog.get("program_obj")
         data["program_description"] = prog.get("program_description", "")
-        data["program_slug"] = p_slug or ""
-        if request and getattr(block.page, "slug", "").startswith("programm"):
+        data["program_slug"] = (p_slug if p_slug != "__all__" else "") or ""
+        data["program_layout"] = pl if pl in ("cards", "compact", "carousel") else "cards"
+        data["program_has_more"] = has_more or (lim > 0)
+        data["show_pdf_button"] = cfg.get("show_pdf_button", True)
+        show_filters = cfg.get("show_filters", is_prog_page)
+        if show_filters:
             data["program_years"] = prog["years"]
             data["program_categories"] = prog["categories"]
             data["active_category"] = cid or ""
@@ -1246,7 +1260,9 @@ def _build_program_data(year=None, cat_id=None, instructor_ref=None, program_slu
         from cal_kit.services import get_cal_profile_labels
 
         program_title = get_cal_profile_labels().get("program_title") or "Jahresprogramm"
-        if program_slug:
+        if program_slug == "__all__":
+            program_obj = None
+        elif program_slug:
             program_obj = Program.objects.filter(slug=program_slug, is_public=True).first()
             if not program_obj:
                 return {
@@ -1261,6 +1277,13 @@ def _build_program_data(year=None, cat_id=None, instructor_ref=None, program_slu
                     "not_found": True,
                 }
             program_title = program_obj.title
+        else:
+            program_obj = (
+                Program.objects.filter(slug="jahresprogramm", is_public=True).first()
+                or Program.objects.filter(is_public=True).order_by("position", "id").first()
+            )
+            if program_obj:
+                program_title = program_obj.title
 
         categories = list(CalendarCategory.objects.filter(is_public_default=True).order_by("name").values("id", "name"))
         if not categories:
@@ -1290,7 +1313,10 @@ def _build_program_data(year=None, cat_id=None, instructor_ref=None, program_slu
             sel_year = now.year
 
         base_qs = OfferingTemplate.objects.filter(show_in_program=True, is_active=True)
-        if program_obj:
+        if program_slug == "__all__":
+            from django.db.models import Q as _Q
+            base_qs = base_qs.filter(_Q(program__is_public=True) | _Q(program__isnull=True))
+        elif program_obj:
             if program_obj.slug == "jahresprogramm":
                 from django.db.models import Q as _Q
                 base_qs = base_qs.filter(_Q(program=program_obj) | _Q(program__isnull=True))
@@ -2058,8 +2084,17 @@ def _parse_block_layout_config(request, existing_cfg=None) -> dict:
         cfg["calendar_category"] = (request.POST.get("calendar_category") or "").strip()[:20]
     if "limit" in request.POST:
         raw_lim = (request.POST.get("limit") or "").strip()
-        if raw_lim.isdigit():
+        if raw_lim == "0" or raw_lim == "":
+            cfg["limit"] = 0
+        elif raw_lim.isdigit():
             cfg["limit"] = max(1, min(100, int(raw_lim)))
+    if "program_slug" in request.POST or "program_layout_present" in request.POST:
+        cfg["program_slug"] = (request.POST.get("program_slug") or "").strip()[:80]
+        cfg["program_year"] = (request.POST.get("program_year") or "").strip()[:10]
+        pl = (request.POST.get("program_layout") or "cards").strip()
+        cfg["program_layout"] = pl if pl in ("cards", "compact", "carousel") else "cards"
+        cfg["show_filters"] = request.POST.get("show_filters") == "on"
+        cfg["show_pdf_button"] = request.POST.get("show_pdf_button") == "on"
     return cfg
 
 
@@ -2584,10 +2619,12 @@ def page_edit_view(request, pk):
         except Exception:
             pass
     cal_categories = []
+    program_options = []
     if apps.is_installed("cal_kit"):
         try:
-            from cal_kit.models import CalendarCategory
+            from cal_kit.models import CalendarCategory, Program
             cal_categories = list(CalendarCategory.objects.order_by("name").values("id", "name"))
+            program_options = list(Program.objects.filter(is_public=True).order_by("position", "title").values("slug", "title"))
         except Exception:
             pass
     form_collections = []
@@ -2685,6 +2722,7 @@ def page_edit_view(request, pk):
         "domain_roles": domain_roles,
         "domain_person_categories": domain_person_categories,
         "cal_categories": cal_categories,
+        "program_options": program_options,
         "form_collections": form_collections,
         "gallery_collections": gallery_collections,
         "public_list_collections": public_list_collections,

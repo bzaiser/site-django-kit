@@ -477,10 +477,12 @@
             {% if item.program_description %}<div class="text-muted small">{{ item.program_description }}</div>{% elif item.block.subtitle %}<div class="{% if item.block.is_dark_surface %}opacity-75{% else %}text-muted{% endif %} small">{{ item.block.subtitle }}</div>{% endif %}
         </div>
         <div class="d-flex flex-wrap gap-2">
-            {% if item.program_slug %}
-            <a href="{% url 'site_kit:program_detail_pdf' item.program_slug %}?jahr={{ item.program_year }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3"><i class="bi bi-file-earmark-pdf me-1"></i>PDF / Broschüre</a>
-            {% else %}
-            <a href="{% url 'site_kit:annual_program_pdf' %}?jahr={{ item.program_year }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3"><i class="bi bi-file-earmark-pdf me-1"></i>PDF / Broschüre</a>
+            {% if item.show_pdf_button|default_if_none:True %}
+                {% if item.program_slug %}
+                <a href="{% url 'site_kit:program_detail_pdf' item.program_slug %}?jahr={{ item.program_year }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3"><i class="bi bi-file-earmark-pdf me-1"></i>PDF / Broschüre</a>
+                {% else %}
+                <a href="{% url 'site_kit:annual_program_pdf' %}?jahr={{ item.program_year }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3"><i class="bi bi-file-earmark-pdf me-1"></i>PDF / Broschüre</a>
+                {% endif %}
             {% endif %}
         </div>
     </div>
@@ -498,7 +500,70 @@
         {% endif %}
     </div>
     {% endif %}
+    {% if item.program_layout == 'compact' %}
+    <div class="list-group shadow-sm rounded-3 overflow-hidden">
+        {% for pitem in item.program_items %}
+        {% with o=pitem.offering %}
+        <div class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 px-3">
+            <div class="min-w-0 flex-grow-1">
+                <div class="fw-bold text-truncate">{{ o.title }}</div>
+                <div class="small text-muted">
+                    {% if o.instructor_name %}mit {{ o.instructor_name }} · {% endif %}
+                    {% if pitem.events %}{{ pitem.events.0.event.start_at|date:"d.m.Y H:i" }}{% if pitem.events.0.event.location %} · {{ pitem.events.0.event.location }}{% endif %}{% endif %}
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                {% if o.fee_amount %}<span class="badge bg-body-secondary text-body border">{{ o.fee_amount }} €</span>{% endif %}
+                {% if pitem.events and pitem.events.0.can_register %}
+                <a href="{% url 'site_kit:event_registration' pitem.events.0.event.id %}" class="btn btn-sm btn-primary rounded-pill px-3">Anmelden</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endwith %}
+        {% empty %}
+        <div class="list-group-item text-muted small py-3">Keine öffentlichen Angebote vorhanden.</div>
+        {% endfor %}
+    </div>
+    {% elif item.program_layout == 'carousel' %}
+    <div class="d-flex justify-content-end gap-2 mb-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle" data-site-carousel-nav="progCar{{ item.block.id }}" data-dir="prev" aria-label="Vorherige"><i class="bi bi-chevron-left"></i></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle" data-site-carousel-nav="progCar{{ item.block.id }}" data-dir="next" aria-label="Nächste"><i class="bi bi-chevron-right"></i></button>
+    </div>
+    <div id="progCar{{ item.block.id }}" class="d-flex gap-3 overflow-auto pb-2" style="scroll-snap-type: x mandatory; scrollbar-width: thin;">
+        {% for pitem in item.program_items %}
+        {% with o=pitem.offering %}
+        <div class="flex-shrink-0" style="width: min(340px, 85vw); scroll-snap-align: start;">
+            <article class="card shadow-sm h-100">
+                <div class="card-body p-3 d-flex flex-column justify-content-between gap-2">
+                    <div>
+                        {% if o.resolved_image_url %}<img src="{{ o.resolved_image_url }}" alt="{{ o.title }}" class="w-100 rounded-3 object-fit-cover mb-2" style="height: 150px;">{% endif %}
+                        <h3 class="h6 fw-bold mb-1">{{ o.title }}</h3>
+                        {% if o.instructor_name %}<div class="small text-muted mb-1">mit {{ o.instructor_name }}</div>{% endif %}
+                        {% if pitem.events %}<div class="small text-muted">{{ pitem.events.0.event.start_at|date:"D d.m.Y, H:i" }} Uhr</div>{% endif %}
+                    </div>
+                    {% if pitem.events and pitem.events.0.can_register %}
+                    <a href="{% url 'site_kit:event_registration' pitem.events.0.event.id %}" class="btn btn-sm btn-primary rounded-pill align-self-start px-3">Anmelden</a>
+                    {% endif %}
+                </div>
+            </article>
+        </div>
+        {% endwith %}
+        {% empty %}
+        <div class="text-muted small py-3">Keine öffentlichen Angebote vorhanden.</div>
+        {% endfor %}
+    </div>
+    {% else %}
     {% include "site_kit/partials/_program_cards.html" with program_items=item.program_items program_obj=item.program_obj %}
+    {% endif %}
+    {% if item.program_has_more %}
+    <div class="mt-3 text-end">
+        {% if item.program_slug %}
+        <a href="{% url 'site_kit:program_detail' item.program_slug %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Alle Angebote ansehen &rarr;</a>
+        {% else %}
+        <a href="{% url 'site_kit:annual_program' %}" class="btn btn-sm btn-outline-primary rounded-pill px-3">Alle Angebote ansehen &rarr;</a>
+        {% endif %}
+    </div>
+    {% endif %}
 </section>
 
 {% elif item.block.block_type == 'photo_gallery' %}
