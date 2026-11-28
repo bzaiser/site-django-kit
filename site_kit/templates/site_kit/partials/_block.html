@@ -515,7 +515,7 @@
             <div class="d-flex align-items-center gap-2 flex-shrink-0">
                 {% if o.fee_amount %}<span class="badge bg-body-secondary text-body border">{{ o.fee_amount }} €</span>{% endif %}
                 {% if pitem.events and pitem.events.0.can_register %}
-                <a href="{% url 'site_kit:event_registration' pitem.events.0.event.id %}" class="btn btn-sm btn-primary rounded-pill px-3">Anmelden</a>
+                <a href="{% url 'site_kit:event_registration' %}?event={{ pitem.events.0.event.id }}" class="btn btn-sm btn-primary rounded-pill px-3">Anmelden</a>
                 {% endif %}
             </div>
         </div>
@@ -542,7 +542,7 @@
                         {% if pitem.events %}<div class="small text-muted">{{ pitem.events.0.event.start_at|date:"D d.m.Y, H:i" }} Uhr</div>{% endif %}
                     </div>
                     {% if pitem.events and pitem.events.0.can_register %}
-                    <a href="{% url 'site_kit:event_registration' pitem.events.0.event.id %}" class="btn btn-sm btn-primary rounded-pill align-self-start px-3">Anmelden</a>
+                    <a href="{% url 'site_kit:event_registration' %}?event={{ pitem.events.0.event.id }}" class="btn btn-sm btn-primary rounded-pill align-self-start px-3">Anmelden</a>
                     {% endif %}
                 </div>
             </article>

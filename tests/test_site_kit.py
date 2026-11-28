@@ -1265,10 +1265,21 @@ class SiteKitTests(TestCase):
         self.assertContains(res, "ps-0 pe-3 pe-md-4")
 
     def test_annual_program_block_defaults_and_options(self):
-        from cal_kit.models import OfferingTemplate, Program
+        from datetime import timedelta
+        from django.utils import timezone
+        from cal_kit.models import CalendarEvent, OfferingTemplate, Program
 
         prog, _ = Program.objects.get_or_create(slug="jahresprogramm", defaults={"title": "Jahresprogramm", "is_public": True})
-        OfferingTemplate.objects.create(user=self.staff, title="Aquarellkurs Blocktest", program=prog, show_in_program=True, is_active=True)
+        tpl = OfferingTemplate.objects.create(user=self.staff, title="Aquarellkurs Blocktest", program=prog, show_in_program=True, is_active=True)
+        CalendarEvent.objects.create(
+            user=self.staff,
+            offering_template=tpl,
+            title="Aquarellkurs Blocktest",
+            start_at=timezone.now() + timedelta(days=10),
+            end_at=timezone.now() + timedelta(days=10, hours=2),
+            is_public=True,
+            allow_registration=True,
+        )
 
         p = PublicPage.objects.create(title="StartProgTest", is_published=True)
         blk = PageBlock.objects.create(page=p, block_type="annual_program", title="Unser Programm", config_json={})
