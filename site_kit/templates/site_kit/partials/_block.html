@@ -182,18 +182,21 @@
             {% for n in item.list_items %}
             <div class="{% if item.news_layout == 'carousel' %}site-card-carousel-item{% else %}col-12 col-md-4{% endif %}">
                 <div class="card shadow-sm h-100 overflow-hidden position-relative">
+                    {% with pos=item.block.image_position|default:'top-center' %}
+                    <div class="d-flex h-100 {% if pos == 'middle-left' or pos == 'left' %}flex-row align-items-stretch{% elif pos == 'middle-right' or pos == 'right' %}flex-row-reverse align-items-stretch{% elif 'bottom' in pos %}flex-column-reverse{% else %}flex-column{% endif %}">
                     {% if item.show_news_images %}
                     {% with first_img=n.images.first %}
-                    {% if n.cover_image %}
-                    <img src="{{ n.cover_image.url }}" alt="{{ n.title }}" class="card-img-top {% if item.news_image_fit == 'cover' %}object-fit-cover{% else %}object-fit-contain bg-body-tertiary{% endif %}" style="{% if item.news_image_fit == 'cover' %}height: 180px;{% else %}max-height: 220px;{% endif %} width: 100%;">
-                    {% elif first_img %}
-                    <img src="{{ first_img.image.url }}" alt="{{ n.title }}" class="card-img-top {% if item.news_image_fit == 'cover' %}object-fit-cover{% else %}object-fit-contain bg-body-tertiary{% endif %}" style="{% if item.news_image_fit == 'cover' %}height: 180px;{% else %}max-height: 220px;{% endif %} width: 100%;">
-                    {% elif n.image_url %}
-                    <img src="{{ n.image_url }}" alt="{{ n.title }}" class="card-img-top {% if item.news_image_fit == 'cover' %}object-fit-cover{% else %}object-fit-contain bg-body-tertiary{% endif %}" style="{% if item.news_image_fit == 'cover' %}height: 180px;{% else %}max-height: 220px;{% endif %} width: 100%;">
+                    {% if n.cover_image or first_img or n.image_url %}
+                    <div class="flex-shrink-0 {% if pos == 'middle-left' or pos == 'left' or pos == 'middle-right' or pos == 'right' %}p-2 d-flex align-items-center{% endif %}"
+                         {% if pos == 'middle-left' or pos == 'left' or pos == 'middle-right' or pos == 'right' %}style="width: {% if item.image_size == 'sm' %}84px{% elif item.image_size == 'lg' %}170px{% elif item.image_size == 'xl' %}220px{% else %}128px{% endif %};"{% endif %}>
+                        <img src="{% if n.cover_image %}{{ n.cover_image.url }}{% elif first_img %}{{ first_img.image.url }}{% else %}{{ n.image_url }}{% endif %}" alt="{{ n.title }}"
+                             class="{% if pos != 'middle-left' and pos != 'left' and pos != 'middle-right' and pos != 'right' %}card-img-top w-100{% else %}w-100{% endif %} {% if item.news_image_fit == 'cover' %}object-fit-cover{% else %}object-fit-contain bg-body-tertiary{% endif %} {% if item.block.image_shape == 'circle' %}rounded-circle{% elif item.block.image_shape == 'square' %}rounded-0{% else %}rounded-3{% endif %}"
+                             style="{% if pos != 'middle-left' and pos != 'left' and pos != 'middle-right' and pos != 'right' %}{% if item.news_image_fit == 'cover' %}height: {% if item.image_size == 'sm' %}120px{% elif item.image_size == 'lg' %}240px{% elif item.image_size == 'xl' %}320px{% else %}180px{% endif %};{% else %}max-height: {% if item.image_size == 'sm' %}130px{% elif item.image_size == 'lg' %}260px{% elif item.image_size == 'xl' %}340px{% else %}200px{% endif %};{% endif %}{% else %}max-height: {% if item.image_size == 'sm' %}84px{% elif item.image_size == 'lg' %}170px{% elif item.image_size == 'xl' %}220px{% else %}128px{% endif %};{% endif %}{% if item.block.image_aspect == 'landscape' %}aspect-ratio:16/9;{% elif item.block.image_aspect == 'portrait' %}aspect-ratio:3/4;{% elif item.block.image_aspect == 'square' or item.block.image_shape == 'circle' %}aspect-ratio:1/1;{% endif %}">
+                    </div>
                     {% endif %}
                     {% endwith %}
                     {% endif %}
-                    <div class="card-body p-3 d-flex flex-column justify-content-between gap-2">
+                    <div class="card-body p-3 d-flex flex-column justify-content-between gap-2 flex-grow-1 min-w-0">
                         <div>
                             <div class="fw-bold mb-1"><a href="{% url 'site_kit:collection_entry_detail' n.id %}" class="text-decoration-none text-reset {% if item.news_density != 'compact' %}stretched-link{% endif %}">{{ n.title }}</a></div>
                             {% if item.news_density == 'compact' %}
@@ -207,6 +210,8 @@
                             <a href="{% url 'site_kit:collection_entry_detail' n.id %}" class="btn btn-sm btn-outline-primary rounded-pill px-3 position-relative z-1">Details ansehen &rarr;</a>
                         </div>
                     </div>
+                    </div>
+                    {% endwith %}
                 </div>
             </div>
             {% empty %}

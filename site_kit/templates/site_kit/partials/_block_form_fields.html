@@ -211,14 +211,23 @@
             <option value="single_line" {% if b and b.config_json.news_density == 'single_line' %}selected{% endif %}>Einzeilig</option>
         </select>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <label class="form-label small mb-1">Bild-Anpassung</label>
         <select name="news_image_fit" class="form-select form-select-sm">
             <option value="contain" {% if not b or b.config_json.news_image_fit == 'contain' or not b.config_json.news_image_fit %}selected{% endif %}>Komplett (unbeschnitten)</option>
             <option value="cover" {% if b and b.config_json.news_image_fit == 'cover' %}selected{% endif %}>Zugeschnitten (gleich hoch)</option>
         </select>
     </div>
-    <div class="col-md-2">
+    <div class="col-md-3">
+        <label class="form-label small mb-1">Bildgröße</label>
+        <select name="image_size" class="form-select form-select-sm">
+            <option value="sm" {% if b and b.config_json.image_size == 'sm' %}selected{% endif %}>Klein</option>
+            <option value="md" {% if not b or b.config_json.image_size == 'md' or not b.config_json.image_size %}selected{% endif %}>Mittel</option>
+            <option value="lg" {% if b and b.config_json.image_size == 'lg' %}selected{% endif %}>Groß</option>
+            <option value="xl" {% if b and b.config_json.image_size == 'xl' %}selected{% endif %}>Sehr groß</option>
+        </select>
+    </div>
+    <div class="col-md-12 col-lg-2">
         <label class="form-label small mb-1">Max. Einträge</label>
         <input type="number" name="limit" min="1" max="100" value="{% if b %}{{ b.config_json.limit|default:6 }}{% else %}6{% endif %}" class="form-control form-control-sm">
     </div>

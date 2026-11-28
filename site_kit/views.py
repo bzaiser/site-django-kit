@@ -465,6 +465,8 @@ def _resolve_block_data(block: PageBlock, request=None) -> dict:
         data["show_news_images"] = cfg.get("show_news_images", True)
         nif = (cfg.get("news_image_fit") or "contain").strip()
         data["news_image_fit"] = nif if nif in ("contain", "cover") else "contain"
+        isz = (cfg.get("image_size") or "md").strip()
+        data["image_size"] = isz if isz in ("sm", "md", "lg", "xl") else "md"
 
     elif block.block_type == "collection_list" and apps.is_installed("list_kit"):
         try:
@@ -519,6 +521,8 @@ def _resolve_block_data(block: PageBlock, request=None) -> dict:
         data["show_news_images"] = cfg.get("show_news_images", True)
         nif = (cfg.get("news_image_fit") or "contain").strip()
         data["news_image_fit"] = nif if nif in ("contain", "cover") else "contain"
+        isz = (cfg.get("image_size") or "md").strip()
+        data["image_size"] = isz if isz in ("sm", "md", "lg", "xl") else "md"
 
     elif block.block_type == "faq_list" and apps.is_installed("list_kit"):
         try:
@@ -2100,6 +2104,9 @@ def _parse_block_layout_config(request, existing_cfg=None) -> dict:
         cfg["collection_sort"] = cs if cs in ("position", "title", "created_desc", "created_asc", "status") else "position"
     if "collection_category" in request.POST:
         cfg["collection_category"] = (request.POST.get("collection_category") or "").strip()[:60]
+    if "image_size" in request.POST:
+        isz = (request.POST.get("image_size") or "md").strip()
+        cfg["image_size"] = isz if isz in ("sm", "md", "lg", "xl") else "md"
     if "calendar_category" in request.POST:
         cfg["calendar_category"] = (request.POST.get("calendar_category") or "").strip()[:20]
     if "limit" in request.POST:
