@@ -1314,6 +1314,32 @@ class SiteKitTests(TestCase):
         self.assertContains(res2, "Aquarellkurs Blocktest")
         self.assertContains(res2, "Alle Angebote ansehen")
 
+    def test_collection_list_block_sort_and_category_filter(self):
+        from domain_kit.models import Category
+        from list_kit.models import Collection, Entry, ListTemplate
+
+        cat1 = Category.objects.create(name="Malerei", code="MAL", purpose="list")
+        cat2 = Category.objects.create(name="Plastik", code="PLA", purpose="list")
+        tpl = ListTemplate.objects.create(name="ThemenSort", slug="themen-sort", content_type="list", use_category=True, use_position=True)
+        col = Collection.objects.create(title="ThemenSortCol", slug="themen-sort-col", template=tpl, owner=self.staff, is_public=True)
+        Entry.objects.create(collection=col, title="Zebra", visibility="public", category_id=cat1.id, category_label=cat1.name, position=10)
+        Entry.objects.create(collection=col, title="Ahorn", visibility="public", category_id=cat1.id, category_label=cat1.name, position=20)
+        Entry.objects.create(collection=col, title="Beton", visibility="public", category_id=cat2.id, category_label=cat2.name, position=30)
+
+        p = PublicPage.objects.create(title="ColSortPage", is_published=True)
+        PageBlock.objects.create(
+            page=p,
+            block_type="collection_list",
+            title="Sortiert",
+            config_json={"collection_slug": col.slug, "collection_sort": "title", "collection_category": str(cat1.id)},
+        )
+        res = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        html = res.content.decode()
+        self.assertIn("Ahorn", html)
+        self.assertIn("Zebra", html)
+        self.assertNotIn("Beton", html)
+        self.assertLess(html.index("Ahorn"), html.index("Zebra"))
+
 
 if __name__ == "__main__":
     import unittest

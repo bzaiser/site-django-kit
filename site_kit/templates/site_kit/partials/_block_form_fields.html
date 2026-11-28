@@ -167,12 +167,31 @@
 <div class="row g-2" {% if not b %}data-add-section="news_feed,collection_list"{% endif %}>
     <input type="hidden" name="news_options_present" value="1">
     {% if not b or b.block_type == 'collection_list' %}
-    <div class="col-12" {% if not b %}data-add-section="collection_list"{% endif %}>
+    <div class="col-md-6" {% if not b %}data-add-section="collection_list"{% endif %}>
         <label class="form-label small mb-1">Liste / Sammlung wählen</label>
         <select name="collection_slug" class="form-select form-select-sm">
             <option value="">— Bitte wählen —</option>
             {% for lc in public_list_collections %}
             <option value="{{ lc.slug }}" {% if b and b.config_json.collection_slug == lc.slug %}selected{% endif %}>{{ lc.title }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3" {% if not b %}data-add-section="collection_list"{% endif %}>
+        <label class="form-label small mb-1">Sortiert nach</label>
+        <select name="collection_sort" class="form-select form-select-sm">
+            <option value="position" {% if not b or b.config_json.collection_sort == 'position' or not b.config_json.collection_sort %}selected{% endif %}>Position (Standard)</option>
+            <option value="title" {% if b and b.config_json.collection_sort == 'title' %}selected{% endif %}>Titel (A–Z)</option>
+            <option value="created_desc" {% if b and b.config_json.collection_sort == 'created_desc' %}selected{% endif %}>Neueste zuerst</option>
+            <option value="created_asc" {% if b and b.config_json.collection_sort == 'created_asc' %}selected{% endif %}>Älteste zuerst</option>
+            <option value="status" {% if b and b.config_json.collection_sort == 'status' %}selected{% endif %}>Status</option>
+        </select>
+    </div>
+    <div class="col-md-3" {% if not b %}data-add-section="collection_list"{% endif %}>
+        <label class="form-label small mb-1">Kategorie (optional)</label>
+        <select name="collection_category" class="form-select form-select-sm">
+            <option value="">Alle Kategorien</option>
+            {% for dlc in domain_list_categories %}
+            <option value="{{ dlc.id }}" {% if b and b.config_json.collection_category == dlc.id|stringformat:'s' %}selected{% endif %}>{{ dlc.name }}</option>
             {% endfor %}
         </select>
     </div>

@@ -481,12 +481,27 @@ def _resolve_block_data(block: PageBlock, request=None) -> dict:
                 )
             data["list_collection"] = col_obj
             if col_obj is not None:
-                entries = list(
+                from django.db.models import Q as _Q
+                entries_qs = (
                     col_obj.entries.exclude(visibility="private")
                     .select_related("collection", "collection__template")
                     .prefetch_related("images")
-                    .order_by("position", "-created_at")[:limit]
                 )
+                ccat = (cfg.get("collection_category") or "").strip()
+                if ccat:
+                    if ccat.isdigit():
+                        entries_qs = entries_qs.filter(category_id=int(ccat))
+                    else:
+                        entries_qs = entries_qs.filter(_Q(category_label__iexact=ccat))
+                csort = (cfg.get("collection_sort") or "position").strip()
+                csort_map = {
+                    "position": ("-is_pinned", "position", "-created_at"),
+                    "title": ("-is_pinned", "title", "-created_at"),
+                    "created_desc": ("-is_pinned", "-created_at"),
+                    "created_asc": ("-is_pinned", "created_at"),
+                    "status": ("-is_pinned", "status", "position", "-created_at"),
+                }
+                entries = list(entries_qs.order_by(*csort_map.get(csort, csort_map["position"]))[:limit])
                 entries = _attach_news_preview_html(entries)
                 for ne in entries:
                     ne.short_text = " ".join(strip_tags(getattr(ne, "preview_html", "") or getattr(ne, "notes", "") or "").split())
@@ -2080,6 +2095,11 @@ def _parse_block_layout_config(request, existing_cfg=None) -> dict:
         cfg["category_filter"] = ", ".join(c_vals)[:60]
     if "collection_slug" in request.POST:
         cfg["collection_slug"] = (request.POST.get("collection_slug") or "").strip()[:80]
+    if "collection_sort" in request.POST:
+        cs = (request.POST.get("collection_sort") or "position").strip()
+        cfg["collection_sort"] = cs if cs in ("position", "title", "created_desc", "created_asc", "status") else "position"
+    if "collection_category" in request.POST:
+        cfg["collection_category"] = (request.POST.get("collection_category") or "").strip()[:60]
     if "calendar_category" in request.POST:
         cfg["calendar_category"] = (request.POST.get("calendar_category") or "").strip()[:20]
     if "limit" in request.POST:
@@ -2609,12 +2629,16 @@ def page_edit_view(request, pk):
     ]
     domain_roles = []
     domain_person_categories = []
+    domain_list_categories = []
     if apps.is_installed("domain_kit"):
         try:
             from domain_kit.models import Category, Role
             domain_roles = list(Role.objects.order_by("position", "name").values_list("name", flat=True))
             domain_person_categories = list(
                 Category.for_purpose("person", "general").values_list("name", flat=True)
+            )
+            domain_list_categories = list(
+                Category.for_purpose("list", "general").values("id", "name")
             )
         except Exception:
             pass
@@ -2721,6 +2745,7 @@ def page_edit_view(request, pk):
         "is_admin": is_admin,
         "domain_roles": domain_roles,
         "domain_person_categories": domain_person_categories,
+        "domain_list_categories": domain_list_categories,
         "cal_categories": cal_categories,
         "program_options": program_options,
         "form_collections": form_collections,
