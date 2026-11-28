@@ -49,6 +49,8 @@ class SiteConfig(models.Model):
     events_group_by_category = models.BooleanField(default=True)
     program_card_mode = models.CharField(max_length=24, default="equal_max")
     program_hub_layout = models.CharField(max_length=24, choices=PROGRAM_HUB_LAYOUT_CHOICES, default="cards_large")
+    website_theme_locked = models.BooleanField(default=False)
+    website_theme_json = models.JSONField(default=dict, blank=True)
 
     @classmethod
     def get_solo(cls):

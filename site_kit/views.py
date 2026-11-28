@@ -183,6 +183,9 @@ def _build_web_menu_items(cfg: SiteConfig, nav_pages, show_news: bool, show_even
         "align": align if align in ("left", "center", "right") else "left",
         "active_style": active_style if active_style in ("pill", "underline", "bold") else "pill",
         "overflow_mode": overflow_mode if overflow_mode in ("wrap", "auto_more", "single") else "wrap",
+        "show_logo": bool(nav_cfg.get("show_logo", True)),
+        "show_site_name": bool(nav_cfg.get("show_site_name", True)),
+        "brand_title": str(nav_cfg.get("brand_title") or "").strip()[:80],
     }
     return resolved, style_cfg
 
@@ -240,6 +243,9 @@ def save_web_menu_config(payload: dict) -> None:
         "align": align if align in ("left", "center", "right") else "left",
         "active_style": active_style if active_style in ("pill", "underline", "bold") else "pill",
         "overflow_mode": overflow_mode if overflow_mode in ("wrap", "auto_more", "single") else "wrap",
+        "show_logo": bool(payload.get("show_logo", True)),
+        "show_site_name": bool(payload.get("show_site_name", True)),
+        "brand_title": str(payload.get("brand_title") or "").strip()[:80],
         "items": clean_items,
     }
     home_ov = clean_items.get("home")
@@ -256,6 +262,7 @@ def save_web_menu_config(payload: dict) -> None:
 
 
 def _public_base_context(request, page: PublicPage | None = None) -> dict:
+    request._ds_is_public_website = True
     cfg = SiteConfig.get_solo()
     nav_pages = list(PublicPage.objects.filter(is_published=True, show_in_nav=True))
     nav_keys = {p.slug.lower() for p in nav_pages if not p.is_home} | {

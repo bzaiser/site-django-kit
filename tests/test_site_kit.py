@@ -1189,6 +1189,56 @@ class SiteKitTests(TestCase):
         self.assertContains(ed, 'name="news_layout"')
         self.assertContains(ed, 'name="limit"')
 
+    def test_separate_locked_website_theme_independent_from_admin_app_theme(self):
+        from site_kit.models import SiteConfig
+
+        self.client.force_login(self.staff)
+        # 1. Set admin app theme to #118844 and lock it for the public website
+        self.client.post(reverse("design_studio:save"), {"gradient_start": "#118844", "gradient_end": "#0d6efd", "theme_mood": "modern"})
+        r_lock = self.client.post(reverse("design_studio:website_theme_action"), {"website_theme_action": "lock"})
+        self.assertEqual(r_lock.status_code, 302)
+        sc = SiteConfig.get_solo()
+        self.assertTrue(sc.website_theme_locked)
+
+        # 2. Change admin app theme to #cc2255
+        self.client.post(reverse("design_studio:save"), {"gradient_start": "#cc2255", "gradient_end": "#0d6efd", "theme_mood": "modern"})
+        self.client.logout()
+
+        # Public website still renders locked #118844, not #cc2255
+        p = PublicPage.objects.create(title="ThemeLock", is_published=True)
+        pub_locked = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(pub_locked, "--bs-primary: #118844")
+        self.assertNotContains(pub_locked, "--bs-primary: #cc2255")
+
+        # 3. Unlock -> public website follows admin app theme #cc2255 again
+        self.client.force_login(self.staff)
+        self.client.post(reverse("design_studio:website_theme_action"), {"website_theme_action": "unlock"})
+        self.client.logout()
+        pub_unlocked = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(pub_unlocked, "--bs-primary: #cc2255")
+
+    def test_web_menu_brand_decoupling_logo_and_site_name(self):
+        from site_kit.models import SiteConfig
+        from site_kit.views import save_web_menu_config
+
+        cfg = SiteConfig.get_solo()
+        cfg.site_name = "Kunstverein Musterstadt"
+        cfg.save()
+        p = PublicPage.objects.create(title="BrandTest", is_published=True)
+
+        # Hide site name in navbar, keep logo; <title> and footer still keep site_name
+        save_web_menu_config({"show_logo": True, "show_site_name": False, "brand_title": "", "items": {}})
+        res_no_name = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertNotContains(res_no_name, '<span class="brand-text">')
+        self.assertContains(res_no_name, "bi-shield-check")
+        self.assertContains(res_no_name, "<title>BrandTest – Kunstverein Musterstadt</title>")
+
+        # Custom brand_title + hide logo
+        save_web_menu_config({"show_logo": False, "show_site_name": True, "brand_title": "KV Kurz", "items": {}})
+        res_custom = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(res_custom, '<span class="brand-text">KV Kurz</span>')
+        self.assertNotContains(res_custom, "bi-shield-check")
+
 
 if __name__ == "__main__":
     import unittest

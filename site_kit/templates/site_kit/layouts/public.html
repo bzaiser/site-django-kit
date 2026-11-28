@@ -196,10 +196,16 @@ body[data-menu-style="gradient"] .app-navbar .site-nav-logout {
 {% block navbar %}
 <nav class="navbar navbar-expand-lg app-navbar mb-4 {% if public_web_menu_style.style and public_web_menu_style.style != 'inherit' %}site-webnav-style-{{ public_web_menu_style.style }}{% endif %} {% if public_web_menu_style.active_style %}site-webnav-active-{{ public_web_menu_style.active_style }}{% endif %}">
     <div class="container-fluid px-3 px-md-4">
+        {% if public_web_menu_style.show_logo|default_if_none:True or public_web_menu_style.show_site_name|default_if_none:True %}
         <a href="{% url 'site_kit:home' %}" class="navbar-brand d-flex align-items-center gap-2">
-            {% if site_cfg.resolved_logo_url %}<img src="{{ site_cfg.resolved_logo_url }}" alt="{{ site_cfg.site_name }}" height="32" class="rounded-2 object-fit-contain">{% else %}<i class="bi bi-shield-check text-primary"></i>{% endif %}
-            <span class="brand-text">{{ site_cfg.site_name }}</span>
+            {% if public_web_menu_style.show_logo|default_if_none:True %}
+                {% if site_cfg.resolved_logo_url %}<img src="{{ site_cfg.resolved_logo_url }}" alt="{{ site_cfg.site_name }}" height="32" class="rounded-2 object-fit-contain">{% else %}<i class="bi bi-shield-check text-primary"></i>{% endif %}
+            {% endif %}
+            {% if public_web_menu_style.show_site_name|default_if_none:True %}
+                <span class="brand-text">{{ public_web_menu_style.brand_title|default:site_cfg.site_name }}</span>
+            {% endif %}
         </a>
+        {% endif %}
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#publicNavbarContent" aria-controls="publicNavbarContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
