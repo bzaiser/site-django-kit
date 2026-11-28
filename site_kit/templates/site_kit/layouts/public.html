@@ -190,16 +190,44 @@ body[data-menu-style="gradient"] .app-navbar .site-nav-logout {
 .site-webnav-style-gradient.site-webnav-active-bold .nav-link.active {
     color: #ffffff !important;
 }
+.site-logo-img {
+    width: auto;
+    max-width: min(260px, 55vw);
+    object-fit: contain;
+}
+.site-logo-sm { height: 32px; }
+.site-logo-md { height: 44px; }
+.site-logo-lg { height: 56px; }
+.site-logo-xl { height: 72px; }
+.site-webnav-pad-compact {
+    --bs-navbar-padding-y: 0.2rem;
+    --bs-navbar-brand-padding-y: 0.1rem;
+}
+.site-webnav-pad-flush,
+.site-webnav-pad-flush_edge {
+    --bs-navbar-padding-y: 0;
+    --bs-navbar-brand-padding-y: 0;
+}
+.site-webnav-pad-flush .navbar-brand,
+.site-webnav-pad-flush_edge .navbar-brand {
+    margin-top: 0;
+    margin-bottom: 0;
+}
 </style>
 {% endblock %}
 
 {% block navbar %}
-<nav class="navbar navbar-expand-lg app-navbar mb-4 {% if public_web_menu_style.style and public_web_menu_style.style != 'inherit' %}site-webnav-style-{{ public_web_menu_style.style }}{% endif %} {% if public_web_menu_style.active_style %}site-webnav-active-{{ public_web_menu_style.active_style }}{% endif %}">
-    <div class="container-fluid px-3 px-md-4">
+<nav class="navbar navbar-expand-lg app-navbar mb-4 {% if public_web_menu_style.style and public_web_menu_style.style != 'inherit' %}site-webnav-style-{{ public_web_menu_style.style }}{% endif %} {% if public_web_menu_style.active_style %}site-webnav-active-{{ public_web_menu_style.active_style }}{% endif %} {% if public_web_menu_style.nav_padding and public_web_menu_style.nav_padding != 'normal' %}site-webnav-pad-{{ public_web_menu_style.nav_padding }}{% endif %}">
+    <div class="container-fluid {% if public_web_menu_style.nav_padding == 'flush_edge' %}ps-0 pe-3 pe-md-4{% else %}px-3 px-md-4{% endif %}">
         {% if public_web_menu_style.show_logo|default_if_none:True or public_web_menu_style.show_site_name|default_if_none:True %}
         <a href="{% url 'site_kit:home' %}" class="navbar-brand d-flex align-items-center gap-2">
             {% if public_web_menu_style.show_logo|default_if_none:True %}
-                {% if site_cfg.resolved_logo_url %}<img src="{{ site_cfg.resolved_logo_url }}" alt="{{ site_cfg.site_name }}" height="32" class="rounded-2 object-fit-contain">{% else %}<i class="bi bi-shield-check text-primary"></i>{% endif %}
+                {% if site_cfg.resolved_logo_url %}
+                <img src="{{ site_cfg.resolved_logo_url }}" alt="{{ site_cfg.site_name }}"
+                     class="site-logo-img site-logo-{{ public_web_menu_style.logo_size|default:'sm' }} {% if public_web_menu_style.logo_shape == 'square' %}rounded-0{% elif public_web_menu_style.logo_shape == 'circle' %}rounded-circle{% elif public_web_menu_style.logo_shape == 'pill' %}rounded-pill{% else %}rounded-2{% endif %} {% if public_web_menu_style.logo_bg == 'light_badge' %}bg-white p-1 shadow-sm{% elif public_web_menu_style.logo_bg == 'glass_badge' %}bg-body-tertiary bg-opacity-75 p-1 border{% endif %}">
+                {% else %}
+                <i class="bi bi-shield-check text-primary"></i>
+                {% endif %}
             {% endif %}
             {% if public_web_menu_style.show_site_name|default_if_none:True %}
                 <span class="brand-text">{{ public_web_menu_style.brand_title|default:site_cfg.site_name }}</span>

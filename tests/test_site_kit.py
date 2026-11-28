@@ -1239,6 +1239,31 @@ class SiteKitTests(TestCase):
         self.assertContains(res_custom, '<span class="brand-text">KV Kurz</span>')
         self.assertNotContains(res_custom, "bi-shield-check")
 
+    def test_web_menu_logo_variations_and_nav_padding(self):
+        from site_kit.models import SiteConfig
+        from site_kit.views import save_web_menu_config
+
+        cfg = SiteConfig.get_solo()
+        cfg.logo_url = "https://example.com/logo.png"
+        cfg.save()
+        p = PublicPage.objects.create(title="LogoVar", is_published=True)
+
+        save_web_menu_config({
+            "show_logo": True,
+            "show_site_name": False,
+            "logo_size": "lg",
+            "logo_shape": "square",
+            "logo_bg": "light_badge",
+            "nav_padding": "flush_edge",
+            "items": {},
+        })
+        res = self.client.get(reverse("site_kit:page_detail", args=[p.slug]))
+        self.assertContains(res, "site-logo-lg")
+        self.assertContains(res, "rounded-0")
+        self.assertContains(res, "bg-white p-1 shadow-sm")
+        self.assertContains(res, "site-webnav-pad-flush_edge")
+        self.assertContains(res, "ps-0 pe-3 pe-md-4")
+
 
 if __name__ == "__main__":
     import unittest

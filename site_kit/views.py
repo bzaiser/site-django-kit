@@ -178,6 +178,10 @@ def _build_web_menu_items(cfg: SiteConfig, nav_pages, show_news: bool, show_even
     align = (nav_cfg.get("align") or "left").strip()
     active_style = (nav_cfg.get("active_style") or "pill").strip()
     overflow_mode = (nav_cfg.get("overflow_mode") or "wrap").strip()
+    logo_size = (nav_cfg.get("logo_size") or "sm").strip()
+    logo_shape = (nav_cfg.get("logo_shape") or "rounded").strip()
+    logo_bg = (nav_cfg.get("logo_bg") or "none").strip()
+    nav_padding = (nav_cfg.get("nav_padding") or "normal").strip()
     style_cfg = {
         "style": style if style in ("inherit", "glass", "gradient", "flat", "solid") else "inherit",
         "align": align if align in ("left", "center", "right") else "left",
@@ -186,6 +190,10 @@ def _build_web_menu_items(cfg: SiteConfig, nav_pages, show_news: bool, show_even
         "show_logo": bool(nav_cfg.get("show_logo", True)),
         "show_site_name": bool(nav_cfg.get("show_site_name", True)),
         "brand_title": str(nav_cfg.get("brand_title") or "").strip()[:80],
+        "logo_size": logo_size if logo_size in ("sm", "md", "lg", "xl") else "sm",
+        "logo_shape": logo_shape if logo_shape in ("rounded", "square", "circle", "pill") else "rounded",
+        "logo_bg": logo_bg if logo_bg in ("none", "light_badge", "glass_badge") else "none",
+        "nav_padding": nav_padding if nav_padding in ("normal", "compact", "flush", "flush_edge") else "normal",
     }
     return resolved, style_cfg
 
@@ -238,6 +246,10 @@ def save_web_menu_config(payload: dict) -> None:
             "visible": bool(val.get("visible", True)),
             "order": int(val.get("order") or 0),
         }
+    logo_size = (payload.get("logo_size") or "sm").strip()
+    logo_shape = (payload.get("logo_shape") or "rounded").strip()
+    logo_bg = (payload.get("logo_bg") or "none").strip()
+    nav_padding = (payload.get("nav_padding") or "normal").strip()
     cfg.nav_config_json = {
         "style": style if style in ("inherit", "glass", "gradient", "flat", "solid") else "inherit",
         "align": align if align in ("left", "center", "right") else "left",
@@ -246,6 +258,10 @@ def save_web_menu_config(payload: dict) -> None:
         "show_logo": bool(payload.get("show_logo", True)),
         "show_site_name": bool(payload.get("show_site_name", True)),
         "brand_title": str(payload.get("brand_title") or "").strip()[:80],
+        "logo_size": logo_size if logo_size in ("sm", "md", "lg", "xl") else "sm",
+        "logo_shape": logo_shape if logo_shape in ("rounded", "square", "circle", "pill") else "rounded",
+        "logo_bg": logo_bg if logo_bg in ("none", "light_badge", "glass_badge") else "none",
+        "nav_padding": nav_padding if nav_padding in ("normal", "compact", "flush", "flush_edge") else "normal",
         "items": clean_items,
     }
     home_ov = clean_items.get("home")
